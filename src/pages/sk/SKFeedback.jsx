@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import Badge from '../../components/ui/Badge';
-import { MessageSquare, Phone, Calendar, Image as ImageIcon, UserCheck, Sparkles } from 'lucide-react';
+import { MessageSquare, Phone, Calendar, Image as ImageIcon, UserCheck } from 'lucide-react';
 
 const STATUSES = ['new', 'in_review', 'resolved', 'closed'];
 
@@ -55,7 +55,7 @@ export default function SKFeedback() {
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-civic-navy flex items-center gap-3">
-          <Sparkles className="w-8 h-8 text-emerald-500" /> SK Community Feedback
+          <MessageSquare className="w-8 h-8 text-emerald-500" /> SK Community Feedback
         </h1>
         <p className="text-slate-600 text-sm mt-1">
           Feedback and concerns submitted directly to the Sangguniang Kabataan by community members.
@@ -95,7 +95,7 @@ export default function SKFeedback() {
         {loading && <p className="text-slate-400 text-center py-8">Loading SK feedback entries…</p>}
         {!loading && filteredRows.length === 0 && (
           <div className="card text-center py-12 text-slate-500">
-            <Sparkles className="w-10 h-10 mx-auto text-slate-300 mb-2" />
+            <MessageSquare className="w-10 h-10 mx-auto text-slate-300 mb-2" />
             No SK feedback found for this filter.
           </div>
         )}

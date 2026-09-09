@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
-import { Bot, Send, Key, Sparkles, Copy, Check, Database, RefreshCw, FileText, HelpCircle, TrendingUp, Award } from 'lucide-react';
+import { Bot, Send, Key, Copy, Check, Database, RefreshCw, FileText, HelpCircle, TrendingUp, Award } from 'lucide-react';
 
 const MODES = [
   { id: 'report_draft', label: 'Draft Report', icon: FileText, placeholder: 'e.g. Draft a quarterly accomplishment summary for the health program covering Jan–Mar, 320 beneficiaries, ₱85,000 spent.' },
@@ -223,7 +223,7 @@ export default function AIAssistant() {
           {messages.length === 0 && (
             <div className="text-center py-12 space-y-3">
               <div className="w-12 h-12 rounded-full bg-emerald-50 text-civic-emerald mx-auto flex items-center justify-center border border-emerald-100">
-                <Sparkles className="w-6 h-6 animate-pulse" />
+                <FileText className="w-6 h-6" />
               </div>
               <h3 className="font-bold text-civic-navy text-base">{activeMode.label} Mode Active</h3>
               <p className="text-slate-500 text-xs max-w-md mx-auto">{activeMode.placeholder}</p>
@@ -257,7 +257,7 @@ export default function AIAssistant() {
 
           {sending && (
             <div className="bg-slate-50 text-slate-500 p-4 rounded-xl text-xs italic flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-civic-emerald animate-spin" /> Groq AI is generating report response…
+                <span className="w-1.5 h-1.5 rounded-full bg-civic-emerald" /> Groq AI is generating report response…
             </div>
           )}
         </div>

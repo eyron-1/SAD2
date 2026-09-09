@@ -54,39 +54,93 @@ export default function PublicOverview() {
 
       <ErrorBanner message={e1 || e2 || e3 || e4 || e5 || e6 || e7} />
 
-      {/* KPI Cards */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="card space-y-1 hover:border-slate-300 transition-all">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <PieChart className="w-4 h-4 text-civic-emerald" /> Barangay Budget Allocated
-          </span>
-          <p className="text-2xl font-extrabold text-civic-navy">
-            ₱{totalBudget.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-          </p>
+      {/* Financial Summary */}
+      <section className="space-y-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-civic-emerald">Financial Summary</p>
+          <h2 className="text-xl font-bold text-civic-navy mt-1">Published records at a glance</h2>
+          <p className="text-sm text-slate-500 mt-1">The Barangay and SK figures are separated below so each amount has clear ownership.</p>
         </div>
 
-        <div className="card space-y-1 hover:border-slate-300 transition-all">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <DollarSign className="w-4 h-4 text-emerald-600" /> SK Funds Sourced
+        <div className="grid lg:grid-cols-2 gap-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 space-y-3">
+            <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+              <Building2 className="w-5 h-5 text-civic-navy" />
+              <h3 className="font-bold text-civic-navy">Barangay Government</h3>
+            </div>
+            <div className="grid sm:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-slate-600">Budget allocated</span>
+                <p className="text-xl font-extrabold text-civic-navy tabular-nums">
+                  ₱{totalBudget.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-slate-600">Expenses recorded</span>
+                <p className="text-xl font-extrabold text-civic-navy tabular-nums">
+                  ₱{totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-slate-600">Ongoing programs</span>
+                <p className="text-xl font-extrabold text-civic-navy tabular-nums">{ongoingPrograms}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 space-y-3">
+            <div className="flex items-center gap-2 border-b border-emerald-200/70 pb-3">
+              <Users className="w-5 h-5 text-emerald-700" />
+              <h3 className="font-bold text-emerald-900">Sangguniang Kabataan (SK)</h3>
+            </div>
+            <div className="grid sm:grid-cols-3 gap-4">
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-emerald-800">Funds sourced</span>
+                <p className="text-xl font-extrabold text-emerald-900 tabular-nums">
+                  ₱{totalSkFunds.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-emerald-800">Budget allocated</span>
+                <p className="text-xl font-extrabold text-emerald-900 tabular-nums">
+                  ₱{totalSkBudget.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-emerald-800">Expenses recorded</span>
+                <p className="text-xl font-extrabold text-emerald-900 tabular-nums">
+                  ₱{totalSkExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Public Metrics */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="card min-h-32 border-slate-200 bg-white space-y-2 hover:border-civic-emerald/50 hover:shadow-sm transition-all">
+          <span className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-start gap-1.5 leading-5">
+            <FolderKanban className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" /> Published Barangay Programs
           </span>
-          <p className="text-2xl font-extrabold text-civic-navy">₱{totalSkFunds.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
-          <p className="text-xs text-slate-500">{skPrograms.length} SK program{skPrograms.length === 1 ? '' : 's'} published</p>
+          <p className="text-2xl font-extrabold text-civic-navy tabular-nums">{programs.length}</p>
+          <p className="text-xs text-slate-500">{ongoingPrograms} currently ongoing</p>
         </div>
 
-        <div className="card space-y-1 hover:border-slate-300 transition-all">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Receipt className="w-4 h-4 text-amber-600" /> Barangay Expenses
+        <div className="card min-h-32 border-emerald-200 bg-emerald-50/40 space-y-2 hover:border-emerald-300 hover:shadow-sm transition-all">
+          <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider flex items-start gap-1.5 leading-5">
+            <Users className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" /> Published SK Programs
           </span>
-          <p className="text-2xl font-extrabold text-civic-navy">
-            ₱{totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-          </p>
+          <p className="text-2xl font-extrabold text-emerald-900 tabular-nums">{skPrograms.length}</p>
+          <p className="text-xs text-emerald-800">Youth programs published by the SK</p>
         </div>
 
-        <div className="card space-y-1 hover:border-slate-300 transition-all">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <FolderKanban className="w-4 h-4 text-blue-600" /> Barangay Programs
+        <div className="card min-h-32 border-slate-200 bg-white space-y-2 hover:border-civic-emerald/50 hover:shadow-sm transition-all">
+          <span className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-start gap-1.5 leading-5">
+            <ShieldCheck className="w-4 h-4 text-civic-emerald shrink-0 mt-0.5" /> Public access
           </span>
-          <p className="text-2xl font-extrabold text-civic-navy">{ongoingPrograms} Ongoing</p>
+          <p className="text-2xl font-extrabold text-civic-navy">Open to residents</p>
+          <p className="text-xs text-slate-500">No account required to browse</p>
         </div>
       </div>
 
@@ -144,7 +198,7 @@ export default function PublicOverview() {
             to={`/b/${slug}/feedback`}
             className="p-5 rounded-xl border border-slate-200 hover:border-civic-emerald hover:bg-emerald-50/40 transition-all group flex items-start gap-4"
           >
-            <div className="p-3 bg-purple-100/60 text-purple-700 rounded-xl group-hover:scale-105 transition-transform">
+            <div className="p-3 bg-amber-100 text-amber-700 rounded-xl group-hover:scale-105 transition-transform">
               <MessageSquare className="w-6 h-6" />
             </div>
             <div>

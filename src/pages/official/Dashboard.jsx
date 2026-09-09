@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import { roleLabel } from '../../utils/roles';
 import ErrorBanner from '../../components/ui/ErrorBanner';
-import { PieChart, Receipt, FolderKanban, MessageSquare, ArrowUpRight, BarChart3, Bot, Users, Landmark, Building2, Sparkles } from 'lucide-react';
+import { PieChart, Receipt, FolderKanban, MessageSquare, ArrowUpRight, BarChart3, Bot, Users, Landmark, Building2 } from 'lucide-react';
 
 export default function Dashboard() {
   const { profile } = useAuth();
@@ -26,7 +26,7 @@ export default function Dashboard() {
       <div className="bg-civic-navy rounded-xl p-6 md:p-8 text-white shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-white/10 text-white text-xs font-semibold">
-            <Sparkles className="w-3.5 h-3.5" /> Official Executive Dashboard
+            Official Executive Dashboard
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-white">
             Welcome back, {profile?.full_name}

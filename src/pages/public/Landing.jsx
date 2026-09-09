@@ -13,7 +13,6 @@ import {
   MessageSquare,
   Users,
   MapPin,
-  Sparkles,
   Building2,
   ExternalLink,
   Receipt,
@@ -173,10 +172,7 @@ export default function Landing() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-b from-civic-navy via-slate-900 to-civic-dark text-white pt-16 pb-24 overflow-hidden">
-        {/* Subtle geometric background pattern */}
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#C9A24B_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
-
+      <section className="relative bg-civic-navy text-white pt-16 pb-24 overflow-hidden">
         <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
           {/* Official Tagline Badge */}
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 text-civic-gold border border-white/15 text-xs font-semibold backdrop-blur-xs animate-in fade-in slide-in-from-top-4 duration-300">
@@ -241,7 +237,7 @@ export default function Landing() {
             </div>
 
             <div className="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-xs text-center">
-              <p className="text-2xl sm:text-3xl font-bold text-purple-400 font-display">SK Hub</p>
+              <p className="text-2xl sm:text-3xl font-bold text-civic-gold font-display">SK Hub</p>
               <p className="text-xs text-slate-300 font-medium mt-1">Youth Governance</p>
             </div>
           </div>
@@ -379,9 +375,9 @@ export default function Landing() {
 
                   <Link
                     to={`/b/${b.slug}/feedback`}
-                    className="py-1.5 px-2 rounded-lg bg-slate-50 hover:bg-purple-50 text-slate-600 hover:text-purple-800 text-[11px] font-semibold transition-colors flex flex-col items-center gap-1"
+                    className="py-1.5 px-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-600 hover:text-civic-navy text-[11px] font-semibold transition-colors flex flex-col items-center gap-1"
                   >
-                    <MessageSquare className="w-3.5 h-3.5 text-purple-600" />
+                    <MessageSquare className="w-3.5 h-3.5 text-civic-navy" />
                     <span>Feedback</span>
                   </Link>
                 </div>
@@ -441,8 +437,8 @@ export default function Landing() {
 
             {/* Pillar 3 */}
             <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-4 hover:shadow-card-hover transition-all">
-              <div className="w-12 h-12 rounded-xl bg-purple-100 text-purple-800 flex items-center justify-center">
-                <MessageSquare className="w-6 h-6 text-purple-600" />
+              <div className="w-12 h-12 rounded-xl bg-slate-200 text-civic-navy flex items-center justify-center">
+                <MessageSquare className="w-6 h-6 text-civic-navy" />
               </div>
               <h3 className="font-bold text-lg text-civic-navy">Direct Citizen Voice</h3>
               <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">

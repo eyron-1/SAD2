@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
-import { Bot, X, Send, Sparkles, Database } from 'lucide-react';
+import { Bot, X, Send, Database } from 'lucide-react';
 
 const MODES = [
   { id: 'report_draft', label: 'Report', placeholder: 'Draft a quarterly accomplishment summary for health program…' },
@@ -191,7 +191,7 @@ export default function FloatingAIChat() {
             ))}
             {sending && (
               <div className="text-slate-500 text-xs italic px-1 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-civic-emerald animate-spin" /> Thinking…
+                <span className="w-1.5 h-1.5 rounded-full bg-civic-emerald" /> Thinking…
               </div>
             )}
             {error && <div className="text-rose-600 text-xs px-2 py-1 bg-rose-50 rounded-lg border border-rose-200">{error}</div>}
@@ -222,7 +222,7 @@ export default function FloatingAIChat() {
       {/* Floating Toggle Button */}
       <button
         onClick={() => setOpen(!open)}
-        className="w-14 h-14 rounded-2xl bg-gradient-to-r from-civic-navy to-civic-slate text-white shadow-card-hover flex items-center justify-center hover:scale-105 transition-all duration-200 border border-white/20"
+        className="w-14 h-14 rounded-2xl bg-civic-navy text-white shadow-card-hover flex items-center justify-center hover:scale-105 transition-all duration-200 border border-white/20"
         aria-label="Open Groq AI Assistant"
       >
         {open ? (
@@ -236,4 +236,4 @@ export default function FloatingAIChat() {
       </button>
     </div>
   );
-}
+}

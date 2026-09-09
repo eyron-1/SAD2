@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import { roleLabel } from '../../utils/roles';
 import ErrorBanner from '../../components/ui/ErrorBanner';
-import { Sparkles, DollarSign, FolderKanban, Users, ArrowRight, Settings, Bot } from 'lucide-react';
+import { DollarSign, FolderKanban, Users, ArrowRight, Settings, Bot } from 'lucide-react';
 
 export default function SKDashboard() {
   const { profile } = useAuth();
@@ -21,7 +21,7 @@ export default function SKDashboard() {
       {/* Banner */}
       <div className="card bg-civic-navy text-white p-6 sm:p-8 rounded-xl space-y-2">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-white/10 text-white">
-          <Sparkles className="w-3.5 h-3.5" /> Sangguniang Kabataan Portal
+          Sangguniang Kabataan Portal
         </div>
         <h1 className="text-3xl font-bold tracking-tight text-white">
           Welcome, {profile?.full_name || 'SK Official'}!
@@ -75,10 +75,10 @@ export default function SKDashboard() {
         <Link to="kk-monitoring" className="card hover:border-slate-300 hover:shadow-card-hover transition-all group">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Active KK Youth Roster</span>
-            <Users className="w-5 h-5 text-purple-600" />
+            <Users className="w-5 h-5 text-civic-gold" />
           </div>
           <p className="text-2xl font-extrabold text-civic-navy mt-2">{activeKK} Registered</p>
-          <span className="text-xs text-purple-600 font-semibold flex items-center gap-1 mt-3 group-hover:underline">
+          <span className="text-xs text-amber-700 font-semibold flex items-center gap-1 mt-3 group-hover:underline">
             Katipunan ng Kabataan <ArrowRight className="w-3 h-3" />
           </span>
         </Link>
