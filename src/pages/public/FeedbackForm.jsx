@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useLocation, useParams } from 'react-router-dom';
 import { usePublicBarangay } from '../../lib/usePublicBarangay';
 import { supabase } from '../../lib/supabaseClient';
 import { validateRequired, validateName, validateMobile, runValidators, friendlySupabaseError } from '../../lib/validation';
@@ -12,9 +12,11 @@ const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
 export default function FeedbackForm() {
   const { slug } = useParams();
+  const location = useLocation();
+  const isSkPortal = location.pathname.includes(`/b/${slug}/sk`);
   const { barangay, loading: bLoading } = usePublicBarangay(slug);
 
-  const [form, setForm] = useState({ resident_name: '', contact_number: '', category: CATEGORIES[0], message: '' });
+  const [form, setForm] = useState({ resident_name: '', contact_number: '', addressed_to: isSkPortal ? 'sk' : 'barangay', category: CATEGORIES[0], message: '' });
   const [photos, setPhotos] = useState([]);
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
@@ -75,6 +77,7 @@ export default function FeedbackForm() {
       barangay_id: barangay.id,
       resident_name: form.resident_name,
       contact_number: form.contact_number || null,
+      addressed_to: form.addressed_to,
       category: form.category,
       message: form.message,
       photo_urls: photoUrls,
@@ -106,6 +109,10 @@ export default function FeedbackForm() {
       <form onSubmit={handleSubmit} className="card space-y-4">
         <FormField label="Your Name" value={form.resident_name} onChange={(e) => setForm({ ...form, resident_name: e.target.value })} error={fieldErrors.resident_name} />
         <FormField label="Contact Number (optional)" placeholder="09171234567" value={form.contact_number} onChange={(e) => setForm({ ...form, contact_number: e.target.value })} error={fieldErrors.contact_number} />
+        {!isSkPortal && <FormField as="select" label="Send feedback to" value={form.addressed_to} onChange={(e) => setForm({ ...form, addressed_to: e.target.value })}>
+          <option value="barangay">Barangay Officials</option>
+          <option value="sk">Sangguniang Kabataan (SK)</option>
+        </FormField>}
         <FormField as="select" label="Category" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
           {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
         </FormField>

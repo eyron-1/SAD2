@@ -8,11 +8,16 @@ import {
 import { ROLES, roleLabel, ROLE_SEAT_LIMITS } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
+import { PROVINCES_LIST, getCitiesMunicipalities, getBarangays } from '../../lib/philippineLocations';
 
 export default function Signup() {
   const navigate = useNavigate();
   const [barangays, setBarangays] = useState([]);
   const [tenantMode, setTenantMode] = useState('existing'); // 'existing' | 'new'
+  const [selectedProvince, setSelectedProvince] = useState(null);
+  const [cities, setCities] = useState([]);
+  const [selectedCity, setSelectedCity] = useState(null);
+  const [locationBarangays, setLocationBarangays] = useState([]);
 
   const [form, setForm] = useState({
     full_name: '', email: '', password: '', contact_number: '', role: ROLES.STAFF,
@@ -25,6 +30,25 @@ export default function Signup() {
   useEffect(() => {
     supabase.from('barangays').select('id, name').order('name').then(({ data }) => setBarangays(data || []));
   }, []);
+
+  useEffect(() => {
+    setCities([]);
+    setSelectedCity(null);
+    setLocationBarangays([]);
+    setForm((prev) => ({ ...prev, new_barangay_municipality: '', new_barangay_province: '' }));
+    if (selectedProvince) {
+      getCitiesMunicipalities(selectedProvince).then(setCities);
+      setForm((prev) => ({ ...prev, new_barangay_province: selectedProvince.name }));
+    }
+  }, [selectedProvince]);
+
+  useEffect(() => {
+    setLocationBarangays([]);
+    if (selectedCity) {
+      getBarangays(selectedCity.code).then(setLocationBarangays);
+      setForm((prev) => ({ ...prev, new_barangay_municipality: selectedCity.name }));
+    }
+  }, [selectedCity]);
 
   const validators = {
     full_name: (v) => validateName(v, 'Full name'),
@@ -163,12 +187,24 @@ export default function Signup() {
               </FormField>
             ) : (
               <div className="space-y-3">
-                <FormField label="Barangay Name" value={form.new_barangay_name} onChange={(e) => setForm({ ...form, new_barangay_name: e.target.value })} error={fieldErrors.new_barangay_name} />
                 <FormField label="URL Slug" placeholder="san-isidro" value={form.new_barangay_slug} onChange={(e) => setForm({ ...form, new_barangay_slug: e.target.value.toLowerCase() })} error={fieldErrors.new_barangay_slug} />
                 <div className="grid grid-cols-2 gap-3">
-                  <FormField label="Municipality/City" value={form.new_barangay_municipality} onChange={(e) => setForm({ ...form, new_barangay_municipality: e.target.value })} />
-                  <FormField label="Province" value={form.new_barangay_province} onChange={(e) => setForm({ ...form, new_barangay_province: e.target.value })} />
+                  <FormField as="select" label="Province / Region" value={selectedProvince?.code || ''} onChange={(e) => setSelectedProvince(PROVINCES_LIST.find((p) => p.code === e.target.value) || null)}>
+                    <option value="">— select province / region —</option>
+                    {PROVINCES_LIST.map((province) => <option key={province.code} value={province.code}>{province.name}</option>)}
+                  </FormField>
+                  <FormField as="select" label="Municipality / City" value={selectedCity?.code || ''} onChange={(e) => setSelectedCity(cities.find((city) => city.code === e.target.value) || null)} disabled={!selectedProvince}>
+                    <option value="">— select municipality / city —</option>
+                    {cities.map((city) => <option key={city.code} value={city.code}>{city.name}</option>)}
+                  </FormField>
                 </div>
+                <FormField as="select" label="Barangay Name" value={locationBarangays.find((barangay) => barangay.name === form.new_barangay_name)?.code || ''} onChange={(e) => {
+                  const selectedBarangay = locationBarangays.find((barangay) => barangay.code === e.target.value);
+                  if (selectedBarangay) setForm((prev) => ({ ...prev, new_barangay_name: selectedBarangay.name }));
+                }} disabled={!selectedCity}>
+                  <option value="">— select barangay —</option>
+                  {locationBarangays.map((barangay) => <option key={barangay.code} value={barangay.code}>{barangay.name}</option>)}
+                </FormField>
               </div>
             )}
           </div>

@@ -80,11 +80,11 @@ export default function PublicPrograms() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-display">Programs & Projects</h1>
+      <h1 className="text-2xl font-display">Barangay & SK Programs</h1>
       <ErrorBanner message={e1 || e2} />
 
       <section>
-        <h2 className="font-medium mb-3">Barangay Programs</h2>
+        <h2 className="font-medium mb-3">Barangay Government Programs</h2>
         <div className="grid gap-3">
           {l1 && <p className="text-civic-slate text-sm">Loading…</p>}
           {!l1 && programs.length === 0 && <p className="text-civic-slate text-sm">No programs published yet.</p>}
@@ -93,7 +93,7 @@ export default function PublicPrograms() {
       </section>
 
       <section>
-        <h2 className="font-medium mb-3">SK Programs</h2>
+        <h2 className="font-medium mb-3 text-emerald-800">SK Youth Programs (Sangguniang Kabataan)</h2>
         <div className="grid gap-3">
           {l2 && <p className="text-civic-slate text-sm">Loading…</p>}
           {!l2 && skPrograms.length === 0 && <p className="text-civic-slate text-sm">No SK programs published yet.</p>}

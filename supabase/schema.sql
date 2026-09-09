@@ -5,8 +5,10 @@ drop table if exists feedback cascade;
 drop table if exists kk_monitoring cascade;
 drop table if exists sk_programs cascade;
 drop table if exists sk_budget cascade;
+drop table if exists sk_fund_sources cascade;
 drop table if exists programs cascade;
 drop table if exists expenses cascade;
+drop table if exists sk_expenses cascade;
 drop table if exists budget_allocations cascade;
 drop table if exists fund_sources cascade;
 drop table if exists profiles cascade;
@@ -30,6 +32,7 @@ create table barangays (
   municipality text,
   province text,
   logo_url text,
+  sk_logo_url text,
   contact_email text,
   contact_number text,
   created_at timestamptz default now()
@@ -159,6 +162,19 @@ create table programs (
 -- ------------------------------------------------------------
 -- SK BUDGET + PROGRAMS
 -- ------------------------------------------------------------
+create table sk_fund_sources (
+  id uuid primary key default uuid_generate_v4(),
+  barangay_id uuid references barangays(id) on delete cascade not null,
+  name text not null,
+  source_type text not null,
+  amount numeric(14,2) not null check (amount >= 0),
+  fiscal_year text not null,
+  received_date date,
+  description text,
+  created_by uuid references profiles(id),
+  created_at timestamptz default now()
+);
+
 create table sk_budget (
   id uuid primary key default uuid_generate_v4(),
   barangay_id uuid references barangays(id) on delete cascade not null,
@@ -175,10 +191,28 @@ create table sk_programs (
   barangay_id uuid references barangays(id) on delete cascade not null,
   title text not null,
   description text,
+  category text,
   budget_amount numeric(14,2) default 0,
   start_date date,
   end_date date,
   status text default 'planned',
+  created_by uuid references profiles(id),
+  created_at timestamptz default now()
+);
+
+-- ------------------------------------------------------------
+-- SK EXPENSES
+-- ------------------------------------------------------------
+create table sk_expenses (
+  id uuid primary key default uuid_generate_v4(),
+  barangay_id uuid references barangays(id) on delete cascade not null,
+  sk_budget_id uuid references sk_budget(id),
+  category text not null,
+  amount numeric(14,2) not null check (amount >= 0),
+  description text,
+  date_incurred date not null,
+  receipt_url text,
+  status text default 'recorded',
   created_by uuid references profiles(id),
   created_at timestamptz default now()
 );
@@ -205,6 +239,7 @@ create table kk_monitoring (
 create table feedback (
   id uuid primary key default uuid_generate_v4(),
   barangay_id uuid references barangays(id) on delete cascade not null,
+  addressed_to text not null default 'barangay' check (addressed_to in ('barangay', 'sk')),
   resident_name text not null,
   contact_number text,
   category text not null,
@@ -256,9 +291,11 @@ alter table profiles enable row level security;
 alter table fund_sources enable row level security;
 alter table budget_allocations enable row level security;
 alter table expenses enable row level security;
+alter table sk_expenses enable row level security;
 alter table programs enable row level security;
 alter table sk_budget enable row level security;
 alter table sk_programs enable row level security;
+alter table sk_fund_sources enable row level security;
 alter table kk_monitoring enable row level security;
 alter table feedback enable row level security;
 alter table officials_transitions enable row level security;
@@ -300,6 +337,13 @@ create policy "editors update programs" on programs for update using (is_baranga
 create policy "editors delete programs" on programs for delete using (is_barangay_editor(auth.uid()) and belongs_to_barangay(auth.uid(), barangay_id));
 
 -- sk_budget
+-- sk_fund_sources
+create policy "public read sk_fund_sources" on sk_fund_sources for select using (true);
+create policy "sk editors write sk_fund_sources" on sk_fund_sources for insert with check (belongs_to_barangay(auth.uid(), barangay_id) and is_sk_editor(auth.uid()));
+create policy "sk editors update sk_fund_sources" on sk_fund_sources for update using (is_sk_editor(auth.uid()) and belongs_to_barangay(auth.uid(), barangay_id));
+create policy "sk editors delete sk_fund_sources" on sk_fund_sources for delete using (is_sk_editor(auth.uid()) and belongs_to_barangay(auth.uid(), barangay_id));
+
+-- sk_budget
 create policy "public read sk_budget" on sk_budget for select using (true);
 create policy "sk editors write sk_budget" on sk_budget for insert with check (belongs_to_barangay(auth.uid(), barangay_id) and is_sk_editor(auth.uid()));
 create policy "sk editors update sk_budget" on sk_budget for update using (is_sk_editor(auth.uid()) and belongs_to_barangay(auth.uid(), barangay_id));
@@ -310,6 +354,12 @@ create policy "public read sk_programs" on sk_programs for select using (true);
 create policy "sk officials write sk_programs" on sk_programs for insert with check (belongs_to_barangay(auth.uid(), barangay_id));
 create policy "sk editors update sk_programs" on sk_programs for update using (is_sk_editor(auth.uid()) and belongs_to_barangay(auth.uid(), barangay_id));
 create policy "sk editors delete sk_programs" on sk_programs for delete using (is_sk_editor(auth.uid()) and belongs_to_barangay(auth.uid(), barangay_id));
+
+-- sk_expenses
+create policy "public read sk_expenses" on sk_expenses for select using (true);
+create policy "sk editors write sk_expenses" on sk_expenses for insert with check (belongs_to_barangay(auth.uid(), barangay_id) and is_sk_editor(auth.uid()));
+create policy "sk editors update sk_expenses" on sk_expenses for update using (is_sk_editor(auth.uid()) and belongs_to_barangay(auth.uid(), barangay_id));
+create policy "sk editors delete sk_expenses" on sk_expenses for delete using (is_sk_editor(auth.uid()) and belongs_to_barangay(auth.uid(), barangay_id));
 
 -- kk_monitoring (internal, not public)
 create policy "sk officials read kk" on kk_monitoring for select using (belongs_to_barangay(auth.uid(), barangay_id));

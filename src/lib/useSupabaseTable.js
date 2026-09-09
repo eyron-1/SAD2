@@ -4,7 +4,7 @@ import { friendlySupabaseError } from './validation';
 
 // Scopes every query to the current barangay_id automatically, and
 // gives every CRUD page the exact same loading/error/refetch shape.
-export function useSupabaseTable(table, barangayId, { orderBy = 'created_at', ascending = false, select = '*' } = {}) {
+export function useSupabaseTable(table, barangayId, { orderBy = 'created_at', ascending = false, select = '*', filter = {} } = {}) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -13,11 +13,12 @@ export function useSupabaseTable(table, barangayId, { orderBy = 'created_at', as
     if (!barangayId) return;
     setLoading(true);
     setError('');
-    const { data, error: qError } = await supabase
+    let query = supabase
       .from(table)
       .select(select)
-      .eq('barangay_id', barangayId)
-      .order(orderBy, { ascending });
+      .eq('barangay_id', barangayId);
+    Object.entries(filter).forEach(([column, value]) => { query = query.eq(column, value); });
+    const { data, error: qError } = await query.order(orderBy, { ascending });
 
     if (qError) {
       setError(friendlySupabaseError(qError));
@@ -25,7 +26,7 @@ export function useSupabaseTable(table, barangayId, { orderBy = 'created_at', as
       setRows(data || []);
     }
     setLoading(false);
-  }, [table, barangayId, orderBy, ascending, select]);
+  }, [table, barangayId, orderBy, ascending, select, JSON.stringify(filter)]);
 
   useEffect(() => {
     refetch();

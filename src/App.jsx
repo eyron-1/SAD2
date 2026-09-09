@@ -1,40 +1,48 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Suspense, lazy } from 'react';
+import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import PublicLayout from './components/layout/PublicLayout';
 import OfficialLayout from './components/layout/OfficialLayout';
 
-import Landing from './pages/public/Landing';
-import PublicOverview from './pages/public/PublicOverview';
-import PublicBudget from './pages/public/PublicBudget';
-import PublicPrograms from './pages/public/PublicPrograms';
-import PublicOfficials from './pages/public/PublicOfficials';
-import FeedbackForm from './pages/public/FeedbackForm';
+const Landing = lazy(() => import('./pages/public/Landing'));
+const PublicOverview = lazy(() => import('./pages/public/PublicOverview'));
+const PublicBudget = lazy(() => import('./pages/public/PublicBudget'));
+const PublicPrograms = lazy(() => import('./pages/public/PublicPrograms'));
+const PublicSKOverview = lazy(() => import('./pages/public/PublicSKOverview'));
+const PublicSKBudget = lazy(() => import('./pages/public/PublicSKBudget'));
+const PublicSKPrograms = lazy(() => import('./pages/public/PublicSKPrograms'));
+const PublicOfficials = lazy(() => import('./pages/public/PublicOfficials'));
+const FeedbackForm = lazy(() => import('./pages/public/FeedbackForm'));
 
-import Login from './pages/auth/Login';
-import Signup from './pages/auth/Signup';
+const Login = lazy(() => import('./pages/auth/Login'));
+const Signup = lazy(() => import('./pages/auth/Signup'));
 
-import Dashboard from './pages/official/Dashboard';
-import BudgetManagement from './pages/official/BudgetManagement';
-import ExpenseManagement from './pages/official/ExpenseManagement';
-import FundSourcing from './pages/official/FundSourcing';
-import ProgramManagement from './pages/official/ProgramManagement';
-import FeedbackManagement from './pages/official/FeedbackManagement';
-import OfficialsTransition from './pages/official/OfficialsTransition';
-import ReportsAnalytics from './pages/official/ReportsAnalytics';
-import AIAssistant from './pages/official/AIAssistant';
-import BarangaySettings from './pages/official/BarangaySettings';
+const Dashboard = lazy(() => import('./pages/official/Dashboard'));
+const BudgetManagement = lazy(() => import('./pages/official/BudgetManagement'));
+const ExpenseManagement = lazy(() => import('./pages/official/ExpenseManagement'));
+const FundSourcing = lazy(() => import('./pages/official/FundSourcing'));
+const ProgramManagement = lazy(() => import('./pages/official/ProgramManagement'));
+const FeedbackManagement = lazy(() => import('./pages/official/FeedbackManagement'));
+const OfficialsTransition = lazy(() => import('./pages/official/OfficialsTransition'));
+const ReportsAnalytics = lazy(() => import('./pages/official/ReportsAnalytics'));
+const AIAssistant = lazy(() => import('./pages/official/AIAssistant'));
+const BarangaySettings = lazy(() => import('./pages/official/BarangaySettings'));
 
-import SKDashboard from './pages/sk/SKDashboard';
-import SKBudget from './pages/sk/SKBudget';
-import SKPrograms from './pages/sk/SKPrograms';
-import KKMonitoring from './pages/sk/KKMonitoring';
+const SKDashboard = lazy(() => import('./pages/sk/SKDashboard'));
+const SKBudget = lazy(() => import('./pages/sk/SKBudget'));
+const SKPrograms = lazy(() => import('./pages/sk/SKPrograms'));
+const SKFundSourcing = lazy(() => import('./pages/sk/SKFundSourcing'));
+const SKExpenseManagement = lazy(() => import('./pages/sk/SKExpenseManagement'));
+const SKFeedback = lazy(() => import('./pages/sk/SKFeedback'));
+const KKMonitoring = lazy(() => import('./pages/sk/KKMonitoring'));
 
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
+        <Suspense fallback={<div className="min-h-screen bg-civic-cream" />}>
+          <Routes>
           {/* Public / resident-facing — no login required */}
           <Route path="/" element={<Landing />} />
           <Route path="/b/:slug" element={<PublicLayout />}>
@@ -43,6 +51,12 @@ export default function App() {
             <Route path="programs" element={<PublicPrograms />} />
             <Route path="officials" element={<PublicOfficials />} />
             <Route path="feedback" element={<FeedbackForm />} />
+            <Route path="sk" element={<Outlet />}>
+              <Route index element={<PublicSKOverview />} />
+              <Route path="budget" element={<PublicSKBudget />} />
+              <Route path="programs" element={<PublicSKPrograms />} />
+              <Route path="feedback" element={<FeedbackForm />} />
+            </Route>
           </Route>
 
           {/* Auth */}
@@ -82,11 +96,15 @@ export default function App() {
             <Route index element={<SKDashboard />} />
             <Route path="budget" element={<SKBudget />} />
             <Route path="programs" element={<SKPrograms />} />
+            <Route path="funds" element={<SKFundSourcing />} />
+            <Route path="expenses" element={<SKExpenseManagement />} />
+            <Route path="feedback" element={<SKFeedback />} />
             <Route path="kk-monitoring" element={<KKMonitoring />} />
             <Route path="ai-assistant" element={<AIAssistant />} />
             <Route path="settings" element={<BarangaySettings />} />
           </Route>
-        </Routes>
+          </Routes>
+        </Suspense>
       </AuthProvider>
     </BrowserRouter>
   );

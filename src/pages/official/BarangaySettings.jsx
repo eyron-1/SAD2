@@ -1,14 +1,18 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
-import { isBarangayEditor } from '../../utils/roles';
+import { isBarangayEditor, isSkEditor, isSkRole } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import { Building2, Upload, Image as ImageIcon, Save, CheckCircle2, ShieldCheck, MapPin } from 'lucide-react';
+import { PROVINCES_LIST, getCitiesMunicipalities, getBarangays } from '../../lib/philippineLocations';
 
 export default function BarangaySettings() {
   const { profile, refreshProfile } = useAuth();
-  const canEdit = isBarangayEditor(profile?.role);
+  const skMember = isSkRole(profile?.role);
+  const canEdit = skMember ? isSkEditor(profile?.role) : isBarangayEditor(profile?.role);
+  const logoField = skMember ? 'sk_logo_url' : 'logo_url';
+  const officeLabel = skMember ? 'SK' : 'Barangay';
 
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({
@@ -22,6 +26,10 @@ export default function BarangaySettings() {
 
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState('');
+  const [selectedProvince, setSelectedProvince] = useState(null);
+  const [cities, setCities] = useState([]);
+  const [selectedCity, setSelectedCity] = useState(null);
+  const [locationBarangays, setLocationBarangays] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -41,15 +49,27 @@ export default function BarangaySettings() {
             province: data.province || '',
             contact_email: data.contact_email || '',
             contact_number: data.contact_number || '',
-            logo_url: data.logo_url || '',
+            logo_url: data[logoField] || '',
           });
-          setLogoPreview(data.logo_url || '');
+          setLogoPreview(data[logoField] || '');
         } else if (qErr) {
           setError(qErr.message);
         }
         setLoading(false);
       });
-  }, [profile?.barangay_id]);
+  }, [profile?.barangay_id, logoField]);
+
+  useEffect(() => {
+    setCities([]);
+    setSelectedCity(null);
+    setLocationBarangays([]);
+    if (selectedProvince) getCitiesMunicipalities(selectedProvince).then(setCities);
+  }, [selectedProvince]);
+
+  useEffect(() => {
+    setLocationBarangays([]);
+    if (selectedCity) getBarangays(selectedCity.code).then(setLocationBarangays);
+  }, [selectedCity]);
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -73,7 +93,7 @@ export default function BarangaySettings() {
 
     // Try Supabase Storage upload
     const ext = logoFile.name.split('.').pop() || 'png';
-    const filePath = `logo-${profile.barangay_id}-${Date.now()}.${ext}`;
+    const filePath = `${skMember ? 'sk-logo' : 'logo'}-${profile.barangay_id}-${Date.now()}.${ext}`;
 
     try {
       const { error: upErr } = await supabase.storage.from('barangay-logos').upload(filePath, logoFile, { upsert: true });
@@ -97,7 +117,7 @@ export default function BarangaySettings() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!canEdit) {
-      setError('You must be a Barangay Captain, Secretary, or Treasurer to update barangay settings.');
+      setError(`You must be an authorized ${officeLabel} editor to update these settings.`);
       return;
     }
     setSaving(true);
@@ -115,14 +135,14 @@ export default function BarangaySettings() {
           province: form.province || null,
           contact_email: form.contact_email || null,
           contact_number: form.contact_number || null,
-          logo_url: finalLogoUrl || null,
+          [logoField]: finalLogoUrl || null,
         })
         .eq('id', profile.barangay_id);
 
       if (uErr) {
         setError(uErr.message);
       } else {
-        setSuccess('Barangay profile & logo updated successfully!');
+        setSuccess(`${officeLabel} profile & logo updated successfully!`);
         setForm((prev) => ({ ...prev, logo_url: finalLogoUrl || '' }));
         await refreshProfile();
       }
@@ -148,10 +168,10 @@ export default function BarangaySettings() {
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3 text-civic-navy">
             <Building2 className="w-8 h-8 text-civic-emerald" />
-            Barangay Profile & Branding
+            {officeLabel} Profile & Branding
           </h1>
           <p className="text-slate-600 text-sm mt-1">
-            Manage your barangay's identity, contact information, and public official logo.
+            Manage your {officeLabel.toLowerCase()} identity, contact information, and official logo.
           </p>
         </div>
         {!canEdit && (
@@ -175,7 +195,7 @@ export default function BarangaySettings() {
         <div className="card space-y-6">
           <div className="border-b border-slate-100 pb-4">
             <h2 className="text-lg font-bold text-civic-navy flex items-center gap-2">
-              <ImageIcon className="w-5 h-5 text-civic-emerald" /> Official Barangay Logo
+              <ImageIcon className="w-5 h-5 text-civic-emerald" /> Official {officeLabel} Logo
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
               This logo will be displayed on your official portal, public reports, and resident view.
@@ -186,7 +206,7 @@ export default function BarangaySettings() {
             <div className="relative group shrink-0">
               <div className="w-28 h-28 rounded-2xl border-2 border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shadow-inner">
                 {logoPreview ? (
-                  <img src={logoPreview} alt="Barangay Logo Preview" className="w-full h-full object-cover" />
+                    <img src={logoPreview} alt={`${officeLabel} Logo Preview`} className="w-full h-full object-cover" />
                 ) : (
                   <div className="text-center p-2 text-slate-400">
                     <Building2 className="w-10 h-10 mx-auto opacity-50" />
@@ -254,20 +274,59 @@ export default function BarangaySettings() {
 
             <div className="grid sm:grid-cols-2 gap-4">
               <FormField
+                as="select"
+                label="Province / Region"
+                value={selectedProvince?.code || ''}
+                onChange={(e) => {
+                  const province = PROVINCES_LIST.find((item) => item.code === e.target.value) || null;
+                  setSelectedProvince(province);
+                  if (province) setForm((prev) => ({ ...prev, province: province.name, municipality: '' }));
+                }}
+                disabled={!canEdit}
+              >
+                <option value="">— choose to use address list —</option>
+                {PROVINCES_LIST.map((province) => <option key={province.code} value={province.code}>{province.name}</option>)}
+              </FormField>
+              <FormField
+                as="select"
+                label="Municipality / City from address list"
+                value={selectedCity?.code || ''}
+                onChange={(e) => {
+                  const city = cities.find((item) => item.code === e.target.value) || null;
+                  setSelectedCity(city);
+                  if (city) setForm((prev) => ({ ...prev, municipality: city.name }));
+                }}
+                disabled={!canEdit || !selectedProvince}
+              >
+                <option value="">— choose municipality / city —</option>
+                {cities.map((city) => <option key={city.code} value={city.code}>{city.name}</option>)}
+              </FormField>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-4">
+              <FormField
                 label="Municipality / City"
                 placeholder="e.g. Quezon City"
                 value={form.municipality}
                 onChange={(e) => setForm({ ...form, municipality: e.target.value })}
                 disabled={!canEdit}
               />
-              <FormField
-                label="Province"
-                placeholder="e.g. Metro Manila / Isabela"
-                value={form.province}
-                onChange={(e) => setForm({ ...form, province: e.target.value })}
-                disabled={!canEdit}
-              />
+              <FormField as="select" label="Barangay from address list (optional)" value={locationBarangays.find((barangay) => barangay.name === form.name)?.code || ''} onChange={(e) => {
+                const barangay = locationBarangays.find((item) => item.code === e.target.value);
+                if (barangay) setForm((prev) => ({ ...prev, name: barangay.name }));
+              }} disabled={!canEdit || !selectedCity}>
+                <option value="">— choose barangay —</option>
+                {locationBarangays.map((barangay) => <option key={barangay.code} value={barangay.code}>{barangay.name}</option>)}
+              </FormField>
             </div>
+
+            <FormField
+              label="Province"
+              placeholder="e.g. Metro Manila / Isabela"
+              value={form.province}
+              onChange={(e) => setForm({ ...form, province: e.target.value })}
+              disabled={!canEdit}
+            />
 
             <div className="grid sm:grid-cols-2 gap-4">
               <FormField
@@ -293,7 +352,7 @@ export default function BarangaySettings() {
           <div className="flex justify-end">
             <button type="submit" disabled={saving} className="btn-emerald px-6 py-3">
               <Save className="w-4 h-4" />
-              {saving ? 'Saving Changes…' : 'Save Barangay Branding'}
+              {saving ? 'Saving Changes…' : `Save ${officeLabel} Branding`}
             </button>
           </div>
         )}

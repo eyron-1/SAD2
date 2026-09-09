@@ -39,10 +39,13 @@ const BARANGAY_NAV = [
 const SK_NAV = [
   { to: '/sk', label: 'SK Dashboard', icon: LayoutDashboard },
   { to: '/sk/budget', label: 'SK Budget', icon: PieChart },
+  { to: '/sk/expenses', label: 'SK Expenses', icon: Receipt },
+  { to: '/sk/funds', label: 'SK Fund Sourcing', icon: Landmark },
   { to: '/sk/programs', label: 'SK Programs', icon: FolderKanban },
+  { to: '/sk/feedback', label: 'SK Community Feedback', icon: MessageSquare },
   { to: '/sk/kk-monitoring', label: 'KK Youth Monitoring', icon: Users },
   { to: '/sk/ai-assistant', label: 'AI Assistant', icon: Bot },
-  { to: '/sk/settings', label: 'Barangay Settings', icon: Settings },
+  { to: '/sk/settings', label: 'SK Settings', icon: Settings },
 ];
 
 export default function OfficialLayout() {
@@ -60,7 +63,7 @@ export default function OfficialLayout() {
   };
 
   const bgyName = profile?.barangays?.name || 'Barangay Portal';
-  const logoUrl = profile?.barangays?.logo_url;
+  const logoUrl = skMember ? profile?.barangays?.sk_logo_url : profile?.barangays?.logo_url;
   const slug = profile?.barangays?.slug;
 
   return (

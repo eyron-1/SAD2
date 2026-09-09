@@ -2,7 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { usePublicBarangay } from '../../lib/usePublicBarangay';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
-import { Building2, PieChart, Receipt, FolderKanban, MessageSquare, Users, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Building2, PieChart, Receipt, FolderKanban, MessageSquare, Users, ShieldCheck, ArrowRight, DollarSign } from 'lucide-react';
 
 export default function PublicOverview() {
   const { slug } = useParams();
@@ -10,6 +10,10 @@ export default function PublicOverview() {
   const { rows: allocations, error: e1 } = useSupabaseTable('budget_allocations', barangay?.id);
   const { rows: expenses, error: e2 } = useSupabaseTable('expenses', barangay?.id);
   const { rows: programs, error: e3 } = useSupabaseTable('programs', barangay?.id);
+  const { rows: skFunds, error: e4 } = useSupabaseTable('sk_fund_sources', barangay?.id);
+  const { rows: skPrograms, error: e5 } = useSupabaseTable('sk_programs', barangay?.id);
+  const { rows: skAllocations, error: e6 } = useSupabaseTable('sk_budget', barangay?.id);
+  const { rows: skExpenses, error: e7 } = useSupabaseTable('sk_expenses', barangay?.id);
 
   if (bLoading) return <p className="text-slate-400 text-center py-12">Loading barangay profile…</p>;
   if (bError || !barangay) return <ErrorBanner message={bError || 'Barangay not found.'} />;
@@ -17,41 +21,44 @@ export default function PublicOverview() {
   const totalBudget = allocations.reduce((s, r) => s + Number(r.amount || 0), 0);
   const totalSpent = expenses.reduce((s, r) => s + Number(r.amount || 0), 0);
   const ongoingPrograms = programs.filter((p) => p.status === 'ongoing').length;
+  const totalSkFunds = skFunds.reduce((s, r) => s + Number(r.amount || 0), 0);
+  const totalSkBudget = skAllocations.reduce((s, r) => s + Number(r.amount || 0), 0);
+  const totalSkExpenses = skExpenses.reduce((s, r) => s + Number(r.amount || 0), 0);
 
   return (
     <div className="space-y-8">
       {/* Hero Header */}
       <div className="card bg-civic-navy text-white p-6 sm:p-8 rounded-xl flex flex-col sm:flex-row items-center gap-6">
-        {barangay.logo_url ? (
-          <img
-            src={barangay.logo_url}
-            alt={`${barangay.name} Seal`}
-            className="w-20 h-20 rounded-full object-cover border-2 border-white/20 bg-white/10 shrink-0"
-          />
-        ) : (
-          <div className="w-20 h-20 rounded-full bg-white/10 border-2 border-white/20 flex items-center justify-center shrink-0">
-            <Building2 className="w-10 h-10 text-white" />
-          </div>
-        )}
-
-        <div className="space-y-2 text-center sm:text-left">
+        <div className="space-y-2 text-center sm:text-left flex-1">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-white/10 text-white border border-white/15">
-            <ShieldCheck className="w-3.5 h-3.5" /> Verified Public LGU Disclosure Portal
+            <ShieldCheck className="w-3.5 h-3.5" /> Barangay Government Transparency Portal
           </div>
           <h1 className="text-3xl font-bold tracking-tight">{barangay.name}</h1>
           <p className="text-civic-cream/80 text-sm">
             {[barangay.municipality, barangay.province].filter(Boolean).join(', ')} · Official Open Data Portal
           </p>
         </div>
+        <div className="flex items-center gap-3 shrink-0" aria-label="Barangay and SK logos">
+          <div className="text-center"><div className="w-14 h-14 rounded-full bg-white/10 border border-white/20 p-1 overflow-hidden flex items-center justify-center">{barangay.logo_url ? <img src={barangay.logo_url} alt="Barangay logo" className="w-full h-full object-cover rounded-full" /> : <Building2 className="w-7 h-7 text-civic-emerald" />}</div><span className="text-[10px] text-slate-300 mt-1 block">Barangay</span></div>
+          <div className="text-center"><div className="w-14 h-14 rounded-full bg-emerald-400/10 border border-emerald-300/40 p-1 overflow-hidden flex items-center justify-center">{barangay.sk_logo_url ? <img src={barangay.sk_logo_url} alt="SK logo" className="w-full h-full object-cover rounded-full" /> : <Users className="w-7 h-7 text-emerald-300" />}</div><span className="text-[10px] text-emerald-200 mt-1 block">SK</span></div>
+        </div>
       </div>
 
-      <ErrorBanner message={e1 || e2 || e3} />
+      <div className="card border-slate-200 space-y-4">
+        <div><p className="text-xs font-bold uppercase tracking-wider text-civic-emerald">Public Transparency Overview</p><h2 className="text-xl font-bold text-civic-navy mt-1">Barangay and SK financial disclosure</h2><p className="text-sm text-slate-500 mt-1">Residents can compare the funds received, budgets allocated, expenses recorded, and programs published by both offices.</p></div>
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="rounded-xl border border-slate-200 p-4"><div className="flex items-center gap-3 mb-3"><div className="w-10 h-10 rounded-full bg-civic-navy/10 flex items-center justify-center overflow-hidden">{barangay.logo_url ? <img src={barangay.logo_url} alt="Barangay logo" className="w-full h-full object-cover" /> : <Building2 className="w-5 h-5 text-civic-navy" />}</div><h3 className="font-bold text-civic-navy">Barangay Government</h3></div><div className="grid grid-cols-3 gap-2 text-xs"><div><p className="text-slate-400">Budget</p><p className="font-bold text-civic-navy">₱{totalBudget.toLocaleString()}</p></div><div><p className="text-slate-400">Expenses</p><p className="font-bold text-civic-navy">₱{totalSpent.toLocaleString()}</p></div><div><p className="text-slate-400">Programs</p><p className="font-bold text-civic-navy">{programs.length}</p></div></div></div>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4"><div className="flex items-center gap-3 mb-3"><div className="w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden">{barangay.sk_logo_url ? <img src={barangay.sk_logo_url} alt="SK logo" className="w-full h-full object-cover" /> : <Users className="w-5 h-5 text-emerald-700" />}</div><h3 className="font-bold text-emerald-900">Sangguniang Kabataan (SK)</h3></div><div className="grid grid-cols-3 gap-2 text-xs"><div><p className="text-emerald-700/70">Funds</p><p className="font-bold text-emerald-900">₱{totalSkFunds.toLocaleString()}</p></div><div><p className="text-emerald-700/70">Budget</p><p className="font-bold text-emerald-900">₱{totalSkBudget.toLocaleString()}</p></div><div><p className="text-emerald-700/70">Expenses</p><p className="font-bold text-emerald-900">₱{totalSkExpenses.toLocaleString()}</p></div></div></div>
+        </div>
+      </div>
+
+      <ErrorBanner message={e1 || e2 || e3 || e4 || e5 || e6 || e7} />
 
       {/* KPI Cards */}
-      <div className="grid sm:grid-cols-3 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="card space-y-1 hover:border-slate-300 transition-all">
-          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <PieChart className="w-4 h-4 text-civic-emerald" /> Total Budget Allocated
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+            <PieChart className="w-4 h-4 text-civic-emerald" /> Barangay Budget Allocated
           </span>
           <p className="text-2xl font-extrabold text-civic-navy">
             ₱{totalBudget.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -60,7 +67,15 @@ export default function PublicOverview() {
 
         <div className="card space-y-1 hover:border-slate-300 transition-all">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Receipt className="w-4 h-4 text-amber-600" /> Total Recorded Expenses
+            <DollarSign className="w-4 h-4 text-emerald-600" /> SK Funds Sourced
+          </span>
+          <p className="text-2xl font-extrabold text-civic-navy">₱{totalSkFunds.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+          <p className="text-xs text-slate-500">{skPrograms.length} SK program{skPrograms.length === 1 ? '' : 's'} published</p>
+        </div>
+
+        <div className="card space-y-1 hover:border-slate-300 transition-all">
+          <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+            <Receipt className="w-4 h-4 text-amber-600" /> Barangay Expenses
           </span>
           <p className="text-2xl font-extrabold text-civic-navy">
             ₱{totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -69,7 +84,7 @@ export default function PublicOverview() {
 
         <div className="card space-y-1 hover:border-slate-300 transition-all">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <FolderKanban className="w-4 h-4 text-blue-600" /> Active Programs
+            <FolderKanban className="w-4 h-4 text-blue-600" /> Barangay Programs
           </span>
           <p className="text-2xl font-extrabold text-civic-navy">{ongoingPrograms} Ongoing</p>
         </div>
