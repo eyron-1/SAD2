@@ -27,6 +27,17 @@ export default function Signup() {
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const selfRegisterableRoles = tenantMode === 'new'
+    ? Object.values(ROLES)
+    : [ROLES.KAGAWAD, ROLES.STAFF, ROLES.SK_KAGAWAD];
+
+  const changeTenantMode = (mode) => {
+    setTenantMode(mode);
+    if (mode === 'existing' && ![ROLES.KAGAWAD, ROLES.STAFF, ROLES.SK_KAGAWAD].includes(form.role)) {
+      setForm((prev) => ({ ...prev, role: ROLES.SK_KAGAWAD }));
+    }
+  };
+
   useEffect(() => {
     supabase.from('barangays').select('id, name').order('name').then(({ data }) => setBarangays(data || []));
   }, []);
@@ -71,6 +82,12 @@ export default function Signup() {
 
     setSubmitting(true);
     setSubmitError('');
+
+    if (!selfRegisterableRoles.includes(form.role)) {
+      setSubmitError('This role must be assigned by an existing barangay or SK editor. Choose a member role, or set up a new barangay for the first official account.');
+      setSubmitting(false);
+      return;
+    }
 
     try {
       // Sign up FIRST — every insert below is protected by permission rules
@@ -169,14 +186,19 @@ export default function Signup() {
           <FormField label="Contact Number (optional)" placeholder="09171234567" value={form.contact_number} onChange={(e) => setForm({ ...form, contact_number: e.target.value })} error={fieldErrors.contact_number} />
 
           <FormField as="select" label="Role / Position" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} error={fieldErrors.role}>
-            {Object.values(ROLES).map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
+            {selfRegisterableRoles.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
           </FormField>
+          {tenantMode === 'existing' && (
+            <p className="text-xs text-slate-500 -mt-2">
+              Editor roles such as SK Chairperson and SK Treasurer must be assigned by an existing authorized official.
+            </p>
+          )}
 
           <div>
             <label className="label">Barangay</label>
             <div className="flex gap-2 mb-2 text-xs">
-              <button type="button" onClick={() => setTenantMode('existing')} className={`px-2 py-1 rounded border ${tenantMode === 'existing' ? 'bg-civic-navy text-white border-civic-navy' : 'border-civic-navy/20'}`}>Join existing</button>
-              <button type="button" onClick={() => setTenantMode('new')} className={`px-2 py-1 rounded border ${tenantMode === 'new' ? 'bg-civic-navy text-white border-civic-navy' : 'border-civic-navy/20'}`}>Set up new barangay</button>
+              <button type="button" onClick={() => changeTenantMode('existing')} className={`px-2 py-1 rounded border ${tenantMode === 'existing' ? 'bg-civic-navy text-white border-civic-navy' : 'border-civic-navy/20'}`}>Join existing</button>
+              <button type="button" onClick={() => changeTenantMode('new')} className={`px-2 py-1 rounded border ${tenantMode === 'new' ? 'bg-civic-navy text-white border-civic-navy' : 'border-civic-navy/20'}`}>Set up new barangay</button>
             </div>
 
             {tenantMode === 'existing' ? (
