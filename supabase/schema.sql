@@ -108,6 +108,11 @@ returns boolean language sql stable as $$
   );
 $$;
 
+create or replace function is_empty_barangay(bgy uuid)
+returns boolean language sql security definer set search_path = public as $$
+  select not exists (select 1 from profiles where barangay_id = bgy);
+$$;
+
 -- ------------------------------------------------------------
 -- FUND SOURCING
 -- ------------------------------------------------------------
@@ -171,7 +176,17 @@ create table programs (
   beneficiaries_count integer default 0,
   beneficiary_category text default 'General Residents',
   created_by uuid references profiles(id),
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  constraint programs_budget_amount_check check (budget_amount >= 0 and budget_amount <= 999999999999.99),
+  constraint programs_status_check check (status in ('planned', 'ongoing', 'completed', 'cancelled')),
+  constraint programs_date_range_check check (end_date is null or start_date is null or end_date >= start_date),
+  constraint programs_content_limits_check check (
+    length(trim(title)) between 1 and 200
+    and coalesce(length(description), 0) <= 5000
+    and coalesce(length(category), 0) <= 120
+    and coalesce(length(beneficiary_category), 0) between 1 and 120
+    and beneficiaries_count >= 0
+  )
 );
 
 -- Migration for existing databases:
@@ -215,7 +230,15 @@ create table sk_programs (
   end_date date,
   status text default 'planned',
   created_by uuid references profiles(id),
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  constraint sk_programs_budget_amount_check check (budget_amount >= 0 and budget_amount <= 999999999999.99),
+  constraint sk_programs_status_check check (status in ('planned', 'ongoing', 'completed', 'cancelled')),
+  constraint sk_programs_date_range_check check (end_date is null or start_date is null or end_date >= start_date),
+  constraint sk_programs_content_limits_check check (
+    length(trim(title)) between 1 and 200
+    and coalesce(length(description), 0) <= 5000
+    and coalesce(length(category), 0) <= 120
+  )
 );
 
 -- ------------------------------------------------------------
@@ -304,6 +327,43 @@ create table ai_conversations (
 -- ROW LEVEL SECURITY
 -- ============================================================
 
+create or replace function protect_program_audit_fields()
+returns trigger language plpgsql security invoker as $$
+begin
+  if tg_op = 'INSERT' then
+    new.created_by := auth.uid();
+  else
+    new.created_by := old.created_by;
+    new.barangay_id := old.barangay_id;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger protect_program_audit_fields
+before insert or update on programs
+for each row execute function protect_program_audit_fields();
+
+create trigger protect_sk_program_audit_fields
+before insert or update on sk_programs
+for each row execute function protect_program_audit_fields();
+
+create or replace function protect_profile_privilege_fields()
+returns trigger language plpgsql security invoker as $$
+begin
+  if old.id = auth.uid() then
+    new.role := old.role;
+    new.barangay_id := old.barangay_id;
+    new.is_active := old.is_active;
+  end if;
+  return new;
+end;
+$$;
+
+create trigger protect_profile_privilege_fields
+before update on profiles
+for each row execute function protect_profile_privilege_fields();
+
 alter table barangays enable row level security;
 alter table profiles enable row level security;
 alter table fund_sources enable row level security;
@@ -326,9 +386,17 @@ create policy "editors update barangays" on barangays for update using ((is_bara
 
 -- profiles
 create policy "public read active officials" on profiles for select using (is_active = true);
-create policy "users create own profile" on profiles for insert with check (id = auth.uid());
+create policy "users create own profile" on profiles for insert with check (
+  id = auth.uid()
+  and (
+    role in ('kagawad', 'staff', 'sk_kagawad')
+    or is_empty_barangay(barangay_id)
+  )
+);
 create policy "users update own profile" on profiles for update using (id = auth.uid());
-create policy "editors update other profiles" on profiles for update using ((is_barangay_editor(auth.uid()) or is_sk_editor(auth.uid())) and belongs_to_barangay(auth.uid(), barangay_id));
+create policy "editors update other profiles" on profiles for update
+  using ((is_barangay_editor(auth.uid()) or is_sk_editor(auth.uid())) and belongs_to_barangay(auth.uid(), barangay_id))
+  with check ((is_barangay_editor(auth.uid()) or is_sk_editor(auth.uid())) and belongs_to_barangay(auth.uid(), barangay_id));
 
 -- fund_sources
 create policy "public read fund_sources" on fund_sources for select using (true);
@@ -350,8 +418,8 @@ create policy "editors delete expenses" on expenses for delete using (is_baranga
 
 -- programs
 create policy "public read programs" on programs for select using (true);
-create policy "officials write programs" on programs for insert with check (belongs_to_barangay(auth.uid(), barangay_id));
-create policy "editors update programs" on programs for update using (is_barangay_editor(auth.uid()) and belongs_to_barangay(auth.uid(), barangay_id));
+create policy "editors write programs" on programs for insert with check (is_barangay_editor(auth.uid()) and belongs_to_barangay(auth.uid(), barangay_id));
+create policy "editors update programs" on programs for update using (is_barangay_editor(auth.uid()) and belongs_to_barangay(auth.uid(), barangay_id)) with check (is_barangay_editor(auth.uid()) and belongs_to_barangay(auth.uid(), barangay_id));
 create policy "editors delete programs" on programs for delete using (is_barangay_editor(auth.uid()) and belongs_to_barangay(auth.uid(), barangay_id));
 
 -- sk_budget
@@ -369,8 +437,8 @@ create policy "sk editors delete sk_budget" on sk_budget for delete using (is_sk
 
 -- sk_programs
 create policy "public read sk_programs" on sk_programs for select using (true);
-create policy "sk officials write sk_programs" on sk_programs for insert with check (belongs_to_barangay(auth.uid(), barangay_id));
-create policy "sk editors update sk_programs" on sk_programs for update using (is_sk_editor(auth.uid()) and belongs_to_barangay(auth.uid(), barangay_id));
+create policy "sk editors write sk_programs" on sk_programs for insert with check (is_sk_editor(auth.uid()) and belongs_to_barangay(auth.uid(), barangay_id));
+create policy "sk editors update sk_programs" on sk_programs for update using (is_sk_editor(auth.uid()) and belongs_to_barangay(auth.uid(), barangay_id)) with check (is_sk_editor(auth.uid()) and belongs_to_barangay(auth.uid(), barangay_id));
 create policy "sk editors delete sk_programs" on sk_programs for delete using (is_sk_editor(auth.uid()) and belongs_to_barangay(auth.uid(), barangay_id));
 
 -- sk_expenses
