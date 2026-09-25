@@ -103,7 +103,9 @@ export default function Login() {
           <FormField
             label="Password"
             type="password"
-            placeholder="••••••••"
+            placeholder="Enter your password"
+            autoComplete="current-password"
+            showPasswordToggle
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             error={fieldErrors.password}

@@ -36,7 +36,9 @@ export default function ProtectedRoute({ children, scope = 'any' }) {
               <UserPlus className="w-3.5 h-3.5" /> Complete Registration
             </Link>
             <button
-              onClick={() => signOut()}
+              onClick={() => {
+                if (window.confirm('Are you sure you want to sign out?')) signOut();
+              }}
               className="btn-secondary text-xs flex items-center justify-center gap-1.5"
             >
               <LogOut className="w-3.5 h-3.5" /> Sign Out

@@ -77,30 +77,30 @@ export default function Signup() {
     setSubmitting(true);
     setSubmitError('');
 
-    // Sign up FIRST — every insert below is protected by permission rules
-    // that check who's logged in, so they only work once a session exists.
-    const { data: authData, error: authErr } = await supabase.auth.signUp({
-      email: form.email,
-      password: form.password,
-    });
-    if (authErr) {
-      setSubmitError(friendlySupabaseError(authErr));
-      setSubmitting(false);
-      return;
-    }
+    try {
+      // Sign up FIRST — every insert below is protected by permission rules
+      // that check who's logged in, so they only work once a session exists.
+      const { data: authData, error: authErr } = await supabase.auth.signUp({
+        email: form.email.trim(),
+        password: form.password,
+      });
+      if (authErr) {
+        setSubmitError(friendlySupabaseError(authErr));
+        setSubmitting(false);
+        return;
+      }
 
-    if (!authData.session) {
-      setSubmitError(
-        'Account created, but your Supabase project requires email confirmation before you can log in. ' +
-        'Go to Supabase → Authentication → Providers → Email and turn off "Confirm email", then sign up again.'
-      );
-      setSubmitting(false);
-      return;
-    }
+      if (!authData.session) {
+        setSubmitError(
+          'Account created, but email confirmation is required. Check your inbox before signing in.'
+        );
+        setSubmitting(false);
+        return;
+      }
 
-    let barangayId = form.barangay_id;
+      let barangayId = form.barangay_id;
 
-    if (tenantMode === 'new') {
+      if (tenantMode === 'new') {
       const { data: newBarangay, error: bErr } = await supabase
         .from('barangays')
         .insert([{
@@ -117,7 +117,7 @@ export default function Signup() {
         return;
       }
       barangayId = newBarangay.id;
-    } else {
+      } else {
       // Check active seat quota for existing barangay
       const limit = ROLE_SEAT_LIMITS[form.role] || 1;
       const { data: existingProfiles, error: checkErr } = await supabase
@@ -138,7 +138,7 @@ export default function Signup() {
       }
     }
 
-    const { error: profileErr } = await supabase.from('profiles').insert([{
+      const { error: profileErr } = await supabase.from('profiles').insert([{
       id: authData.user.id,
       barangay_id: barangayId,
       full_name: form.full_name,
@@ -147,11 +147,15 @@ export default function Signup() {
       is_active: true,
     }]);
 
-    setSubmitting(false);
-    if (profileErr) {
-      setSubmitError(friendlySupabaseError(profileErr));
-    } else {
-      navigate('/dashboard');
+      setSubmitting(false);
+      if (profileErr) {
+        setSubmitError(friendlySupabaseError(profileErr));
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (err) {
+      setSubmitting(false);
+      setSubmitError(friendlySupabaseError(err));
     }
   };
 
@@ -166,7 +170,7 @@ export default function Signup() {
         <form onSubmit={handleSubmit} className="card space-y-4">
           <FormField label="Full Name" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} error={fieldErrors.full_name} />
           <FormField label="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} error={fieldErrors.email} />
-          <FormField label="Password" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} error={fieldErrors.password} />
+          <FormField label="Password" type="password" autoComplete="new-password" showPasswordToggle value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} error={fieldErrors.password} />
           <FormField label="Contact Number (optional)" placeholder="09171234567" value={form.contact_number} onChange={(e) => setForm({ ...form, contact_number: e.target.value })} error={fieldErrors.contact_number} />
 
           <FormField as="select" label="Role / Position" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} error={fieldErrors.role}>

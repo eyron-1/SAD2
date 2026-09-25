@@ -58,6 +58,7 @@ export default function OfficialLayout() {
   const canEdit = skMember ? isSkEditor(profile?.role) : isBarangayEditor(profile?.role);
 
   const handleSignOut = async () => {
+    if (!window.confirm('Are you sure you want to sign out?')) return;
     await signOut();
     navigate('/login');
   };
