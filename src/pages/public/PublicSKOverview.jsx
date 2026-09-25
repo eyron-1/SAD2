@@ -3,7 +3,7 @@ import { usePublicBarangay } from '../../lib/usePublicBarangay';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import { sumAmounts, sumActiveAmounts } from '../../lib/financial';
-import { DollarSign, FolderKanban, MessageSquare, PieChart, Receipt, Users, ArrowRight } from 'lucide-react';
+import { FolderKanban, MessageSquare, PieChart, Receipt, Users, ArrowRight } from 'lucide-react';
 
 export default function PublicSKOverview() {
   const { slug } = useParams();
@@ -35,7 +35,7 @@ export default function PublicSKOverview() {
       <ErrorBanner message={fundsError || allocationsError || expensesError || programsError} />
 
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="card"><span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><DollarSign className="w-4 h-4 text-emerald-600" /> SK Funds Sourced</span><p className="text-2xl font-extrabold text-civic-navy mt-2">₱{totalFunds.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div>
+        <div className="card"><span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">SK Funds Sourced</span><p className="text-2xl font-extrabold text-civic-navy mt-2">₱{totalFunds.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div>
         <div className="card"><span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><PieChart className="w-4 h-4 text-blue-600" /> SK Budget Allocated</span><p className="text-2xl font-extrabold text-civic-navy mt-2">₱{totalBudget.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div>
         <div className="card"><span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><Receipt className="w-4 h-4 text-amber-600" /> SK Expenses</span><p className="text-2xl font-extrabold text-civic-navy mt-2">₱{totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div>
         <div className="card"><span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><FolderKanban className="w-4 h-4 text-blue-600" /> Youth Programs</span><p className="text-2xl font-extrabold text-civic-navy mt-2">{activePrograms} Ongoing</p></div>

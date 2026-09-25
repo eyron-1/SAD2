@@ -7,6 +7,8 @@ import {
   validateDateRange,
   validateMaxLength,
   runValidators,
+  formatCurrencyInput,
+  parseCurrencyValue,
 } from "../../lib/validation";
 import { isSkEditor } from "../../utils/roles";
 import FormField from "../../components/ui/FormField";
@@ -21,7 +23,6 @@ import {
   Trash2,
   X,
   Calendar,
-  DollarSign,
   Tag,
   Wallet,
 } from "lucide-react";
@@ -114,7 +115,7 @@ export default function SKPrograms() {
       description: form.description.trim(),
       category: form.category.trim(),
       budget_amount: form.budget_amount
-        ? Number(String(form.budget_amount).replace(/,/g, ""))
+        ? parseCurrencyValue(form.budget_amount)
         : 0,
       sk_budget_id: form.sk_budget_id || null,
       created_by: profile.id,
@@ -456,7 +457,7 @@ export default function SKPrograms() {
                 </span>
               )}
               <span className="flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">
-                <DollarSign className="w-3.5 h-3.5" /> ₱
+                ₱
                 {Number(row.budget_amount || 0).toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                 })}

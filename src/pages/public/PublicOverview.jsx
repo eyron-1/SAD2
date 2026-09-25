@@ -3,7 +3,7 @@ import { usePublicBarangay } from '../../lib/usePublicBarangay';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import { sumAmounts, sumActiveAmounts } from '../../lib/financial';
-import { Building2, PieChart, Receipt, FolderKanban, MessageSquare, Users, ShieldCheck, ArrowRight, DollarSign } from 'lucide-react';
+import { Building2, PieChart, Receipt, FolderKanban, MessageSquare, Users, ShieldCheck, ArrowRight } from 'lucide-react';
 
 const formatCurrency = (value) => new Intl.NumberFormat('en-PH', {
   style: 'currency',

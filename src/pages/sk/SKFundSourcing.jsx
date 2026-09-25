@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
-import { validateRequired, validateCurrency, validateFiscalYear, runValidators } from '../../lib/validation';
+import { validateRequired, validateCurrency, validateFiscalYear, runValidators, formatCurrencyInput, parseCurrencyValue } from '../../lib/validation';
 import { isSkEditor } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
@@ -58,7 +58,7 @@ export default function SKFundSourcing() {
     setSubmitError('');
     const payload = {
       ...form,
-      amount: Number(String(form.amount).replace(/,/g, '')),
+      amount: parseCurrencyValue(form.amount),
       received_date: form.received_date || null,
       created_by: profile.id,
     };
@@ -166,10 +166,12 @@ export default function SKFundSourcing() {
 
           <div className="grid sm:grid-cols-3 gap-4">
             <FormField
+              type="text"
+              inputMode="decimal"
               label="Amount (₱)"
               placeholder="0.00"
               value={form.amount}
-              onChange={(e) => setForm({ ...form, amount: e.target.value })}
+              onChange={(e) => setForm({ ...form, amount: formatCurrencyInput(e.target.value) })}
               error={fieldErrors.amount}
             />
             <FormField

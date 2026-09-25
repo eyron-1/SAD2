@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
-import { validateRequired, validateCurrency, validateFiscalYear, runValidators } from '../../lib/validation';
+import { validateRequired, validateCurrency, validateFiscalYear, runValidators, formatCurrencyInput, parseCurrencyValue } from '../../lib/validation';
 import { isBarangayEditor } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
-import { Landmark, Plus, Search, Edit3, Trash2, X, Calendar, DollarSign, Tag, PieChart, Wallet } from 'lucide-react';
+import { Landmark, Plus, Search, Edit3, Trash2, X, Calendar, Tag, PieChart, Wallet } from 'lucide-react';
 
 const SOURCE_TYPES = ['IRA (Internal Revenue Allotment)', 'Local Revenue', 'National Grant', 'Provincial/Municipal Grant', 'Donation', 'Other'];
 const EMPTY = { name: '', source_type: SOURCE_TYPES[0], amount: '', fiscal_year: '', received_date: '', description: '' };
@@ -59,7 +59,7 @@ export default function FundSourcing() {
 
     setSubmitting(true);
     setSubmitError('');
-    const numericAmount = Number(form.amount);
+    const numericAmount = parseCurrencyValue(form.amount);
     const payload = { ...form, amount: numericAmount, created_by: profile.id };
     const result = editingId ? await updateRow(editingId, payload) : await insertRow(payload);
     setSubmitting(false);
@@ -185,14 +185,12 @@ export default function FundSourcing() {
 
               <div className="grid grid-cols-3 gap-4">
                 <FormField
-                  type="number"
-                  min="0"
-                  step="0.01"
+                  type="text"
                   inputMode="decimal"
                   label="Amount (₱)"
-                  placeholder="e.g. 500000.00"
+                  placeholder="e.g. 500,000.00"
                   value={form.amount}
-                  onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                  onChange={(e) => setForm({ ...form, amount: formatCurrencyInput(e.target.value) })}
                   error={fieldErrors.amount}
                 />
                 <FormField
@@ -241,7 +239,7 @@ export default function FundSourcing() {
                 <th className="px-6 py-3.5"><div className="flex items-center gap-1.5"><Tag className="w-3.5 h-3.5 text-civic-emerald" /> Fund Name</div></th>
                 <th className="px-6 py-3.5">Source Type</th>
                 <th className="px-6 py-3.5"><div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-civic-emerald" /> Fiscal Year</div></th>
-                <th className="px-6 py-3.5 text-right"><div className="flex items-center justify-end gap-1.5"><DollarSign className="w-3.5 h-3.5 text-civic-emerald" /> Amount</div></th>
+                <th className="px-6 py-3.5 text-right"><div className="flex items-center justify-end gap-1.5">Amount</div></th>
                 {canEdit && <th className="px-6 py-3.5 text-right">Actions</th>}
               </tr>
             </thead>

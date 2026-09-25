@@ -4,7 +4,7 @@ import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import Badge from '../../components/ui/Badge';
 
-import { Users, Calendar, DollarSign, Tag } from 'lucide-react';
+import { Users, Calendar, Tag } from 'lucide-react';
 
 const parseBeneficiary = (row) => {
   let cat = row.beneficiary_category || '';
@@ -55,7 +55,6 @@ function ProgramCard({ row }) {
         )}
 
         <span className="inline-flex items-center gap-1 text-emerald-800 font-bold bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200/60">
-          <DollarSign className="w-3 h-3 text-emerald-600" />
           ₱{Number(row.budget_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
         </span>
 

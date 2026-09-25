@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
-import { validateRequired, validateCurrency, validateFiscalYear, runValidators } from '../../lib/validation';
+import { validateRequired, validateCurrency, validateFiscalYear, runValidators, formatCurrencyInput, parseCurrencyValue } from '../../lib/validation';
 import { isBarangayEditor } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
-import { PieChart, Plus, Search, Filter, Edit3, Trash2, X, DollarSign, Calendar, Layers, Landmark, Receipt, Wallet } from 'lucide-react';
+import { PieChart, Plus, Search, Filter, Edit3, Trash2, X, Calendar, Layers, Landmark, Receipt, Wallet } from 'lucide-react';
 
 const CATEGORIES = ['Infrastructure', 'Health Services', 'Peace & Order', 'Education', 'Social Services', 'Administration', 'Disaster Preparedness', 'Other'];
 const EMPTY = { fiscal_year: '', category: CATEGORIES[0], amount: '', description: '' };
@@ -69,7 +69,7 @@ export default function BudgetManagement() {
 
     setSubmitting(true);
     setSubmitError('');
-    const numericAmount = Number(form.amount);
+    const numericAmount = parseCurrencyValue(form.amount);
     const payload = { ...form, amount: numericAmount, created_by: profile.id };
 
     const result = editingId ? await updateRow(editingId, payload) : await insertRow(payload);
@@ -304,14 +304,12 @@ export default function BudgetManagement() {
               </div>
 
               <FormField
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  inputMode="decimal"
+                type="text"
+                inputMode="decimal"
                 label="Allocation Amount (₱)"
-                  placeholder="e.g. 250000.00"
+                placeholder="e.g. 250,000.00"
                 value={form.amount}
-                onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                onChange={(e) => setForm({ ...form, amount: formatCurrencyInput(e.target.value) })}
                 error={fieldErrors.amount}
               />
 
@@ -345,7 +343,7 @@ export default function BudgetManagement() {
               <tr>
                 <th className="px-6 py-3.5"><div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-civic-emerald" /> Fiscal Year</div></th>
                 <th className="px-6 py-3.5"><div className="flex items-center gap-1.5"><Layers className="w-3.5 h-3.5 text-civic-emerald" /> Category</div></th>
-                <th className="px-6 py-3.5 text-right"><div className="flex items-center justify-end gap-1.5"><DollarSign className="w-3.5 h-3.5 text-civic-emerald" /> Allocated Amount</div></th>
+                <th className="px-6 py-3.5 text-right"><div className="flex items-center justify-end gap-1.5">Allocated Amount</div></th>
                 <th className="px-6 py-3.5">Description</th>
                 {canEdit && <th className="px-6 py-3.5 text-right">Actions</th>}
               </tr>

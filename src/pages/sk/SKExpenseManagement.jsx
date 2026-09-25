@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
-import { validateRequired, validateCurrency, runValidators } from '../../lib/validation';
+import { validateRequired, validateCurrency, runValidators, formatCurrencyInput, parseCurrencyValue } from '../../lib/validation';
 import { isSkEditor } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
@@ -70,7 +70,7 @@ export default function SKExpenseManagement() {
       category: form.category,
       description: form.description.trim(),
       date_incurred: form.date_incurred,
-      amount: Number(String(form.amount).replace(/,/g, '')),
+      amount: parseCurrencyValue(form.amount),
       sk_budget_id: form.sk_budget_id,
       ...(receiptUrl ? { receipt_url: receiptUrl } : {}),
     };
@@ -122,7 +122,7 @@ export default function SKExpenseManagement() {
             <FormField as="select" label="Category" value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} error={fieldErrors.category}>
               {CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
             </FormField>
-            <FormField label="Amount (₱)" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} error={fieldErrors.amount} />
+            <FormField type="text" inputMode="decimal" label="Amount (₱)" placeholder="e.g. 2,500.00" value={form.amount} onChange={(event) => setForm({ ...form, amount: formatCurrencyInput(event.target.value) })} error={fieldErrors.amount} />
             <FormField type="date" label="Date Incurred" value={form.date_incurred} onChange={(event) => setForm({ ...form, date_incurred: event.target.value })} error={fieldErrors.date_incurred} />
           </div>
           <FormField as="select" label="SK Budget Allocation" value={form.sk_budget_id} onChange={(event) => setForm({ ...form, sk_budget_id: event.target.value })} error={fieldErrors.sk_budget_id}>

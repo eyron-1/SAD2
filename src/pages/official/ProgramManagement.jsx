@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
-import { validateRequired, validateCurrency, validateDateRange, runValidators } from '../../lib/validation';
+import { validateRequired, validateCurrency, validateDateRange, runValidators, formatCurrencyInput, parseCurrencyValue } from '../../lib/validation';
 import { validateMaxLength } from '../../lib/validation';
 import { isBarangayEditor } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
@@ -17,7 +17,6 @@ import {
   X,
   Users,
   Calendar,
-  DollarSign,
   Wallet,
   Tag,
   CheckCircle2,
@@ -164,7 +163,7 @@ export default function ProgramManagement() {
       title: form.title.trim(),
       description: form.description.trim(),
       category: form.category.trim(),
-      budget_amount: form.budget_amount ? Number(form.budget_amount) : 0,
+      budget_amount: form.budget_amount ? parseCurrencyValue(form.budget_amount) : 0,
       budget_allocation_id: form.budget_allocation_id || null,
       beneficiaries_count: 0,
       beneficiary_category: resolvedBeneficiaryCategory,
@@ -278,7 +277,6 @@ export default function ProgramManagement() {
 
         <div className="card p-4 flex items-center gap-3">
           <div className="w-11 h-11 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
-            <DollarSign className="w-5 h-5 text-amber-600" />
           </div>
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Allocated Budget</p>
@@ -381,14 +379,12 @@ export default function ProgramManagement() {
                 </div>
 
                 <FormField
-                  type="number"
-                  min="0"
-                  step="0.01"
+                  type="text"
                   inputMode="decimal"
                   label="Budget (₱)"
-                  placeholder="e.g. 50000.00"
+                  placeholder="e.g. 50,000.00"
                   value={form.budget_amount}
-                  onChange={(e) => setForm({ ...form, budget_amount: e.target.value })}
+                  onChange={(e) => setForm({ ...form, budget_amount: formatCurrencyInput(e.target.value) })}
                   error={fieldErrors.budget_amount}
                 />
                 <FormField
@@ -558,7 +554,6 @@ export default function ProgramManagement() {
                 </span>
 
                 <span className="flex items-center gap-1 text-emerald-700 font-bold bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
-                  <DollarSign className="w-3.5 h-3.5 text-civic-emerald" />
                   ₱{Number(row.budget_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
 

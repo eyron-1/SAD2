@@ -11,8 +11,8 @@ export const PATTERNS = {
   phMobile: /^(?:\+63|0)9\d{9}$/,
   // standard email
   email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-  // currency: optional leading peso sign, digits, optional 2-decimal
-  currency: /^\d{1,3}(,\d{3})*(\.\d{1,2})?$|^\d+(\.\d{1,2})?$/,
+  // currency: optional leading peso or dollar sign, digits, optional 2-decimal
+  currency: /^(?:[$₱])?\d{1,3}(,\d{3})*(\.\d{1,2})?$|^(?:[$₱])?\d+(\.\d{1,2})?$/,
   // fiscal year like 2026 or 2026-2027
   fiscalYear: /^\d{4}(-\d{4})?$/,
   // strong-ish password: min 8 chars, 1 upper, 1 lower, 1 number
@@ -51,10 +51,52 @@ export function validateEmail(value, { required = true } = {}) {
   return '';
 }
 
+export function normalizeCurrencyValue(value) {
+  if (value === null || value === undefined) return '';
+  const raw = String(value).trim().replace(/[$₱\s]/g, '');
+  if (!raw) return '';
+
+  const digits = raw.replace(/[^\d.]/g, '');
+  if (!digits) return '';
+
+  const [wholePart, ...rest] = digits.split('.');
+  const sanitizedWhole = wholePart.replace(/^0+(?=\d)/, '');
+  const decimalPart = rest.join('').replace(/\./g, '').slice(0, 2);
+  const hasDecimal = digits.includes('.');
+
+  if (hasDecimal) {
+    const formattedWhole = sanitizedWhole || '0';
+    return decimalPart ? `${formattedWhole}.${decimalPart}` : `${formattedWhole}.`;
+  }
+
+  return sanitizedWhole || '0';
+}
+
+export function formatCurrencyInput(value) {
+  const normalized = normalizeCurrencyValue(value);
+  if (!normalized) return '';
+
+  const [wholePart, ...rest] = normalized.split('.');
+  const decimalPart = rest.join('.');
+  const formattedWhole = wholePart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+  return decimalPart !== undefined && decimalPart !== ''
+    ? `${formattedWhole}.${decimalPart}`
+    : formattedWhole + (normalized.endsWith('.') ? '.' : '');
+}
+
+export function parseCurrencyValue(value) {
+  const normalized = normalizeCurrencyValue(value);
+  if (!normalized || normalized === '.') return 0;
+
+  const numericValue = Number(normalized.replace(/,/g, ''));
+  return Number.isFinite(numericValue) ? numericValue : 0;
+}
+
 export function validateCurrency(value, label = 'Amount') {
   if (value === '' || value === null || value === undefined) return `${label} is required.`;
-  const clean = String(value).replace(/,/g, '');
-  if (!PATTERNS.currency.test(String(value)) || isNaN(Number(clean))) {
+  const clean = normalizeCurrencyValue(value).replace(/,/g, '');
+  if (!clean || !PATTERNS.currency.test(String(value)) || isNaN(Number(clean))) {
     return `${label} must be a valid amount, e.g. 15000 or 15,000.50.`;
   }
   if (Number(clean) < 0) return `${label} cannot be negative.`;

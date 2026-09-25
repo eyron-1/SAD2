@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import { supabase } from '../../lib/supabaseClient';
-import { validateRequired, validateCurrency, runValidators, friendlySupabaseError } from '../../lib/validation';
+import { validateRequired, validateCurrency, runValidators, friendlySupabaseError, formatCurrencyInput, parseCurrencyValue } from '../../lib/validation';
 import { isBarangayEditor } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import Badge from '../../components/ui/Badge';
-import { Receipt, Plus, Search, Filter, Edit3, Trash2, X, FileText, Calendar, DollarSign, ExternalLink, Upload, PieChart, Wallet } from 'lucide-react';
+import { Receipt, Plus, Search, Filter, Edit3, Trash2, X, FileText, Calendar, ExternalLink, Upload, PieChart, Wallet } from 'lucide-react';
 
 const CATEGORIES = ['Infrastructure', 'Health Services', 'Peace & Order', 'Education', 'Social Services', 'Administration', 'Disaster Preparedness', 'Honoraria', 'Utilities', 'Other'];
 const EMPTY = { category: CATEGORIES[0], amount: '', description: '', date_incurred: '', budget_allocation_id: '' };
@@ -119,7 +119,7 @@ export default function ExpenseManagement() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const { errors, isValid } = runValidators(form, validators);
-    const numericAmount = Number(form.amount);
+    const numericAmount = parseCurrencyValue(form.amount);
     if (selectedAllocation && numericAmount > availableAmount) {
       errors.amount = `Amount exceeds the remaining allocation balance of ₱${Math.max(availableAmount, 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`;
     }
@@ -270,15 +270,12 @@ export default function ExpenseManagement() {
                   error={fieldErrors.category}
                 />
                 <FormField
-                  type="number"
-                  min="0"
-                  max={Math.max(availableAmount, 0)}
-                  step="0.01"
+                  type="text"
                   inputMode="decimal"
                   label="Amount (₱)"
-                  placeholder="e.g. 12500.00"
+                  placeholder="e.g. 12,500.00"
                   value={form.amount}
-                  onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                  onChange={(e) => setForm({ ...form, amount: formatCurrencyInput(e.target.value) })}
                   error={fieldErrors.amount}
                 />
               </div>
@@ -353,7 +350,7 @@ export default function ExpenseManagement() {
               <tr>
                 <th className="px-6 py-3.5"><div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-civic-emerald" /> Date Incurred</div></th>
                 <th className="px-6 py-3.5">Category & Linked Allocation</th>
-                <th className="px-6 py-3.5 text-right"><div className="flex items-center justify-end gap-1.5"><DollarSign className="w-3.5 h-3.5 text-civic-emerald" /> Amount</div></th>
+                <th className="px-6 py-3.5 text-right"><div className="flex items-center justify-end gap-1.5">Amount</div></th>
                 <th className="px-6 py-3.5">Status</th>
                 <th className="px-6 py-3.5">Receipt</th>
                 {canEdit && <th className="px-6 py-3.5 text-right">Actions</th>}
