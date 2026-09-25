@@ -172,38 +172,41 @@ export default function Landing() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative bg-civic-navy text-white pt-16 pb-24 overflow-hidden">
-        <div className="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-6">
-          {/* Official Tagline Badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 text-civic-gold border border-white/15 text-xs font-semibold backdrop-blur-xs animate-in fade-in slide-in-from-top-4 duration-300">
+      <section className="relative overflow-hidden bg-gradient-to-br from-civic-navy via-slate-900 to-sky-950 text-white pt-16 pb-24">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(201,162,75,0.18),transparent_22%),radial-gradient(circle_at_bottom_right,_rgba(47,107,79,0.18),transparent_28%)]" />
+        <div className="absolute -top-20 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-civic-gold/10 blur-3xl" />
+
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-7">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/15 bg-white/5 text-civic-gold text-xs font-semibold backdrop-blur-sm shadow-glass">
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
             <span>In Accordance with DILG Full Disclosure Policy & RA 7160</span>
           </div>
 
-          <h1 className="font-display text-4xl sm:text-5xl md:text-6xl text-white tracking-tight leading-tight max-w-4xl mx-auto font-bold">
-            Transparent Governance for Every Filipino Barangay
-          </h1>
+          <div className="space-y-5">
+            <h1 className="font-display text-4xl sm:text-5xl md:text-6xl text-white tracking-tight leading-[1.05] max-w-4xl mx-auto font-bold">
+              Transparent Governance for Every Filipino Barangay
+            </h1>
 
-          <p className="text-base sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
-            Open budgets, itemized expenditures, community programs, and direct public feedback.
-            <span className="text-emerald-400 font-medium"> 100% free and open to all residents</span> with no account required to browse.
-          </p>
+            <p className="text-base sm:text-lg text-slate-200 max-w-3xl mx-auto leading-relaxed">
+              Open budgets, itemized expenditures, project updates, and direct public feedback — all in one civic portal designed to build trust and accountability.
+              <span className="text-emerald-300 font-semibold"> 100% free and open to residents.</span>
+            </p>
+          </div>
 
-          {/* Instant Search Bar in Hero */}
-          <div className="pt-4 max-w-2xl mx-auto">
-            <div className="relative flex items-center bg-white rounded-2xl p-2 shadow-card-hover border border-slate-200 text-slate-800">
+          <div className="pt-2 max-w-2xl mx-auto">
+            <div className="relative flex items-center bg-white/95 backdrop-blur-sm rounded-2xl p-2 shadow-card-hover border border-white/20 text-slate-800">
               <Search className="w-5 h-5 text-slate-400 ml-3 shrink-0" />
               <input
                 type="text"
                 placeholder="Search your barangay, municipality, or province..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full px-3 py-2.5 text-sm sm:text-base outline-none bg-transparent placeholder:text-slate-400 font-medium"
+                className="w-full px-3 py-3 text-sm sm:text-base outline-none bg-transparent placeholder:text-slate-400 font-medium"
               />
               {search && (
                 <button
                   onClick={() => setSearch('')}
-                  className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg mr-1 text-xs"
+                  className="p-2 text-slate-500 hover:text-slate-700 rounded-lg mr-1 text-xs font-semibold transition-colors"
                 >
                   Clear
                 </button>
@@ -217,27 +220,26 @@ export default function Landing() {
             </div>
           </div>
 
-          {/* Hero Live Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 pt-10 max-w-4xl mx-auto">
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-xs text-center">
-              <p className="text-2xl sm:text-3xl font-bold text-emerald-400 font-display">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 pt-8 max-w-4xl mx-auto">
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm text-center shadow-glass">
+              <p className="text-2xl sm:text-3xl font-bold text-emerald-300 font-display">
                 {barangays.length}
               </p>
               <p className="text-xs text-slate-300 font-medium mt-1">Barangays Onboarded</p>
             </div>
 
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-xs text-center">
-              <p className="text-2xl sm:text-3xl font-bold text-civic-gold font-display">100%</p>
-              <p className="text-xs text-slate-300 font-medium mt-1">Public & Free Access</p>
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm text-center shadow-glass">
+              <p className="text-2xl sm:text-3xl font-bold text-civic-gold font-display">24/7</p>
+              <p className="text-xs text-slate-300 font-medium mt-1">Public Access</p>
             </div>
 
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-xs text-center">
-              <p className="text-2xl sm:text-3xl font-bold text-sky-400 font-display">Real-Time</p>
-              <p className="text-xs text-slate-300 font-medium mt-1">Financial Auditing</p>
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm text-center shadow-glass">
+              <p className="text-2xl sm:text-3xl font-bold text-sky-300 font-display">Live</p>
+              <p className="text-xs text-slate-300 font-medium mt-1">Financial Tracking</p>
             </div>
 
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 backdrop-blur-xs text-center">
-              <p className="text-2xl sm:text-3xl font-bold text-civic-gold font-display">SK Hub</p>
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm text-center shadow-glass">
+              <p className="text-2xl sm:text-3xl font-bold text-civic-gold font-display">SK</p>
               <p className="text-xs text-slate-300 font-medium mt-1">Youth Governance</p>
             </div>
           </div>
@@ -247,14 +249,18 @@ export default function Landing() {
       {/* Main Directory Section */}
       <section id="directory" className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-20 flex-1 w-full">
         {/* Directory Controls Header */}
-        <div className="bg-white rounded-2xl shadow-card border border-slate-200 p-6 mb-8 space-y-4">
+        <div className="bg-white rounded-3xl shadow-card-hover border border-slate-200 p-6 mb-8 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
+              <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 mb-3 text-[10px] font-bold uppercase tracking-[0.16em]">
+                <Building2 className="w-3.5 h-3.5" />
+                Community Directory
+              </div>
               <h2 className="text-2xl font-bold text-civic-navy font-display flex items-center gap-2">
                 <Building2 className="w-6 h-6 text-civic-emerald" />
                 Find Your Barangay Portal
               </h2>
-              <p className="text-slate-500 text-sm mt-0.5">
+              <p className="text-slate-500 text-sm mt-1.5">
                 Select your barangay to review its published budget, ongoing community projects, and submit feedback.
               </p>
             </div>
@@ -323,7 +329,7 @@ export default function Landing() {
           {filtered.map((b) => (
             <div
               key={b.id}
-              className="card p-6 flex flex-col justify-between hover:shadow-card-hover hover:border-civic-emerald/40 transition-all duration-200 group bg-white border border-slate-200"
+              className="card p-6 flex flex-col justify-between hover:shadow-card-hover hover:-translate-y-1 hover:border-civic-emerald/40 transition-all duration-200 group bg-white border border-slate-200 rounded-2xl"
             >
               <div className="space-y-4">
                 {/* Header with Logo */}
