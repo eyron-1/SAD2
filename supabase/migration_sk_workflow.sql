@@ -1,6 +1,10 @@
 
 
 alter table barangays add column if not exists sk_logo_url text;
+
+drop policy if exists "editors update barangays" on barangays;
+create policy "editors update barangays" on barangays for update using ((is_barangay_editor(auth.uid()) or is_sk_editor(auth.uid())) and belongs_to_barangay(auth.uid(), id));
+
 alter table sk_programs add column if not exists category text;
 alter table feedback add column if not exists addressed_to text not null default 'barangay';
 alter table feedback drop constraint if exists feedback_addressed_to_check;

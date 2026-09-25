@@ -322,7 +322,7 @@ alter table ai_conversations enable row level security;
 -- barangays
 create policy "public read barangays" on barangays for select using (true);
 create policy "authenticated users can create barangays" on barangays for insert to authenticated with check (true);
-create policy "editors update barangays" on barangays for update using (is_barangay_editor(auth.uid()) and belongs_to_barangay(auth.uid(), id));
+create policy "editors update barangays" on barangays for update using ((is_barangay_editor(auth.uid()) or is_sk_editor(auth.uid())) and belongs_to_barangay(auth.uid(), id));
 
 -- profiles
 create policy "public read active officials" on profiles for select using (is_active = true);
