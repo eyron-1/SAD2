@@ -18,6 +18,7 @@ import {
   Users,
   Calendar,
   DollarSign,
+  Wallet,
   Tag,
   CheckCircle2,
   Clock,
@@ -556,6 +557,12 @@ export default function ProgramManagement() {
                   <DollarSign className="w-3.5 h-3.5 text-civic-emerald" />
                   ₱{Number(row.budget_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
+
+                {row.budget_allocation_id && (
+                  <span className="flex items-center gap-1 text-blue-700 bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200">
+                    <Wallet className="w-3.5 h-3.5" /> Linked allocation
+                  </span>
+                )}
 
                 <span className="flex items-center gap-1 text-slate-500 ml-auto">
                   <Calendar className="w-3.5 h-3.5 text-slate-400" />
