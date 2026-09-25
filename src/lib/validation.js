@@ -30,6 +30,13 @@ export function validateRequired(value, label) {
   return '';
 }
 
+export function validateMaxLength(value, label, max) {
+  if (value && String(value).length > max) {
+    return `${label} must be ${max} characters or fewer.`;
+  }
+  return '';
+}
+
 export function validateMobile(value, { required = true } = {}) {
   if (!value) return required ? 'Mobile number is required.' : '';
   if (!PATTERNS.phMobile.test(value.trim())) {

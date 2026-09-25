@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import { validateRequired, validateCurrency, validateDateRange, runValidators } from '../../lib/validation';
+import { validateMaxLength } from '../../lib/validation';
 import { isBarangayEditor } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
@@ -100,6 +101,11 @@ export default function ProgramManagement() {
   const validators = {
     title: (v) => validateRequired(v, 'Title'),
     budget_amount: (v) => (v ? validateCurrency(v, 'Budget') : ''),
+    description: (v) => validateMaxLength(v, 'Description', 5000),
+    category: (v) => validateMaxLength(v, 'Category', 120),
+    custom_beneficiary_category: (v) => form.beneficiary_category === 'Other / Custom Sector'
+      ? (validateRequired(v, 'Custom beneficiary sector') || validateMaxLength(v, 'Custom beneficiary sector', 120))
+      : '',
   };
 
   const openModal = (row = null) => {
@@ -344,6 +350,7 @@ export default function ProgramManagement() {
               <FormField
                 label="Program / Project Title"
                 placeholder="e.g. Barangay Health & Nutrition Drive 2026"
+                maxLength={200}
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 error={fieldErrors.title}
@@ -356,6 +363,7 @@ export default function ProgramManagement() {
                     list="program-categories"
                     type="text"
                     placeholder="e.g. Health & Sanitation"
+                                        maxLength={120}
                     value={form.category}
                     onChange={(e) => setForm({ ...form, category: e.target.value })}
                     className="input-field"
@@ -401,6 +409,7 @@ export default function ProgramManagement() {
                   <FormField
                     label="Specify Custom Sector"
                     placeholder="e.g. Out-of-school Youth, Daycare Children..."
+                    maxLength={120}
                     value={form.custom_beneficiary_category}
                     onChange={(e) => setForm({ ...form, custom_beneficiary_category: e.target.value })}
                   />
@@ -440,6 +449,7 @@ export default function ProgramManagement() {
                 rows={3}
                 label="Description & Objectives"
                 placeholder="Scope, planned activities, location, and community outcomes..."
+                maxLength={5000}
                 value={form.description}
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
@@ -453,6 +463,18 @@ export default function ProgramManagement() {
                 </button>
               </div>
             </form>
+          </div>
+          <div className="flex items-center justify-between gap-3 text-xs text-slate-500">
+            <span>Showing {filteredRows.length} of {rows.length} programs</span>
+            {(search || statusFilter !== 'all' || beneficiaryFilter !== 'all') && (
+              <button
+                type="button"
+                onClick={() => { setSearch(''); setStatusFilter('all'); setBeneficiaryFilter('all'); }}
+                className="font-semibold text-civic-navy hover:text-civic-emerald"
+              >
+                Clear filters
+              </button>
+            )}
           </div>
         </div>
       )}
