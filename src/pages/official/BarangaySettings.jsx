@@ -5,7 +5,7 @@ import { isBarangayEditor, isSkEditor, isSkRole } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import { Building2, Upload, Image as ImageIcon, Save, CheckCircle2, ShieldCheck, MapPin } from 'lucide-react';
-import { PROVINCES_LIST, getCitiesMunicipalities, getBarangays } from '../../lib/philippineLocations';
+import { PROVINCES_LIST, getCitiesMunicipalities, getBarangays, generateSlug } from '../../lib/philippineLocations';
 
 export default function BarangaySettings() {
   const { profile, refreshProfile } = useAuth();
@@ -131,6 +131,7 @@ export default function BarangaySettings() {
         .from('barangays')
         .update({
           name: form.name,
+          slug: generateSlug(form.name, form.municipality),
           municipality: form.municipality || null,
           province: form.province || null,
           contact_email: form.contact_email || null,

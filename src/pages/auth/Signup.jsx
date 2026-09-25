@@ -3,12 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import {
   validateEmail, validatePassword, validateName, validateMobile,
-  validateRequired, PATTERNS, runValidators, friendlySupabaseError,
+  validateRequired, runValidators, friendlySupabaseError,
 } from '../../lib/validation';
 import { ROLES, roleLabel, ROLE_SEAT_LIMITS } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
-import { PROVINCES_LIST, getCitiesMunicipalities, getBarangays } from '../../lib/philippineLocations';
+import { PROVINCES_LIST, getCitiesMunicipalities, getBarangays, generateSlug } from '../../lib/philippineLocations';
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -21,7 +21,7 @@ export default function Signup() {
 
   const [form, setForm] = useState({
     full_name: '', email: '', password: '', contact_number: '', role: ROLES.STAFF,
-    barangay_id: '', new_barangay_name: '', new_barangay_slug: '', new_barangay_municipality: '', new_barangay_province: '',
+    barangay_id: '', new_barangay_name: '', new_barangay_municipality: '', new_barangay_province: '',
   });
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
@@ -60,11 +60,6 @@ export default function Signup() {
       ? { barangay_id: (v) => validateRequired(v, 'Barangay') }
       : {
           new_barangay_name: (v) => validateRequired(v, 'Barangay name'),
-          new_barangay_slug: (v) => {
-            const req = validateRequired(v, 'URL slug');
-            if (req) return req;
-            return PATTERNS.slug.test(v) ? '' : 'Slug must be lowercase letters, numbers, and hyphens only (e.g. san-isidro).';
-          },
         }),
   };
 
@@ -105,7 +100,7 @@ export default function Signup() {
         .from('barangays')
         .insert([{
           name: form.new_barangay_name,
-          slug: form.new_barangay_slug,
+          slug: generateSlug(form.new_barangay_name, form.new_barangay_municipality),
           municipality: form.new_barangay_municipality || null,
           province: form.new_barangay_province || null,
         }])
@@ -191,7 +186,6 @@ export default function Signup() {
               </FormField>
             ) : (
               <div className="space-y-3">
-                <FormField label="URL Slug" placeholder="san-isidro" value={form.new_barangay_slug} onChange={(e) => setForm({ ...form, new_barangay_slug: e.target.value.toLowerCase() })} error={fieldErrors.new_barangay_slug} />
                 <div className="grid grid-cols-2 gap-3">
                   <FormField as="select" label="Province / Region" value={selectedProvince?.code || ''} onChange={(e) => setSelectedProvince(PROVINCES_LIST.find((p) => p.code === e.target.value) || null)}>
                     <option value="">— select province / region —</option>
