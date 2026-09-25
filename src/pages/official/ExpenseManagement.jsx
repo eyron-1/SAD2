@@ -38,6 +38,15 @@ export default function ExpenseManagement() {
     budget_allocation_id: (v) => validateRequired(v, 'Budget allocation'),
   };
 
+  const getAvailableAmount = (allocation) => {
+    const committed = rows
+      .filter((row) => row.status !== 'voided' && row.budget_allocation_id === allocation.id && row.id !== editingId)
+      .reduce((sum, row) => sum + Number(row.amount || 0), 0);
+    return Number(allocation.amount || 0) - committed;
+  };
+  const selectedAllocation = allocations.find((allocation) => allocation.id === form.budget_allocation_id);
+  const availableAmount = selectedAllocation ? getAvailableAmount(selectedAllocation) : 0;
+
   const openModal = (row = null) => {
     if (row) {
       setForm({
@@ -110,15 +119,17 @@ export default function ExpenseManagement() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const { errors, isValid } = runValidators(form, validators);
+    const numericAmount = Number(form.amount);
+    if (selectedAllocation && numericAmount > availableAmount) {
+      errors.amount = `Amount exceeds the remaining allocation balance of ₱${Math.max(availableAmount, 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`;
+    }
     setFieldErrors(errors);
-    if (!isValid) return;
+    if (!isValid || Object.keys(errors).length > 0) return;
 
     setSubmitting(true);
     setSubmitError('');
 
     const upload = await uploadReceipt();
-    const numericAmount = Number(String(form.amount).replace(/[^0-9.]/g, ''));
-
     const payload = {
       category: form.category,
       description: form.description.trim(),
@@ -251,19 +262,21 @@ export default function ExpenseManagement() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <FormField
-                  as="select"
-                  label="Category"
-                  value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}
+                  label="Category (from allocation)"
+                  value={selectedAllocation?.category || ''}
+                  placeholder="Select a budget allocation"
+                  readOnly
+                  disabled
                   error={fieldErrors.category}
-                >
-                  {CATEGORIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
-                  ))}
-                </FormField>
+                />
                 <FormField
+                  type="number"
+                  min="0"
+                  max={Math.max(availableAmount, 0)}
+                  step="0.01"
+                  inputMode="decimal"
                   label="Amount (₱)"
-                  placeholder="e.g. 12,500.00"
+                  placeholder="e.g. 12500.00"
                   value={form.amount}
                   onChange={(e) => setForm({ ...form, amount: e.target.value })}
                   error={fieldErrors.amount}
@@ -282,12 +295,21 @@ export default function ExpenseManagement() {
                   as="select"
                   label="Linked Budget Allocation"
                   value={form.budget_allocation_id}
-                  onChange={(e) => setForm({ ...form, budget_allocation_id: e.target.value })}
+                  onChange={(e) => {
+                    const allocation = allocations.find((item) => item.id === e.target.value);
+                    setForm({
+                      ...form,
+                      budget_allocation_id: e.target.value,
+                      category: allocation?.category || '',
+                    });
+                  }}
                   error={fieldErrors.budget_allocation_id}
                 >
                   <option value="">Select an allocation</option>
                   {allocations.map((a) => (
-                    <option key={a.id} value={a.id}>{a.fiscal_year} · {a.category} (₱{Number(a.amount).toLocaleString()})</option>
+                    <option key={a.id} value={a.id}>
+                      {a.fiscal_year} · {a.category} · ₱{getAvailableAmount(a).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} remaining
+                    </option>
                   ))}
                 </FormField>
               </div>

@@ -69,7 +69,7 @@ export default function BudgetManagement() {
 
     setSubmitting(true);
     setSubmitError('');
-    const numericAmount = Number(String(form.amount).replace(/[^0-9.]/g, ''));
+    const numericAmount = Number(form.amount);
     const payload = { ...form, amount: numericAmount, created_by: profile.id };
 
     const result = editingId ? await updateRow(editingId, payload) : await insertRow(payload);
@@ -304,8 +304,12 @@ export default function BudgetManagement() {
               </div>
 
               <FormField
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputMode="decimal"
                 label="Allocation Amount (₱)"
-                placeholder="e.g. 250,000.00"
+                  placeholder="e.g. 250000.00"
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
                 error={fieldErrors.amount}

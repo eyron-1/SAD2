@@ -59,7 +59,7 @@ export default function FundSourcing() {
 
     setSubmitting(true);
     setSubmitError('');
-    const numericAmount = Number(String(form.amount).replace(/[^0-9.]/g, ''));
+    const numericAmount = Number(form.amount);
     const payload = { ...form, amount: numericAmount, created_by: profile.id };
     const result = editingId ? await updateRow(editingId, payload) : await insertRow(payload);
     setSubmitting(false);
@@ -185,8 +185,12 @@ export default function FundSourcing() {
 
               <div className="grid grid-cols-3 gap-4">
                 <FormField
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputMode="decimal"
                   label="Amount (₱)"
-                  placeholder="e.g. 500,000.00"
+                  placeholder="e.g. 500000.00"
                   value={form.amount}
                   onChange={(e) => setForm({ ...form, amount: e.target.value })}
                   error={fieldErrors.amount}

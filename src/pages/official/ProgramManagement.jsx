@@ -105,7 +105,7 @@ export default function ProgramManagement() {
     title: (v) => validateRequired(v, 'Title'),
     budget_amount: (v) => (v ? validateCurrency(v, 'Budget') : ''),
     description: (v) => validateMaxLength(v, 'Description', 5000),
-    category: (v) => validateMaxLength(v, 'Category', 120),
+    category: (v) => validateRequired(v, 'Program category') || validateMaxLength(v, 'Category', 120),
     custom_beneficiary_category: (v) => form.beneficiary_category === 'Other / Custom Sector'
       ? (validateRequired(v, 'Custom beneficiary sector') || validateMaxLength(v, 'Custom beneficiary sector', 120))
       : '',
@@ -164,7 +164,7 @@ export default function ProgramManagement() {
       title: form.title.trim(),
       description: form.description.trim(),
       category: form.category.trim(),
-      budget_amount: form.budget_amount ? Number(String(form.budget_amount).replace(/,/g, '')) : 0,
+      budget_amount: form.budget_amount ? Number(form.budget_amount) : 0,
       budget_allocation_id: form.budget_allocation_id || null,
       beneficiaries_count: 0,
       beneficiary_category: resolvedBeneficiaryCategory,
@@ -283,7 +283,7 @@ export default function ProgramManagement() {
           <div>
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Allocated Budget</p>
             <p className="text-xl font-bold text-amber-900 mt-0.5">
-              ₱{stats.totalBudget.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              ₱{stats.totalBudget.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
         </div>
@@ -364,25 +364,29 @@ export default function ProgramManagement() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="label">Program Category</label>
-                  <input
-                    list="program-categories"
-                    type="text"
-                    placeholder="e.g. Health & Sanitation"
-                                        maxLength={120}
+                  <select
                     value={form.category}
                     onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    className="input-field"
-                  />
-                  <datalist id="program-categories">
+                    className={`input-field ${fieldErrors.category ? 'input-error' : ''}`}
+                  >
+                    <option value="">Select a program category</option>
+                    {form.category && !PROGRAM_PRESET_CATEGORIES.includes(form.category) && (
+                      <option value={form.category}>{form.category} (existing category)</option>
+                    )}
                     {PROGRAM_PRESET_CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat} />
+                      <option key={cat} value={cat}>{cat}</option>
                     ))}
-                  </datalist>
+                  </select>
+                  {fieldErrors.category && <p className="error-text">{fieldErrors.category}</p>}
                 </div>
 
                 <FormField
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  inputMode="decimal"
                   label="Budget (₱)"
-                  placeholder="e.g. 50,000.00"
+                  placeholder="e.g. 50000.00"
                   value={form.budget_amount}
                   onChange={(e) => setForm({ ...form, budget_amount: e.target.value })}
                   error={fieldErrors.budget_amount}
