@@ -101,7 +101,9 @@ export default function BudgetManagement() {
 
   const totalSourced = funds.reduce((sum, r) => sum + Number(r.amount || 0), 0);
   const totalAllocated = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
-  const totalSpent = expenses.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+  const totalSpent = expenses
+    .filter((r) => r.status !== 'voided')
+    .reduce((sum, r) => sum + Number(r.amount || 0), 0);
   const unallocatedFund = totalSourced - totalAllocated;
   const remainingBudget = totalAllocated - totalSpent;
 

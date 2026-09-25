@@ -48,6 +48,7 @@ export function useSupabaseTable(table, barangayId, { orderBy = 'created_at', as
       .from(table)
       .update(payload)
       .eq('id', id)
+      .eq('barangay_id', barangayId)
       .select()
       .single();
     if (uError) return { error: friendlySupabaseError(uError) };
@@ -56,7 +57,11 @@ export function useSupabaseTable(table, barangayId, { orderBy = 'created_at', as
   };
 
   const deleteRow = async (id) => {
-    const { error: dError } = await supabase.from(table).delete().eq('id', id);
+    const { error: dError } = await supabase
+      .from(table)
+      .delete()
+      .eq('id', id)
+      .eq('barangay_id', barangayId);
     if (dError) return { error: friendlySupabaseError(dError) };
     setRows((prev) => prev.filter((r) => r.id !== id));
     return {};

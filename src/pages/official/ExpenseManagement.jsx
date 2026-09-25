@@ -10,7 +10,7 @@ import Badge from '../../components/ui/Badge';
 import { Receipt, Plus, Search, Filter, Edit3, Trash2, X, FileText, Calendar, DollarSign, ExternalLink, Upload, PieChart, Wallet } from 'lucide-react';
 
 const CATEGORIES = ['Infrastructure', 'Health Services', 'Peace & Order', 'Education', 'Social Services', 'Administration', 'Disaster Preparedness', 'Honoraria', 'Utilities', 'Other'];
-const EMPTY = { category: CATEGORIES[0], amount: '', description: '', date_incurred: '', budget_allocation_id: '', status: 'recorded' };
+const EMPTY = { category: CATEGORIES[0], amount: '', description: '', date_incurred: '', budget_allocation_id: '' };
 const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
 
 export default function ExpenseManagement() {
@@ -35,6 +35,7 @@ export default function ExpenseManagement() {
     category: (v) => validateRequired(v, 'Category'),
     amount: (v) => validateCurrency(v, 'Amount'),
     date_incurred: (v) => validateRequired(v, 'Date incurred'),
+    budget_allocation_id: (v) => validateRequired(v, 'Budget allocation'),
   };
 
   const openModal = (row = null) => {
@@ -45,7 +46,6 @@ export default function ExpenseManagement() {
         description: row.description || '',
         date_incurred: row.date_incurred || '',
         budget_allocation_id: row.budget_allocation_id || '',
-        status: row.status || 'recorded',
       });
       setEditingId(row.id);
     } else {
@@ -120,10 +120,11 @@ export default function ExpenseManagement() {
     const numericAmount = Number(String(form.amount).replace(/[^0-9.]/g, ''));
 
     const payload = {
-      ...form,
+      category: form.category,
+      description: form.description.trim(),
+      date_incurred: form.date_incurred,
       amount: numericAmount,
-      budget_allocation_id: form.budget_allocation_id || null,
-      created_by: profile.id,
+      budget_allocation_id: form.budget_allocation_id,
       ...(upload.url ? { receipt_url: upload.url } : {}),
     };
 
@@ -147,7 +148,9 @@ export default function ExpenseManagement() {
     return matchesSearch && matchesCategory;
   });
 
-  const totalSpent = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+  const totalSpent = rows
+    .filter((r) => r.status !== 'voided')
+    .reduce((sum, r) => sum + Number(r.amount || 0), 0);
   const totalAllocated = allocations.reduce((sum, r) => sum + Number(r.amount || 0), 0);
   const remainingBudget = totalAllocated - totalSpent;
 
@@ -280,8 +283,9 @@ export default function ExpenseManagement() {
                   label="Linked Budget Allocation"
                   value={form.budget_allocation_id}
                   onChange={(e) => setForm({ ...form, budget_allocation_id: e.target.value })}
+                  error={fieldErrors.budget_allocation_id}
                 >
-                  <option value="">— none —</option>
+                  <option value="">Select an allocation</option>
                   {allocations.map((a) => (
                     <option key={a.id} value={a.id}>{a.fiscal_year} · {a.category} (₱{Number(a.amount).toLocaleString()})</option>
                   ))}

@@ -9,7 +9,7 @@ import ErrorBanner from '../../components/ui/ErrorBanner';
 import { Receipt, Plus, Pencil, Trash2, Upload, FileText, ExternalLink, X } from 'lucide-react';
 
 const CATEGORIES = ['Youth Development', 'Sports & Recreation', 'Education & Training', 'Environment', 'Health Awareness', 'Livelihood', 'Other'];
-const EMPTY = { category: CATEGORIES[0], amount: '', description: '', date_incurred: '', sk_budget_id: '', status: 'recorded' };
+const EMPTY = { category: CATEGORIES[0], amount: '', description: '', date_incurred: '', sk_budget_id: '' };
 const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
 
 export default function SKExpenseManagement() {
@@ -58,6 +58,7 @@ export default function SKExpenseManagement() {
       category: (value) => validateRequired(value, 'Category'),
       amount: (value) => validateCurrency(value, 'Amount'),
       date_incurred: (value) => validateRequired(value, 'Date incurred'),
+      sk_budget_id: (value) => validateRequired(value, 'SK budget allocation'),
     });
     setFieldErrors(errors);
     if (!isValid) return;
@@ -65,10 +66,11 @@ export default function SKExpenseManagement() {
     setSubmitError('');
     const receiptUrl = await uploadReceipt();
     const payload = {
-      ...form,
+      category: form.category,
+      description: form.description.trim(),
+      date_incurred: form.date_incurred,
       amount: Number(String(form.amount).replace(/,/g, '')),
-      sk_budget_id: form.sk_budget_id || null,
-      created_by: profile.id,
+      sk_budget_id: form.sk_budget_id,
       ...(receiptUrl ? { receipt_url: receiptUrl } : {}),
     };
     const result = editingId ? await updateRow(editingId, payload) : await insertRow(payload);
@@ -83,7 +85,6 @@ export default function SKExpenseManagement() {
       description: row.description || '',
       date_incurred: row.date_incurred || '',
       sk_budget_id: row.sk_budget_id || '',
-      status: row.status || 'recorded',
     });
     setEditingId(row.id);
     setModalOpen(true);
@@ -123,8 +124,8 @@ export default function SKExpenseManagement() {
             <FormField label="Amount (₱)" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} error={fieldErrors.amount} />
             <FormField type="date" label="Date Incurred" value={form.date_incurred} onChange={(event) => setForm({ ...form, date_incurred: event.target.value })} error={fieldErrors.date_incurred} />
           </div>
-          <FormField as="select" label="SK Budget Allocation (optional)" value={form.sk_budget_id} onChange={(event) => setForm({ ...form, sk_budget_id: event.target.value })}>
-            <option value="">— unlinked expense —</option>
+          <FormField as="select" label="SK Budget Allocation" value={form.sk_budget_id} onChange={(event) => setForm({ ...form, sk_budget_id: event.target.value })} error={fieldErrors.sk_budget_id}>
+            <option value="">Select an allocation</option>
             {allocations.map((allocation) => <option key={allocation.id} value={allocation.id}>{allocation.fiscal_year} · {allocation.category} · ₱{Number(allocation.amount).toLocaleString()}</option>)}
           </FormField>
           <FormField as="textarea" rows={2} label="Description / Notes (optional)" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
