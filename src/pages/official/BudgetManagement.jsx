@@ -10,6 +10,12 @@ import { PieChart, Plus, Search, Filter, Edit3, Trash2, X, DollarSign, Calendar,
 const CATEGORIES = ['Infrastructure', 'Health Services', 'Peace & Order', 'Education', 'Social Services', 'Administration', 'Disaster Preparedness', 'Other'];
 const EMPTY = { fiscal_year: '', category: CATEGORIES[0], amount: '', description: '' };
 
+const formatCurrency = (value) => new Intl.NumberFormat('en-PH', {
+  style: 'currency',
+  currency: 'PHP',
+  minimumFractionDigits: 2,
+}).format(Number(value || 0));
+
 export default function BudgetManagement() {
   const { profile } = useAuth();
   const canEdit = isBarangayEditor(profile?.role);
@@ -99,6 +105,24 @@ export default function BudgetManagement() {
   const unallocatedFund = totalSourced - totalAllocated;
   const remainingBudget = totalAllocated - totalSpent;
 
+  const budgetStatus = remainingBudget < 0
+    ? {
+        tone: 'rose',
+        title: 'Overspending Alert',
+        message: `Expenses exceed allocated budget by ${formatCurrency(Math.abs(remainingBudget))}. Immediate review is recommended.`,
+      }
+    : unallocatedFund < 0
+      ? {
+          tone: 'amber',
+          title: 'Budget exceeds available funding',
+          message: `Allocated amount exceeds current fund sources by ${formatCurrency(Math.abs(unallocatedFund))}.`,
+        }
+      : {
+          tone: 'emerald',
+          title: 'Budget is within target',
+          message: `Current allocations remain within available funding and spending is still under control.`,
+        };
+
   return (
     <div className="space-y-6 max-w-6xl">
       {/* Header */}
@@ -121,6 +145,17 @@ export default function BudgetManagement() {
 
       <ErrorBanner message={error} />
 
+      <div className={`rounded-xl border p-4 ${budgetStatus.tone === 'rose' ? 'bg-rose-50 border-rose-200 text-rose-800' : budgetStatus.tone === 'amber' ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider">Budget Status</p>
+            <h2 className="text-base font-bold mt-1">{budgetStatus.title}</h2>
+          </div>
+          <div className="text-2xl">{budgetStatus.tone === 'rose' ? '⚠️' : budgetStatus.tone === 'amber' ? '📊' : '✅'}</div>
+        </div>
+        <p className="text-sm mt-2 leading-relaxed">{budgetStatus.message}</p>
+      </div>
+
       {/* Financial Telemetry KPI Cards */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="card space-y-1">
@@ -128,7 +163,7 @@ export default function BudgetManagement() {
             <Landmark className="w-4 h-4 text-civic-emerald" /> Total Funds Sourced
           </span>
           <p className="text-2xl font-bold text-civic-navy">
-            ₱{totalSourced.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            {formatCurrency(totalSourced)}
           </p>
         </div>
 
@@ -137,7 +172,7 @@ export default function BudgetManagement() {
             <PieChart className="w-4 h-4 text-blue-600" /> Total Budget Allocated
           </span>
           <p className="text-2xl font-bold text-civic-navy">
-            ₱{totalAllocated.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            {formatCurrency(totalAllocated)}
           </p>
         </div>
 
@@ -146,7 +181,7 @@ export default function BudgetManagement() {
             <Receipt className="w-4 h-4 text-amber-600" /> Total Expenses Spent
           </span>
           <p className="text-2xl font-bold text-civic-navy">
-            ₱{totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            {formatCurrency(totalSpent)}
           </p>
         </div>
 
@@ -155,7 +190,7 @@ export default function BudgetManagement() {
             <Wallet className="w-4 h-4 text-emerald-600" /> Remaining Unspent Budget
           </span>
           <p className={`text-2xl font-bold ${remainingBudget < 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
-            ₱{remainingBudget.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+            {formatCurrency(remainingBudget)}
           </p>
         </div>
       </div>

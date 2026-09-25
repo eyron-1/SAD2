@@ -75,22 +75,29 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-12 selection:bg-civic-navy selection:text-white font-body">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-civic-cream flex items-center justify-center px-4 py-12 selection:bg-civic-navy selection:text-white font-body">
       <div className="w-full max-w-md space-y-6">
-        <div className="text-center space-y-2">
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-civic-navy text-civic-gold shadow-sm mb-2 hover:scale-105 transition-transform"
-          >
-            <Landmark className="w-6 h-6" />
-          </Link>
+        <div className="text-center space-y-3">
+          <div className="flex items-center justify-center gap-3">
+            <Link
+              to="/"
+              className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-civic-navy text-civic-gold shadow-md hover:scale-105 transition-transform"
+            >
+              <Landmark className="w-7 h-7" />
+            </Link>
+          </div>
+
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-700">
+            Secure Official Access
+          </div>
+
           <h1 className="font-display text-2xl sm:text-3xl font-bold text-civic-navy">Official Portal Login</h1>
-          <p className="text-slate-500 text-xs sm:text-sm max-w-xs mx-auto">
+          <p className="text-slate-500 text-xs sm:text-sm max-w-xs mx-auto leading-relaxed">
             Authorized access for Barangay Council and Sangguniang Kabataan officials.
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="card p-6 sm:p-8 space-y-4 shadow-card bg-white border border-slate-200">
+        <form onSubmit={handleSubmit} className="card p-6 sm:p-8 space-y-4 shadow-card bg-white border border-slate-200 rounded-2xl">
           <FormField
             label="Email Address"
             type="email"
@@ -129,11 +136,11 @@ export default function Login() {
               Register here
             </Link>
           </p>
-          <p>
-            <Link to="/" className="text-slate-400 hover:text-slate-600 transition-colors">
+          <div className="pt-1">
+            <Link to="/" className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-600 hover:border-slate-300 hover:text-slate-800 transition-colors">
               ← Return to public resident portal
             </Link>
-          </p>
+          </div>
         </div>
       </div>
     </div>

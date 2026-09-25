@@ -5,6 +5,12 @@ import { roleLabel } from '../../utils/roles';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import { PieChart, Receipt, FolderKanban, MessageSquare, ArrowUpRight, BarChart3, Bot, Users, Landmark, Building2 } from 'lucide-react';
 
+const formatCurrency = (value) => new Intl.NumberFormat('en-PH', {
+  style: 'currency',
+  currency: 'PHP',
+  minimumFractionDigits: 2,
+}).format(Number(value || 0));
+
 export default function Dashboard() {
   const { profile } = useAuth();
   const { rows: allocations, error: e1 } = useSupabaseTable('budget_allocations', profile?.barangay_id);
@@ -60,7 +66,7 @@ export default function Dashboard() {
               <PieChart className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-civic-navy mt-3">₱{totalBudget.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+          <p className="text-2xl font-bold text-civic-navy mt-3">{formatCurrency(totalBudget)}</p>
           <div className="flex items-center gap-1 text-xs text-slate-500 mt-2">
             <span>{allocations.length} records logged</span>
           </div>
@@ -73,7 +79,7 @@ export default function Dashboard() {
               <Receipt className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-civic-navy mt-3">₱{totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
+          <p className="text-2xl font-bold text-civic-navy mt-3">{formatCurrency(totalSpent)}</p>
           {/* Spending Progress Bar */}
           <div className="w-full bg-slate-100 rounded-full h-1.5 mt-3 overflow-hidden">
             <div className="bg-amber-500 h-full rounded-full transition-all" style={{ width: `${spendPercentage}%` }}></div>
