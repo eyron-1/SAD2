@@ -21,6 +21,7 @@ drop function if exists belongs_to_barangay(uuid, uuid) cascade;
 drop type if exists official_role cascade;
 
 create extension if not exists "uuid-ossp";
+create extension if not exists unaccent;
 
 -- ------------------------------------------------------------
 -- TENANTS
@@ -37,6 +38,23 @@ create table barangays (
   contact_number text,
   created_at timestamptz default now()
 );
+
+create or replace function generate_barangay_slug()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.slug := trim(both '-' from regexp_replace(
+    lower(unaccent(coalesce(new.name, '') || ' ' || coalesce(new.municipality, ''))),
+    '[^a-z0-9]+', '-', 'g'
+  ));
+  return new;
+end;
+$$;
+
+create trigger barangays_generate_slug
+before insert or update of name, municipality on barangays
+for each row execute function generate_barangay_slug();
 
 -- ------------------------------------------------------------
 -- ROLES
