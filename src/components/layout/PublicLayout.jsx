@@ -40,22 +40,22 @@ export default function PublicLayout() {
       {/* Top Banner Header */}
       <header className="bg-civic-dark text-white border-b border-slate-800 sticky top-0 z-40 shadow-md">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link to={isSkPortal ? `/b/${slug}/sk` : `/b/${slug}`} className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-white/10 p-0.5 flex items-center justify-center border border-white/20 overflow-hidden shadow-inner group-hover:scale-105 transition-transform">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-white/10 p-0.5 flex items-center justify-center border border-white/20 overflow-hidden shadow-inner">
               {logoUrl ? (
                 <img src={logoUrl} alt={portalName} className="w-full h-full object-cover rounded-lg" />
               ) : (
                 <Building2 className="w-5 h-5 text-civic-emerald" />
               )}
             </div>
-            <div>
+            <Link to={isSkPortal ? `/b/${slug}/sk` : `/b/${slug}`} className="group">
               <h1 className="font-bold text-base md:text-lg text-white leading-tight flex items-center gap-2">
                 {portalName}
                 <ShieldCheck className="w-4 h-4 text-civic-emerald" />
               </h1>
               <p className="text-[11px] text-slate-300 font-medium">{isSkPortal ? 'SK Youth Transparency Portal' : 'Barangay Government Transparency Portal'}</p>
-            </div>
-          </Link>
+            </Link>
+          </div>
 
           <Link
             to="/login"
