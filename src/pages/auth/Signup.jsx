@@ -29,11 +29,11 @@ export default function Signup() {
 
   const selfRegisterableRoles = tenantMode === 'new'
     ? Object.values(ROLES)
-    : [ROLES.KAGAWAD, ROLES.STAFF, ROLES.SK_KAGAWAD];
+    : [ROLES.KAGAWAD, ROLES.STAFF, ROLES.SK_CHAIRPERSON, ROLES.SK_TREASURER, ROLES.SK_KAGAWAD];
 
   const changeTenantMode = (mode) => {
     setTenantMode(mode);
-    if (mode === 'existing' && ![ROLES.KAGAWAD, ROLES.STAFF, ROLES.SK_KAGAWAD].includes(form.role)) {
+    if (mode === 'existing' && ![ROLES.KAGAWAD, ROLES.STAFF, ROLES.SK_CHAIRPERSON, ROLES.SK_TREASURER, ROLES.SK_KAGAWAD].includes(form.role)) {
       setForm((prev) => ({ ...prev, role: ROLES.SK_KAGAWAD }));
     }
   };
@@ -190,7 +190,7 @@ export default function Signup() {
           </FormField>
           {tenantMode === 'existing' && (
             <p className="text-xs text-slate-500 -mt-2">
-              Editor roles such as SK Chairperson and SK Treasurer must be assigned by an existing authorized official.
+              SK Chairperson and SK Treasurer can register when that seat is still available in this barangay.
             </p>
           )}
 

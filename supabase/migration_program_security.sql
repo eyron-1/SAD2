@@ -107,14 +107,30 @@ as $$
   select not exists (select 1 from profiles where barangay_id = bgy);
 $$;
 
--- New users may register into an empty tenant, or join as a non-editor. They
--- cannot self-assign an editor role in an existing barangay.
+create or replace function is_sk_role_available(bgy uuid, requested_role text)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select requested_role in ('sk_chairperson', 'sk_treasurer')
+    and not exists (
+      select 1 from profiles
+      where barangay_id = bgy
+        and role::text = requested_role
+        and is_active
+    );
+$$;
+
+-- New users may register into an empty tenant, join as a non-editor, or claim
+-- an unoccupied SK editor seat in an existing barangay.
 drop policy if exists "users create own profile" on profiles;
 create policy "users create own profile" on profiles
   for insert with check (
     id = auth.uid()
     and (
       role in ('kagawad', 'staff', 'sk_kagawad')
+      or (role in ('sk_chairperson', 'sk_treasurer') and is_sk_role_available(barangay_id, role::text))
       or is_empty_barangay(barangay_id)
     )
   );
