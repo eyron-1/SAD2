@@ -2,6 +2,7 @@ import { Link, useParams } from 'react-router-dom';
 import { usePublicBarangay } from '../../lib/usePublicBarangay';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
+import { sumAmounts, sumActiveAmounts } from '../../lib/financial';
 import { DollarSign, FolderKanban, MessageSquare, PieChart, Receipt, Users, ArrowRight } from 'lucide-react';
 
 export default function PublicSKOverview() {
@@ -15,9 +16,9 @@ export default function PublicSKOverview() {
   if (barangayLoading) return <p className="text-slate-400 text-center py-12">Loading SK youth portal…</p>;
   if (barangayError || !barangay) return <ErrorBanner message={barangayError || 'Barangay not found.'} />;
 
-  const totalFunds = funds.reduce((sum, row) => sum + Number(row.amount || 0), 0);
-  const totalBudget = allocations.reduce((sum, row) => sum + Number(row.amount || 0), 0);
-  const totalExpenses = expenses.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+  const totalFunds = sumAmounts(funds);
+  const totalBudget = sumAmounts(allocations);
+  const totalExpenses = sumActiveAmounts(expenses);
   const activePrograms = programs.filter((row) => row.status === 'ongoing').length;
 
   return (

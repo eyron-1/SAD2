@@ -3,6 +3,7 @@ import { usePublicBarangay } from '../../lib/usePublicBarangay';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import Badge from '../../components/ui/Badge';
+import { activeRows } from '../../lib/financial';
 
 export default function PublicBudget() {
   const { slug } = useParams();
@@ -66,8 +67,8 @@ export default function PublicBudget() {
             <thead className="bg-emerald-50 text-civic-slate text-left"><tr><th className="px-4 py-2">Date</th><th className="px-4 py-2">Category</th><th className="px-4 py-2 text-right">Amount</th><th className="px-4 py-2">Status</th></tr></thead>
             <tbody>
               {l5 && <tr><td colSpan={4} className="px-4 py-6 text-center text-civic-slate">Loading SK expenses…</td></tr>}
-              {!l5 && skExpenses.length === 0 && <tr><td colSpan={4} className="px-4 py-6 text-center text-civic-slate">No SK expenses published yet.</td></tr>}
-              {skExpenses.map((row) => <tr key={row.id} className="border-t border-civic-navy/5"><td className="px-4 py-2">{row.date_incurred}</td><td className="px-4 py-2">{row.category}</td><td className="px-4 py-2 text-right">₱{Number(row.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td className="px-4 py-2"><Badge status={row.status} /></td></tr>)}
+              {!l5 && activeRows(skExpenses).length === 0 && <tr><td colSpan={4} className="px-4 py-6 text-center text-civic-slate">No SK expenses published yet.</td></tr>}
+              {activeRows(skExpenses).map((row) => <tr key={row.id} className="border-t border-civic-navy/5"><td className="px-4 py-2">{row.date_incurred}</td><td className="px-4 py-2">{row.category}</td><td className="px-4 py-2 text-right">₱{Number(row.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td className="px-4 py-2"><Badge status={row.status} /></td></tr>)}
             </tbody>
           </table>
         </div>
@@ -82,8 +83,8 @@ export default function PublicBudget() {
             </thead>
             <tbody>
               {l2 && <tr><td colSpan={5} className="px-4 py-6 text-center text-civic-slate">Loading…</td></tr>}
-              {!l2 && expenses.length === 0 && <tr><td colSpan={5} className="px-4 py-6 text-center text-civic-slate">No expenses published yet.</td></tr>}
-              {expenses.map((row) => (
+              {!l2 && activeRows(expenses).length === 0 && <tr><td colSpan={5} className="px-4 py-6 text-center text-civic-slate">No expenses published yet.</td></tr>}
+              {activeRows(expenses).map((row) => (
                 <tr key={row.id} className="border-t border-civic-navy/5">
                   <td className="px-4 py-2">{row.date_incurred}</td>
                   <td className="px-4 py-2">{row.category}</td>

@@ -10,12 +10,13 @@ import { FolderKanban, Plus, Search, Filter, Edit3, Trash2, X, Calendar, DollarS
 
 const STATUSES = ['planned', 'ongoing', 'completed', 'cancelled'];
 const CATEGORIES = ['Youth Development', 'Sports & Recreation', 'Education & Training', 'Health & Wellness', 'Environment', 'Livelihood', 'Leadership & Governance', 'Other'];
-const EMPTY = { title: '', description: '', category: CATEGORIES[0], budget_amount: '', start_date: '', end_date: '', status: 'planned' };
+const EMPTY = { title: '', description: '', category: CATEGORIES[0], budget_amount: '', sk_budget_id: '', start_date: '', end_date: '', status: 'planned' };
 
 export default function SKPrograms() {
   const { profile } = useAuth();
   const canEdit = isSkEditor(profile?.role);
   const { rows, loading, error, insertRow, updateRow, deleteRow } = useSupabaseTable('sk_programs', profile?.barangay_id);
+  const { rows: allocations } = useSupabaseTable('sk_budget', profile?.barangay_id);
   const [form, setForm] = useState(EMPTY);
   const [editingId, setEditingId] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -26,9 +27,9 @@ export default function SKPrograms() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
 
-  const openModal = (row = null) => { setForm(row ? { title: row.title, description: row.description || '', category: row.category || CATEGORIES[0], budget_amount: row.budget_amount ? String(row.budget_amount) : '', start_date: row.start_date || '', end_date: row.end_date || '', status: row.status || 'planned' } : EMPTY); setEditingId(row?.id || null); setFieldErrors({}); setSubmitError(''); setModalOpen(true); };
+  const openModal = (row = null) => { setForm(row ? { title: row.title, description: row.description || '', category: row.category || CATEGORIES[0], budget_amount: row.budget_amount ? String(row.budget_amount) : '', sk_budget_id: row.sk_budget_id || '', start_date: row.start_date || '', end_date: row.end_date || '', status: row.status || 'planned' } : EMPTY); setEditingId(row?.id || null); setFieldErrors({}); setSubmitError(''); setModalOpen(true); };
   const closeModal = () => { setModalOpen(false); setEditingId(null); setForm(EMPTY); setFieldErrors({}); setSubmitError(''); };
-  const handleSubmit = async (event) => { event.preventDefault(); const { errors, isValid } = runValidators(form, { title: (value) => validateRequired(value, 'Title'), budget_amount: (value) => value ? validateCurrency(value, 'Budget') : '', description: (value) => validateMaxLength(value, 'Description', 5000), category: (value) => validateMaxLength(value, 'Category', 120) }); const dateError = validateDateRange(form.start_date, form.end_date); if (dateError) errors.end_date = dateError; setFieldErrors(errors); if (!isValid || dateError) return; setSubmitting(true); const payload = { ...form, title: form.title.trim(), description: form.description.trim(), category: form.category.trim(), budget_amount: form.budget_amount ? Number(String(form.budget_amount).replace(/,/g, '')) : 0, created_by: profile.id }; const result = editingId ? await updateRow(editingId, payload) : await insertRow(payload); setSubmitting(false); if (result.error) setSubmitError(result.error); else closeModal(); };
+  const handleSubmit = async (event) => { event.preventDefault(); const { errors, isValid } = runValidators(form, { title: (value) => validateRequired(value, 'Title'), budget_amount: (value) => value ? validateCurrency(value, 'Budget') : '', description: (value) => validateMaxLength(value, 'Description', 5000), category: (value) => validateMaxLength(value, 'Category', 120) }); const dateError = validateDateRange(form.start_date, form.end_date); if (dateError) errors.end_date = dateError; setFieldErrors(errors); if (!isValid || dateError) return; setSubmitting(true); const payload = { ...form, title: form.title.trim(), description: form.description.trim(), category: form.category.trim(), budget_amount: form.budget_amount ? Number(String(form.budget_amount).replace(/,/g, '')) : 0, sk_budget_id: form.sk_budget_id || null, created_by: profile.id }; const result = editingId ? await updateRow(editingId, payload) : await insertRow(payload); setSubmitting(false); if (result.error) setSubmitError(result.error); else closeModal(); };
   const handleDelete = async (id) => { if (!window.confirm('Delete this SK program?')) return; const result = await deleteRow(id); if (result.error) setSubmitError(result.error); };
   const stats = useMemo(() => ({ total: rows.length, ongoing: rows.filter((row) => row.status === 'ongoing').length, completed: rows.filter((row) => row.status === 'completed').length, budget: rows.reduce((sum, row) => sum + Number(row.budget_amount || 0), 0) }), [rows]);
   const filteredRows = rows.filter((row) => (row.title?.toLowerCase().includes(search.toLowerCase()) || row.description?.toLowerCase().includes(search.toLowerCase()) || row.category?.toLowerCase().includes(search.toLowerCase())) && (statusFilter === 'all' || row.status === statusFilter) && (categoryFilter === 'all' || row.category === categoryFilter));

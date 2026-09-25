@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import { roleLabel } from '../../utils/roles';
 import ErrorBanner from '../../components/ui/ErrorBanner';
+import { sumAmounts, sumActiveAmounts } from '../../lib/financial';
 import { PieChart, Receipt, FolderKanban, MessageSquare, ArrowUpRight, BarChart3, Bot, Users, Landmark, Building2 } from 'lucide-react';
 
 const formatCurrency = (value) => new Intl.NumberFormat('en-PH', {
@@ -18,8 +19,8 @@ export default function Dashboard() {
   const { rows: programs, error: e3 } = useSupabaseTable('programs', profile?.barangay_id);
   const { rows: feedback, error: e4 } = useSupabaseTable('feedback', profile?.barangay_id);
 
-  const totalBudget = allocations.reduce((s, r) => s + Number(r.amount || 0), 0);
-  const totalSpent = expenses.reduce((s, r) => s + Number(r.amount || 0), 0);
+  const totalBudget = sumAmounts(allocations);
+  const totalSpent = sumActiveAmounts(expenses);
   const ongoingPrograms = programs.filter((p) => p.status === 'ongoing').length;
   const newFeedback = feedback.filter((f) => f.status === 'new').length;
 

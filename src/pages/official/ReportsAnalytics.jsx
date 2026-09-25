@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pi
 import { useAuth } from '../../context/AuthContext';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
+import { sumAmounts, sumActiveAmounts, activeRows } from '../../lib/financial';
 import { BarChart3, Download, PieChart as PieIcon, Landmark, Receipt, Percent, FolderKanban, FileSpreadsheet } from 'lucide-react';
 
 const COLORS = ['#0F2D4A', '#0D9488', '#D97706', '#B4472B', '#1E4258', '#6D28D9'];
@@ -33,14 +34,14 @@ export default function ReportsAnalytics() {
   const { rows: funds, error: e3 } = useSupabaseTable('fund_sources', profile?.barangay_id);
   const { rows: programs, error: e4 } = useSupabaseTable('programs', profile?.barangay_id);
 
-  const totalBudget = allocations.reduce((s, r) => s + Number(r.amount || 0), 0);
-  const totalExpenses = expenses.reduce((s, r) => s + Number(r.amount || 0), 0);
-  const totalFunds = funds.reduce((s, r) => s + Number(r.amount || 0), 0);
+  const totalBudget = sumAmounts(allocations);
+  const totalExpenses = sumActiveAmounts(expenses);
+  const totalFunds = sumAmounts(funds);
   const utilization = totalBudget > 0 ? ((totalExpenses / totalBudget) * 100).toFixed(1) : '0.0';
 
   const expenseByCategory = useMemo(() => {
     const map = {};
-    expenses.forEach((e) => { map[e.category] = (map[e.category] || 0) + Number(e.amount || 0); });
+    activeRows(expenses).forEach((e) => { map[e.category] = (map[e.category] || 0) + Number(e.amount || 0); });
     return Object.entries(map).map(([name, value]) => ({ name, value }));
   }, [expenses]);
 
@@ -50,7 +51,7 @@ export default function ReportsAnalytics() {
       byYear[a.fiscal_year] = byYear[a.fiscal_year] || { fiscal_year: a.fiscal_year, budget: 0, expenses: 0 };
       byYear[a.fiscal_year].budget += Number(a.amount || 0);
     });
-    expenses.forEach((e) => {
+    activeRows(expenses).forEach((e) => {
       const fy = e.date_incurred ? e.date_incurred.slice(0, 4) : 'Unspecified';
       byYear[fy] = byYear[fy] || { fiscal_year: fy, budget: 0, expenses: 0 };
       byYear[fy].expenses += Number(e.amount || 0);

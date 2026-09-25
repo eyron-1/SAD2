@@ -5,6 +5,7 @@ import { validateRequired, validateCurrency, validateFiscalYear, runValidators }
 import { isSkEditor } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
+import { sumAmounts, sumActiveAmounts } from '../../lib/financial';
 import { PieChart, Plus, Search, Filter, Edit3, Trash2, X, Receipt, Wallet } from 'lucide-react';
 
 const CATEGORIES = ['Youth Development', 'Sports & Recreation', 'Education & Training', 'Environment', 'Health Awareness', 'Livelihood', 'Leadership & Governance', 'Other'];
@@ -41,9 +42,9 @@ export default function SKBudget() {
   const handleDelete = async (id) => { if (!window.confirm('Delete this SK budget allocation?')) return; const result = await deleteRow(id); if (result.error) setSubmitError(result.error); };
   const years = Array.from(new Set(rows.map((row) => row.fiscal_year).filter(Boolean))).sort().reverse();
   const filteredRows = rows.filter((row) => (row.fiscal_year?.toLowerCase().includes(search.toLowerCase()) || row.category?.toLowerCase().includes(search.toLowerCase()) || row.description?.toLowerCase().includes(search.toLowerCase())) && (categoryFilter === 'all' || row.category === categoryFilter) && (yearFilter === 'all' || row.fiscal_year === yearFilter));
-  const totalSourced = funds.reduce((sum, row) => sum + Number(row.amount || 0), 0);
-  const totalAllocated = rows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
-  const totalSpent = expenses.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+  const totalSourced = sumAmounts(funds);
+  const totalAllocated = sumAmounts(rows);
+  const totalSpent = sumActiveAmounts(expenses);
 
   return (
     <div className="space-y-6 max-w-6xl">

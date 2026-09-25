@@ -59,6 +59,7 @@ const EMPTY = {
   description: '',
   category: '',
   budget_amount: '',
+  budget_allocation_id: '',
   start_date: '',
   end_date: '',
   status: 'planned',
@@ -86,6 +87,7 @@ export default function ProgramManagement() {
   const { profile } = useAuth();
   const canEdit = isBarangayEditor(profile?.role);
   const { rows, loading, error, insertRow, updateRow, deleteRow } = useSupabaseTable('programs', profile?.barangay_id);
+  const { rows: allocations } = useSupabaseTable('budget_allocations', profile?.barangay_id);
 
   const [form, setForm] = useState(EMPTY);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -117,6 +119,7 @@ export default function ProgramManagement() {
         description: parsed.clean_description,
         category: row.category || '',
         budget_amount: row.budget_amount ? String(row.budget_amount) : '',
+        budget_allocation_id: row.budget_allocation_id || '',
         start_date: row.start_date || '',
         end_date: row.end_date || '',
         status: row.status || 'planned',
@@ -161,6 +164,7 @@ export default function ProgramManagement() {
       description: form.description.trim(),
       category: form.category.trim(),
       budget_amount: form.budget_amount ? Number(String(form.budget_amount).replace(/,/g, '')) : 0,
+      budget_allocation_id: form.budget_allocation_id || null,
       beneficiaries_count: 0,
       beneficiary_category: resolvedBeneficiaryCategory,
       start_date: form.start_date || null,
@@ -382,6 +386,19 @@ export default function ProgramManagement() {
                   onChange={(e) => setForm({ ...form, budget_amount: e.target.value })}
                   error={fieldErrors.budget_amount}
                 />
+                <FormField
+                  as="select"
+                  label="Source Allocation"
+                  value={form.budget_allocation_id}
+                  onChange={(e) => setForm({ ...form, budget_allocation_id: e.target.value })}
+                >
+                  <option value="">Select allocation (optional)</option>
+                  {allocations.map((allocation) => (
+                    <option key={allocation.id} value={allocation.id}>
+                      {allocation.fiscal_year} · {allocation.category} · ₱{Number(allocation.amount).toLocaleString()}
+                    </option>
+                  ))}
+                </FormField>
               </div>
 
               {/* Categorized Beneficiary Group */}

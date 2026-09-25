@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { usePublicBarangay } from '../../lib/usePublicBarangay';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
+import { sumAmounts, sumActiveAmounts } from '../../lib/financial';
 import { Building2, PieChart, Receipt, FolderKanban, MessageSquare, Users, ShieldCheck, ArrowRight, DollarSign } from 'lucide-react';
 
 const formatCurrency = (value) => new Intl.NumberFormat('en-PH', {
@@ -24,12 +25,12 @@ export default function PublicOverview() {
   if (bLoading) return <p className="text-slate-400 text-center py-12">Loading barangay profile…</p>;
   if (bError || !barangay) return <ErrorBanner message={bError || 'Barangay not found.'} />;
 
-  const totalBudget = allocations.reduce((s, r) => s + Number(r.amount || 0), 0);
-  const totalSpent = expenses.reduce((s, r) => s + Number(r.amount || 0), 0);
+  const totalBudget = sumAmounts(allocations);
+  const totalSpent = sumActiveAmounts(expenses);
   const ongoingPrograms = programs.filter((p) => p.status === 'ongoing').length;
-  const totalSkFunds = skFunds.reduce((s, r) => s + Number(r.amount || 0), 0);
-  const totalSkBudget = skAllocations.reduce((s, r) => s + Number(r.amount || 0), 0);
-  const totalSkExpenses = skExpenses.reduce((s, r) => s + Number(r.amount || 0), 0);
+  const totalSkFunds = sumAmounts(skFunds);
+  const totalSkBudget = sumAmounts(skAllocations);
+  const totalSkExpenses = sumActiveAmounts(skExpenses);
   const remainingBudget = totalBudget - totalSpent;
   const publicStatus = remainingBudget < 0
     ? {

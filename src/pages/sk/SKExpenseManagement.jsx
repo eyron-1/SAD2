@@ -6,6 +6,7 @@ import { validateRequired, validateCurrency, runValidators } from '../../lib/val
 import { isSkEditor } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
+import { sumActiveAmounts } from '../../lib/financial';
 import { Receipt, Plus, Pencil, Trash2, Upload, FileText, ExternalLink, X } from 'lucide-react';
 
 const CATEGORIES = ['Youth Development', 'Sports & Recreation', 'Education & Training', 'Environment', 'Health Awareness', 'Livelihood', 'Other'];
@@ -96,7 +97,7 @@ export default function SKExpenseManagement() {
     if (result.error) setSubmitError(result.error);
   };
 
-  const totalSpent = rows.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+  const totalSpent = sumActiveAmounts(rows);
 
   return (
     <div className="space-y-6 max-w-5xl">
