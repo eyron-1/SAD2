@@ -123,6 +123,10 @@ export default function BudgetManagement() {
           message: `Current allocations remain within available funding and spending is still under control.`,
         };
 
+  const budgetUtilization = totalAllocated > 0 ? (totalSpent / totalAllocated) * 100 : 0;
+  const utilizationTone = budgetUtilization > 100 ? 'rose' : budgetUtilization > 80 ? 'amber' : 'emerald';
+  const utilizationWidth = Math.min(Math.max(budgetUtilization, 0), 100);
+
   return (
     <div className="space-y-6 max-w-6xl">
       {/* Header */}
@@ -154,6 +158,33 @@ export default function BudgetManagement() {
           <div className="text-2xl">{budgetStatus.tone === 'rose' ? '⚠️' : budgetStatus.tone === 'amber' ? '📊' : '✅'}</div>
         </div>
         <p className="text-sm mt-2 leading-relaxed">{budgetStatus.message}</p>
+      </div>
+
+      <div className="card p-4 sm:p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Budget Utilization</p>
+            <h3 className="text-xl font-bold text-civic-navy mt-1">
+              {budgetUtilization.toFixed(1)}%
+            </h3>
+          </div>
+          <div className="text-sm font-semibold text-slate-600">
+            {formatCurrency(totalSpent)} spent of {formatCurrency(totalAllocated)}
+          </div>
+        </div>
+
+        <div className="mt-4 h-3 w-full overflow-hidden rounded-full bg-slate-200">
+          <div
+            className={`h-full rounded-full transition-all duration-300 ${utilizationTone === 'rose' ? 'bg-rose-500' : utilizationTone === 'amber' ? 'bg-amber-500' : 'bg-emerald-500'}`}
+            style={{ width: `${utilizationWidth}%` }}
+          />
+        </div>
+
+        <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
+          <span>0%</span>
+          <span>{budgetUtilization > 100 ? 'Above allocated limit' : 'Current usage'}</span>
+          <span>100%</span>
+        </div>
       </div>
 
       {/* Financial Telemetry KPI Cards */}
