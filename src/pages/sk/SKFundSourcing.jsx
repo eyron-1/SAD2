@@ -5,7 +5,9 @@ import { validateRequired, validateCurrency, validateFiscalYear, runValidators, 
 import { isSkEditor } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
-import { Landmark, Plus, Pencil, Trash2, Calendar, TrendingUp, X } from 'lucide-react';
+import { supabase } from '../../lib/supabaseClient';
+import ImageLightbox from '../../components/ui/ImageLightbox';
+import { Landmark, Plus, Pencil, Trash2, Calendar, TrendingUp, X, Upload, FileText, Eye } from 'lucide-react';
 
 const SOURCE_TYPES = [
   '10% IRA Allotment',
@@ -29,6 +31,8 @@ export default function SKFundSourcing() {
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [proofFile, setProofFile] = useState(null);
+  const [lightboxUrl, setLightboxUrl] = useState(null);
 
   const validators = {
     name: (v) => validateRequired(v, 'Fund name'),
@@ -37,7 +41,7 @@ export default function SKFundSourcing() {
     fiscal_year: validateFiscalYear,
   };
 
-  const resetForm = () => { setForm(EMPTY); setFieldErrors({}); setEditingId(null); setSubmitError(''); setModalOpen(false); };
+  const resetForm = () => { setForm(EMPTY); setFieldErrors({}); setEditingId(null); setSubmitError(''); setProofFile(null); setModalOpen(false); };
   const openModal = (row = null) => {
     if (row) {
       setForm({ name: row.name, source_type: row.source_type, amount: finalizeCurrencyInput(row.amount), fiscal_year: row.fiscal_year, received_date: row.received_date || '', description: row.description || '' });
@@ -46,7 +50,37 @@ export default function SKFundSourcing() {
       setForm({ ...EMPTY, fiscal_year: String(new Date().getFullYear()) });
       setEditingId(null);
     }
-    setFieldErrors({}); setSubmitError(''); setModalOpen(true);
+    setFieldErrors({}); setSubmitError(''); setProofFile(null); setModalOpen(true);
+  };
+  
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(file.type)) {
+      setSubmitError('Proof document must be a JPG, PNG, WEBP image or PDF.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setSubmitError('Proof file must be under 5MB.');
+      return;
+    }
+    setSubmitError('');
+    setProofFile(file);
+  };
+
+  const uploadProof = async () => {
+    if (!proofFile) return { url: null };
+    try {
+      const path = `${profile.barangay_id}/sk-funds-${Date.now()}-${proofFile.name.replace(/\s+/g, '-')}`;
+      const { error: upErr } = await supabase.storage.from('receipts').upload(path, proofFile);
+      if (!upErr) {
+        const { data } = supabase.storage.from('receipts').getPublicUrl(path);
+        if (data?.publicUrl) return { url: data.publicUrl };
+      }
+    } catch (e) {
+      console.warn('Storage upload error', e);
+    }
+    return { url: null };
   };
 
   const handleSubmit = async (e) => {
@@ -54,15 +88,39 @@ export default function SKFundSourcing() {
     const { errors, isValid } = runValidators(form, validators);
     setFieldErrors(errors);
     if (!isValid) return;
+
+    const isNewOrNoProof = !editingId || !rows.find(r => r.id === editingId)?.proof_url;
+    const hasDescriptionProof = editingId && rows.find(r => r.id === editingId)?.description?.includes('[Proof of Funds:');
+    if (isNewOrNoProof && !hasDescriptionProof && !proofFile) {
+      setSubmitError('A proof document (resolution, deposit slip, grant letter) is strictly required for transparency.');
+      return;
+    }
+
     setSubmitting(true);
     setSubmitError('');
-    const payload = {
+    
+    const upload = await uploadProof();
+    let payload = {
       ...form,
       amount: parseCurrencyValue(form.amount),
       received_date: form.received_date || null,
       created_by: profile.id,
     };
-    const result = editingId ? await updateRow(editingId, payload) : await insertRow(payload);
+    
+    if (upload.url) {
+      payload.proof_url = upload.url;
+    }
+
+    let result = editingId ? await updateRow(editingId, payload) : await insertRow(payload);
+    
+    if (result.error && (result.error.includes('proof_url') || result.error.includes('column'))) {
+      delete payload.proof_url;
+      if (upload.url) {
+        payload.description = `${payload.description || ''}\n\n[Proof of Funds: ${upload.url}]`.trim();
+      }
+      result = editingId ? await updateRow(editingId, payload) : await insertRow(payload);
+    }
+
     setSubmitting(false);
     if (result.error) setSubmitError(result.error);
     else resetForm();
@@ -113,7 +171,7 @@ export default function SKFundSourcing() {
         {canEdit && <button onClick={() => openModal()} className="btn-emerald"><Plus className="w-4 h-4" /> Add New SK Fund Source</button>}
       </div>
 
-      <ErrorBanner message={error || submitError} />
+      <ErrorBanner message={error} />
 
       {/* Summary KPIs */}
       <div className="grid sm:grid-cols-3 gap-4">
@@ -198,6 +256,17 @@ export default function SKFundSourcing() {
             onChange={(e) => setForm({ ...form, description: e.target.value })}
           />
 
+          <div>
+            <label className="label">Upload Proof Document <span className="text-rose-500">*</span> (JPG, PNG, PDF max 5MB)</label>
+            <label className="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs px-3.5 py-2 rounded-lg cursor-pointer transition-colors border border-slate-200">
+              <Upload className="w-4 h-4 text-civic-emerald" /> Choose Proof File...
+              <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={handleFileChange} className="hidden" />
+            </label>
+            {proofFile && <span className="text-xs text-slate-600 font-medium block mt-1">Selected: {proofFile.name}</span>}
+          </div>
+
+          <ErrorBanner message={submitError} />
+
           <div className="flex gap-2">
             <button type="submit" disabled={submitting} className="btn-primary">
               {submitting ? 'Saving…' : editingId ? 'Save Changes' : 'Add Fund Source'}
@@ -223,6 +292,7 @@ export default function SKFundSourcing() {
               <th className="px-4 py-3">FY</th>
               <th className="px-4 py-3">Date Received</th>
               <th className="px-4 py-3 text-right">Amount</th>
+              <th className="px-4 py-3">Proof</th>
               {canEdit && <th className="px-4 py-3" />}
             </tr>
           </thead>
@@ -258,6 +328,19 @@ export default function SKFundSourcing() {
                 <td className="px-4 py-3 text-right font-semibold text-civic-navy">
                   ₱{Number(row.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </td>
+                <td className="px-4 py-3">
+                  {row.proof_url ? (
+                    <button type="button" onClick={() => setLightboxUrl(row.proof_url)} className="inline-flex items-center gap-1 text-xs font-semibold text-civic-emerald hover:underline">
+                      <Eye className="w-3.5 h-3.5" /> View
+                    </button>
+                  ) : row.description?.includes('[Proof of Funds:') ? (
+                    <span className="text-xs text-civic-emerald font-semibold flex items-center gap-1">
+                      <FileText className="w-3.5 h-3.5" /> See Description
+                    </span>
+                  ) : (
+                    <span className="text-slate-400 text-xs">—</span>
+                  )}
+                </td>
                 {canEdit && (
                   <td className="px-4 py-3 text-right whitespace-nowrap">
                     <button
@@ -279,6 +362,9 @@ export default function SKFundSourcing() {
           </tbody>
         </table>
       </div>
+
+      {/* In-page Image Lightbox */}
+      {lightboxUrl && <ImageLightbox src={lightboxUrl} alt="SK Fund Source Proof" onClose={() => setLightboxUrl(null)} />}
     </div>
   );
 }

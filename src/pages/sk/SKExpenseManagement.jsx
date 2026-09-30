@@ -6,8 +6,9 @@ import { validateRequired, validateCurrency, runValidators, formatCurrencyInput,
 import { isSkEditor } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
+import ImageLightbox from '../../components/ui/ImageLightbox';
 import { sumActiveAmounts } from '../../lib/financial';
-import { Receipt, Plus, Pencil, Trash2, Upload, FileText, ExternalLink, X } from 'lucide-react';
+import { Receipt, Plus, Pencil, Trash2, Upload, FileText, X, Eye } from 'lucide-react';
 
 const CATEGORIES = ['Youth Development', 'Sports & Recreation', 'Education & Training', 'Environment', 'Health Awareness', 'Livelihood', 'Other'];
 const EMPTY = { category: CATEGORIES[0], amount: '', description: '', date_incurred: '', sk_budget_id: '' };
@@ -25,9 +26,20 @@ export default function SKExpenseManagement() {
   const [submitting, setSubmitting] = useState(false);
   const [receiptFile, setReceiptFile] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [lightboxUrl, setLightboxUrl] = useState(null);
 
   const resetForm = () => { setForm(EMPTY); setEditingId(null); setFieldErrors({}); setSubmitError(''); setReceiptFile(null); setModalOpen(false); };
-  const openModal = (row = null) => { if (row) { handleEdit(row); } else { setForm({ ...EMPTY, date_incurred: new Date().toISOString().split('T')[0] }); setEditingId(null); setReceiptFile(null); setModalOpen(true); } };
+  const openModal = (row = null) => { if (row) { handleEdit(row); } else { setForm({ ...EMPTY, date_incurred: new Date().toISOString().split('T')[0] }); setEditingId(null); setReceiptFile(null); setFieldErrors({}); setSubmitError(''); setModalOpen(true); } };
+
+  // Compute how much remaining balance an SK allocation has
+  const getAvailableAmount = (allocation) => {
+    const committed = rows
+      .filter((row) => row.status !== 'voided' && row.sk_budget_id === allocation.id && row.id !== editingId)
+      .reduce((sum, row) => sum + Number(row.amount || 0), 0);
+    return Number(allocation.amount || 0) - committed;
+  };
+  const selectedAllocation = allocations.find((a) => a.id === form.sk_budget_id);
+  const availableAmount = selectedAllocation ? getAvailableAmount(selectedAllocation) : 0;
 
   const handleReceiptChange = (event) => {
     const file = event.target.files?.[0];
@@ -59,10 +71,22 @@ export default function SKExpenseManagement() {
       category: (value) => validateRequired(value, 'Category'),
       amount: (value) => validateCurrency(value, 'Amount'),
       date_incurred: (value) => validateRequired(value, 'Date incurred'),
-      sk_budget_id: (value) => validateRequired(value, 'SK budget allocation'),
     });
+
+    // Validate that expense amount does not exceed the linked allocation's remaining balance
+    const numericAmount = parseCurrencyValue(form.amount);
+    if (selectedAllocation && numericAmount > availableAmount) {
+      errors.amount = `Amount exceeds the remaining allocation balance of ₱${Math.max(availableAmount, 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`;
+    }
+
     setFieldErrors(errors);
-    if (!isValid) return;
+    if (!isValid || Object.keys(errors).length > 0) return;
+
+    const isNewOrNoReceipt = !editingId || !rows.find(r => r.id === editingId)?.receipt_url;
+    if (isNewOrNoReceipt && !receiptFile) {
+      setSubmitError('A receipt or proof of expense is strictly required for transparency.');
+      return;
+    }
     setSubmitting(true);
     setSubmitError('');
     const receiptUrl = await uploadReceipt();
@@ -70,7 +94,7 @@ export default function SKExpenseManagement() {
       category: form.category,
       description: form.description.trim(),
       date_incurred: form.date_incurred,
-      amount: parseCurrencyValue(form.amount),
+      amount: numericAmount,
       sk_budget_id: form.sk_budget_id,
       ...(receiptUrl ? { receipt_url: receiptUrl } : {}),
     };
@@ -88,6 +112,8 @@ export default function SKExpenseManagement() {
       sk_budget_id: row.sk_budget_id || '',
     });
     setEditingId(row.id);
+    setFieldErrors({});
+    setSubmitError('');
     setModalOpen(true);
   };
 
@@ -108,7 +134,7 @@ export default function SKExpenseManagement() {
         </div>
         {canEdit && <button onClick={() => openModal()} className="btn-emerald"><Plus className="w-4 h-4" /> Record New SK Expense</button>}
       </div>
-      <ErrorBanner message={error || submitError} />
+      <ErrorBanner message={error} />
       <div className="card bg-civic-navy text-white p-5 rounded-xl">
         <p className="text-xs font-bold text-white/60 uppercase tracking-wider">Total SK Expenses</p>
         <p className="text-2xl font-extrabold mt-1">₱{totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
@@ -125,19 +151,31 @@ export default function SKExpenseManagement() {
             <FormField type="text" inputMode="decimal" label="Amount (₱)" placeholder="e.g. 2,500.00" value={form.amount} onChange={(event) => setForm({ ...form, amount: formatCurrencyInput(event.target.value) })} onBlur={(event) => setForm({ ...form, amount: finalizeCurrencyInput(event.target.value) })} error={fieldErrors.amount} />
             <FormField type="date" label="Date Incurred" value={form.date_incurred} onChange={(event) => setForm({ ...form, date_incurred: event.target.value })} error={fieldErrors.date_incurred} />
           </div>
-          <FormField as="select" label="SK Budget Allocation" value={form.sk_budget_id} onChange={(event) => setForm({ ...form, sk_budget_id: event.target.value })} error={fieldErrors.sk_budget_id}>
-            <option value="">Select an allocation</option>
-            {allocations.map((allocation) => <option key={allocation.id} value={allocation.id}>{allocation.fiscal_year} · {allocation.category} · ₱{Number(allocation.amount).toLocaleString()}</option>)}
+          <FormField as="select" label="SK Budget Allocation" value={form.sk_budget_id} onChange={(event) => {
+            const allocation = allocations.find(a => a.id === event.target.value);
+            setForm({ ...form, sk_budget_id: event.target.value, ...(allocation ? { category: allocation.category } : {}) });
+          }} error={fieldErrors.sk_budget_id}>
+            <option value="">Select an allocation (optional)</option>
+            {allocations.map((allocation) => <option key={allocation.id} value={allocation.id}>{allocation.fiscal_year} · {allocation.category} · ₱{Number(allocation.amount).toLocaleString()} (₱{getAvailableAmount(allocation).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} remaining)</option>)}
           </FormField>
+          {/* Show remaining allocation balance info when allocation is selected */}
+          {selectedAllocation && (
+            <div className={`text-xs font-semibold px-3 py-2 rounded-lg border ${availableAmount < 0 ? 'bg-rose-50 text-rose-700 border-rose-200' : availableAmount === 0 ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+              Remaining balance for {selectedAllocation.category}: ₱{availableAmount.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              {availableAmount <= 0 && ' — No remaining funds available.'}
+            </div>
+          )}
           <FormField as="textarea" rows={2} label="Description / Notes (optional)" value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} />
           <div>
-            <label className="label">Upload Receipt Attachment (JPG, PNG, PDF, max 5MB)</label>
+            <label className="label">Upload Receipt Attachment <span className="text-rose-500">*</span> (JPG, PNG, PDF, max 5MB)</label>
             <label className="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs px-4 py-2.5 rounded-lg cursor-pointer transition-colors border border-slate-200">
               <Upload className="w-4 h-4 text-civic-emerald" /> Choose Receipt File…
               <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={handleReceiptChange} className="hidden" />
             </label>
             {receiptFile && <span className="text-xs text-slate-600 block mt-1 font-medium">Selected: {receiptFile.name}</span>}
           </div>
+          {/* Error banner INSIDE the modal so user always sees it */}
+          <ErrorBanner message={submitError} />
           <div className="flex gap-2"><button type="submit" disabled={submitting} className="btn-primary">{submitting ? 'Saving…' : editingId ? 'Save Changes' : 'Record Expense'}</button>{editingId && <button type="button" onClick={resetForm} className="btn-secondary">Cancel</button>}</div>
         </form></div>
       )}
@@ -147,9 +185,12 @@ export default function SKExpenseManagement() {
         <table className="w-full text-sm"><thead className="bg-civic-navy/5 text-civic-slate text-left"><tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Category</th><th className="px-4 py-3">Description</th><th className="px-4 py-3 text-right">Amount</th><th className="px-4 py-3">Receipt</th>{canEdit && <th className="px-4 py-3" />}</tr></thead><tbody>
           {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">Loading SK expenses…</td></tr>}
           {!loading && rows.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">No SK expenses recorded yet.</td></tr>}
-          {rows.map((row) => <tr key={row.id} className="border-t border-slate-100"><td className="px-4 py-3">{row.date_incurred}</td><td className="px-4 py-3">{row.category}</td><td className="px-4 py-3">{row.description || '—'}</td><td className="px-4 py-3 text-right">₱{Number(row.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td className="px-4 py-3">{row.receipt_url ? <a href={row.receipt_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-civic-emerald hover:underline"><FileText className="w-3.5 h-3.5" /> View <ExternalLink className="w-3 h-3" /></a> : '—'}</td>{canEdit && <td className="px-4 py-3 text-right whitespace-nowrap"><button onClick={() => handleEdit(row)} className="text-civic-navy hover:underline mr-3 text-xs"><Pencil className="w-3 h-3 inline" /> Edit</button><button onClick={() => handleDelete(row.id)} className="text-civic-clay hover:underline text-xs"><Trash2 className="w-3 h-3 inline" /> Delete</button></td>}</tr>)}
+          {rows.map((row) => <tr key={row.id} className="border-t border-slate-100"><td className="px-4 py-3">{row.date_incurred}</td><td className="px-4 py-3">{row.category}</td><td className="px-4 py-3">{row.description || '—'}</td><td className="px-4 py-3 text-right">₱{Number(row.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td className="px-4 py-3">{row.receipt_url ? <button type="button" onClick={() => setLightboxUrl(row.receipt_url)} className="inline-flex items-center gap-1 text-xs text-civic-emerald hover:underline font-semibold"><Eye className="w-3.5 h-3.5" /> View</button> : '—'}</td>{canEdit && <td className="px-4 py-3 text-right whitespace-nowrap"><button onClick={() => handleEdit(row)} className="text-civic-navy hover:underline mr-3 text-xs"><Pencil className="w-3 h-3 inline" /> Edit</button><button onClick={() => handleDelete(row.id)} className="text-civic-clay hover:underline text-xs"><Trash2 className="w-3 h-3 inline" /> Delete</button></td>}</tr>)}
         </tbody></table>
       </div>
+
+      {/* In-page Image Lightbox */}
+      {lightboxUrl && <ImageLightbox src={lightboxUrl} alt="SK Expense Receipt" onClose={() => setLightboxUrl(null)} />}
     </div>
   );
 }

@@ -5,7 +5,9 @@ import { validateRequired, validateCurrency, validateFiscalYear, runValidators, 
 import { isBarangayEditor } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
-import { Landmark, Plus, Search, Edit3, Trash2, X, Calendar, Tag, PieChart, Wallet } from 'lucide-react';
+import { supabase } from '../../lib/supabaseClient';
+import ImageLightbox from '../../components/ui/ImageLightbox';
+import { Landmark, Plus, Search, Edit3, Trash2, X, Calendar, Tag, PieChart, Wallet, Upload, FileText, Eye } from 'lucide-react';
 
 const SOURCE_TYPES = ['IRA (Internal Revenue Allotment)', 'Local Revenue', 'National Grant', 'Provincial/Municipal Grant', 'Donation', 'Other'];
 const EMPTY = { name: '', source_type: SOURCE_TYPES[0], amount: '', fiscal_year: '', received_date: '', description: '' };
@@ -24,6 +26,8 @@ export default function FundSourcing() {
   const [modalOpen, setModalOpen] = useState(false);
 
   const [search, setSearch] = useState('');
+  const [proofFile, setProofFile] = useState(null);
+  const [lightboxUrl, setLightboxUrl] = useState(null);
 
   const validators = {
     name: (v) => validateRequired(v, 'Fund source name'),
@@ -41,6 +45,7 @@ export default function FundSourcing() {
     }
     setFieldErrors({});
     setSubmitError('');
+    setProofFile(null);
     setModalOpen(true);
   };
 
@@ -49,6 +54,37 @@ export default function FundSourcing() {
     setEditingId(null);
     setForm(EMPTY);
     setFieldErrors({});
+    setProofFile(null);
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!['image/jpeg', 'image/png', 'image/webp', 'application/pdf'].includes(file.type)) {
+      setSubmitError('Proof document must be a JPG, PNG, WEBP image or PDF.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setSubmitError('Proof file must be under 5MB.');
+      return;
+    }
+    setSubmitError('');
+    setProofFile(file);
+  };
+
+  const uploadProof = async () => {
+    if (!proofFile) return { url: null };
+    try {
+      const path = `${profile.barangay_id}/funds-${Date.now()}-${proofFile.name.replace(/\s+/g, '-')}`;
+      const { error: upErr } = await supabase.storage.from('receipts').upload(path, proofFile);
+      if (!upErr) {
+        const { data } = supabase.storage.from('receipts').getPublicUrl(path);
+        if (data?.publicUrl) return { url: data.publicUrl };
+      }
+    } catch (e) {
+      console.warn('Storage upload error', e);
+    }
+    return { url: null };
   };
 
   const handleSubmit = async (e) => {
@@ -57,13 +93,36 @@ export default function FundSourcing() {
     setFieldErrors(errors);
     if (!isValid) return;
 
+    const isNewOrNoProof = !editingId || !rows.find(r => r.id === editingId)?.proof_url;
+    const hasDescriptionProof = editingId && rows.find(r => r.id === editingId)?.description?.includes('[Proof of Funds:');
+    if (isNewOrNoProof && !hasDescriptionProof && !proofFile) {
+      setSubmitError('A proof document (resolution, deposit slip, grant letter) is strictly required for transparency.');
+      return;
+    }
+
     setSubmitting(true);
     setSubmitError('');
+    
+    const upload = await uploadProof();
     const numericAmount = parseCurrencyValue(form.amount);
-    const payload = { ...form, amount: numericAmount, created_by: profile.id };
-    const result = editingId ? await updateRow(editingId, payload) : await insertRow(payload);
-    setSubmitting(false);
+    let payload = { ...form, amount: numericAmount, created_by: profile.id };
+    
+    if (upload.url) {
+      payload.proof_url = upload.url;
+    }
 
+    let result = editingId ? await updateRow(editingId, payload) : await insertRow(payload);
+    
+    // Fallback if proof_url column does not exist
+    if (result.error && (result.error.includes('proof_url') || result.error.includes('column'))) {
+      delete payload.proof_url;
+      if (upload.url) {
+        payload.description = `${payload.description || ''}\n\n[Proof of Funds: ${upload.url}]`.trim();
+      }
+      result = editingId ? await updateRow(editingId, payload) : await insertRow(payload);
+    }
+
+    setSubmitting(false);
     if (result.error) setSubmitError(result.error);
     else closeModal();
   };
@@ -218,6 +277,15 @@ export default function FundSourcing() {
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
               />
 
+              <div>
+                <label className="label">Upload Proof Document <span className="text-rose-500">*</span> (JPG, PNG, PDF max 5MB)</label>
+                <label className="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs px-3.5 py-2 rounded-lg cursor-pointer transition-colors border border-slate-200">
+                  <Upload className="w-4 h-4 text-civic-emerald" /> Choose Proof File...
+                  <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={handleFileChange} className="hidden" />
+                </label>
+                {proofFile && <span className="text-xs text-slate-600 font-medium block mt-1">Selected: {proofFile.name}</span>}
+              </div>
+
               <ErrorBanner message={submitError} />
 
               <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
@@ -241,6 +309,7 @@ export default function FundSourcing() {
                 <th className="px-6 py-3.5">Source Type</th>
                 <th className="px-6 py-3.5"><div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-civic-emerald" /> Fiscal Year</div></th>
                 <th className="px-6 py-3.5 text-right"><div className="flex items-center justify-end gap-1.5">Amount</div></th>
+                <th className="px-6 py-3.5">Proof</th>
                 {canEdit && <th className="px-6 py-3.5 text-right">Actions</th>}
               </tr>
             </thead>
@@ -266,6 +335,19 @@ export default function FundSourcing() {
                   <td className="px-6 py-4 text-right font-bold text-emerald-700">
                     ₱{Number(row.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </td>
+                  <td className="px-6 py-4">
+                    {row.proof_url ? (
+                      <button type="button" onClick={() => setLightboxUrl(row.proof_url)} className="inline-flex items-center gap-1 text-xs font-semibold text-civic-emerald hover:underline">
+                        <Eye className="w-3.5 h-3.5" /> View
+                      </button>
+                    ) : row.description?.includes('[Proof of Funds:') ? (
+                      <span className="text-xs text-civic-emerald font-semibold flex items-center gap-1">
+                        <FileText className="w-3.5 h-3.5" /> See Description
+                      </span>
+                    ) : (
+                      <span className="text-slate-400 text-xs">—</span>
+                    )}
+                  </td>
                   {canEdit && (
                     <td className="px-6 py-4 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-2">
@@ -284,6 +366,9 @@ export default function FundSourcing() {
           </table>
         </div>
       </div>
+
+      {/* In-page Image Lightbox */}
+      {lightboxUrl && <ImageLightbox src={lightboxUrl} alt="Fund Source Proof" onClose={() => setLightboxUrl(null)} />}
     </div>
   );
 }

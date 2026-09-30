@@ -3,7 +3,8 @@ import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import Badge from '../../components/ui/Badge';
-import { MessageSquare, Phone, Calendar, Image as ImageIcon, UserCheck } from 'lucide-react';
+import ImageLightbox from '../../components/ui/ImageLightbox';
+import { MessageSquare, Phone, Calendar, Image as ImageIcon, UserCheck, Eye } from 'lucide-react';
 
 const STATUSES = ['new', 'in_review', 'resolved', 'closed'];
 
@@ -16,6 +17,7 @@ export default function SKFeedback() {
   const [savingId, setSavingId] = useState(null);
   const [actionError, setActionError] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [lightboxUrl, setLightboxUrl] = useState(null);
 
   // Fetch only feedback addressed to SK for this barangay
   useEffect(() => {
@@ -140,9 +142,12 @@ export default function SKFeedback() {
                 </span>
                 <div className="flex gap-2 flex-wrap">
                   {row.photo_urls.map((url, idx) => (
-                    <a key={idx} href={url} target="_blank" rel="noreferrer" className="group relative">
+                    <button key={idx} type="button" onClick={() => setLightboxUrl(url)} className="group relative">
                       <img src={url} alt="Attachment" className="w-20 h-20 object-cover rounded-xl border border-slate-200 group-hover:scale-105 transition-transform" />
-                    </a>
+                      <div className="absolute inset-0 bg-slate-900/0 group-hover:bg-slate-900/10 rounded-xl transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        <Eye className="w-5 h-5 text-white drop-shadow-md" />
+                      </div>
+                    </button>
                   ))}
                 </div>
               </div>
@@ -190,6 +195,8 @@ export default function SKFeedback() {
           </div>
         ))}
       </div>
+
+      {lightboxUrl && <ImageLightbox src={lightboxUrl} alt="Feedback Attachment" onClose={() => setLightboxUrl(null)} />}
     </div>
   );
 }

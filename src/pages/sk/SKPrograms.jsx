@@ -173,7 +173,7 @@ export default function SKPrograms() {
           </button>
         )}
       </div>
-      <ErrorBanner message={error || submitError} />
+      <ErrorBanner message={error} />
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="card">
           <p className="text-xs font-bold text-slate-500 uppercase">
