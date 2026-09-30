@@ -82,7 +82,7 @@ export default function SKExpenseManagement() {
   const handleEdit = (row) => {
     setForm({
       category: row.category,
-      amount: String(row.amount),
+      amount: finalizeCurrencyInput(row.amount),
       description: row.description || '',
       date_incurred: row.date_incurred || '',
       sk_budget_id: row.sk_budget_id || '',

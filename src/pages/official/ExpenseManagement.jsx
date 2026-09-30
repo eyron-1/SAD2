@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import { supabase } from '../../lib/supabaseClient';
-import { validateRequired, validateCurrency, runValidators, friendlySupabaseError, formatCurrencyInput, finalizeCurrencyInput, parseCurrencyValue } from '../../lib/validation';
+import { validateRequired, validateCurrency, runValidators, formatCurrencyInput, finalizeCurrencyInput, parseCurrencyValue } from '../../lib/validation';
 import { isBarangayEditor } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
@@ -51,7 +51,7 @@ export default function ExpenseManagement() {
     if (row) {
       setForm({
         category: row.category,
-        amount: String(row.amount),
+        amount: finalizeCurrencyInput(row.amount),
         description: row.description || '',
         date_incurred: row.date_incurred || '',
         budget_allocation_id: row.budget_allocation_id || '',

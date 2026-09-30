@@ -2,14 +2,6 @@ import { Link, NavLink, Outlet, useLocation, useParams } from 'react-router-dom'
 import { usePublicBarangay } from '../../lib/usePublicBarangay';
 import { Building2, LayoutDashboard, PieChart, FolderKanban, Users, MessageSquarePlus, LogIn, ShieldCheck } from 'lucide-react';
 
-const NAV = [
-  { to: '', label: 'Overview', icon: LayoutDashboard, end: true },
-  { to: 'budget', label: 'Budget & Expenses', icon: PieChart },
-  { to: 'programs', label: 'Programs & Projects', icon: FolderKanban },
-  { to: 'officials', label: 'Elected Officials', icon: Users },
-  { to: 'feedback', label: 'Send Feedback', icon: MessageSquarePlus },
-];
-
 export default function PublicLayout() {
   const { slug } = useParams();
   const location = useLocation();

@@ -8,7 +8,10 @@ export function usePublicBarangay(slug) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!slug) return;
+    if (!slug) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     supabase
       .from('barangays')

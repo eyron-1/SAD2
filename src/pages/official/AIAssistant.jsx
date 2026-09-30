@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { supabase } from '../../lib/supabaseClient';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import { Bot, Send, Key, Copy, Check, Database, RefreshCw, FileText, HelpCircle, TrendingUp, Award } from 'lucide-react';

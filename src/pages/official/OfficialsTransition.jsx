@@ -6,7 +6,7 @@ import { validateRequired, runValidators, friendlySupabaseError } from '../../li
 import { isBarangayEditor, roleLabel, ROLES, ROLE_SEAT_LIMITS } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
-import { Users, Plus, ShieldCheck, UserMinus, History, Calendar, FileText, X, CheckCircle2, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Users, Plus, ShieldCheck, UserMinus, History, X, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 const EMPTY = { position_role: ROLES.CAPTAIN, outgoing_official_id: '', incoming_official_id: '', term_start: '', term_end: '', notes: '' };
 

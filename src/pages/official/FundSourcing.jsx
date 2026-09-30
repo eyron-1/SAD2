@@ -33,7 +33,7 @@ export default function FundSourcing() {
 
   const openModal = (row = null) => {
     if (row) {
-      setForm({ name: row.name, source_type: row.source_type, amount: String(row.amount), fiscal_year: row.fiscal_year, received_date: row.received_date || '', description: row.description || '' });
+      setForm({ name: row.name, source_type: row.source_type, amount: finalizeCurrencyInput(row.amount), fiscal_year: row.fiscal_year, received_date: row.received_date || '', description: row.description || '' });
       setEditingId(row.id);
     } else {
       setForm({ ...EMPTY, fiscal_year: new Date().getFullYear().toString() });

@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import { validateRequired, validateName, runValidators } from '../../lib/validation';
-import { isSkRole } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import Badge from '../../components/ui/Badge';

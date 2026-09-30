@@ -10,7 +10,10 @@ export function useSupabaseTable(table, barangayId, { orderBy = 'created_at', as
   const [error, setError] = useState('');
 
   const refetch = useCallback(async () => {
-    if (!barangayId) return;
+    if (!barangayId) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError('');
     let query = supabase

@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { supabase } from '../../lib/supabaseClient';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import { Bot, X, Send, Database } from 'lucide-react';
 

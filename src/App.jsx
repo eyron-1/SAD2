@@ -14,6 +14,7 @@ const PublicSKBudget = lazy(() => import('./pages/public/PublicSKBudget'));
 const PublicSKPrograms = lazy(() => import('./pages/public/PublicSKPrograms'));
 const PublicOfficials = lazy(() => import('./pages/public/PublicOfficials'));
 const FeedbackForm = lazy(() => import('./pages/public/FeedbackForm'));
+const NotFound = lazy(() => import('./pages/public/NotFound'));
 
 const Login = lazy(() => import('./pages/auth/Login'));
 const Signup = lazy(() => import('./pages/auth/Signup'));
@@ -103,6 +104,9 @@ export default function App() {
             <Route path="ai-assistant" element={<AIAssistant />} />
             <Route path="settings" element={<BarangaySettings />} />
           </Route>
+
+          {/* 404 Catch-All */}
+          <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
       </AuthProvider>

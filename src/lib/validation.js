@@ -11,8 +11,8 @@ export const PATTERNS = {
   phMobile: /^(?:\+63|0)9\d{9}$/,
   // standard email
   email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-  // currency: optional leading peso sign, digits, optional 2-decimal
-  currency: /^(?:₱)?\d{1,3}(,\d{3})*(\.\d{1,2})?$|^(?:₱)?\d+(\.\d{1,2})?$/,
+  // currency: optional leading peso sign with optional space, digits, optional 2-decimal
+  currency: /^(?:₱)?\s*\d{1,3}(,\d{3})*(\.\d{1,2})?$|^(?:₱)?\s*\d+(\.\d{1,2})?$/,
   // fiscal year like 2026 or 2026-2027
   fiscalYear: /^\d{4}(-\d{4})?$/,
   // strong-ish password: min 8 chars, 1 upper, 1 lower, 1 number
@@ -117,8 +117,9 @@ export function parseCurrencyValue(value) {
 
 export function validateCurrency(value, label = 'Amount') {
   if (value === '' || value === null || value === undefined) return `${label} is required.`;
-  const clean = normalizeCurrencyValue(value).replace(/,/g, '');
-  if (!clean || !PATTERNS.currency.test(String(value)) || isNaN(Number(clean))) {
+  const trimmed = String(value).trim();
+  const clean = normalizeCurrencyValue(trimmed).replace(/,/g, '');
+  if (!clean || !PATTERNS.currency.test(trimmed) || isNaN(Number(clean))) {
     return `${label} must be a valid amount, e.g. 15000 or 15,000.50.`;
   }
   if (Number(clean) < 0) return `${label} cannot be negative.`;

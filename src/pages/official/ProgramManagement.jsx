@@ -1,8 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
-import { validateRequired, validateCurrency, validateDateRange, runValidators, formatCurrencyInput, finalizeCurrencyInput, parseCurrencyValue } from '../../lib/validation';
-import { validateMaxLength } from '../../lib/validation';
+import { validateRequired, validateCurrency, validateDateRange, validateMaxLength, runValidators, formatCurrencyInput, finalizeCurrencyInput, parseCurrencyValue } from '../../lib/validation';
 import { isBarangayEditor } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
@@ -15,11 +14,9 @@ import {
   Edit3,
   Trash2,
   X,
-  Users,
   Calendar,
   Wallet,
   Tag,
-  CheckCircle2,
   Clock,
   HeartHandshake
 } from 'lucide-react';
@@ -118,7 +115,7 @@ export default function ProgramManagement() {
         title: row.title,
         description: parsed.clean_description,
         category: row.category || '',
-        budget_amount: row.budget_amount ? String(row.budget_amount) : '',
+        budget_amount: row.budget_amount ? finalizeCurrencyInput(row.budget_amount) : '',
         budget_allocation_id: row.budget_allocation_id || '',
         start_date: row.start_date || '',
         end_date: row.end_date || '',

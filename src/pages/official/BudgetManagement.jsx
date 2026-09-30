@@ -43,7 +43,7 @@ export default function BudgetManagement() {
 
   const openModal = (row = null) => {
     if (row) {
-      setForm({ fiscal_year: row.fiscal_year, category: row.category, amount: String(row.amount), description: row.description || '' });
+      setForm({ fiscal_year: row.fiscal_year, category: row.category, amount: finalizeCurrencyInput(row.amount), description: row.description || '' });
       setEditingId(row.id);
     } else {
       setForm({ ...EMPTY, fiscal_year: new Date().getFullYear().toString() });

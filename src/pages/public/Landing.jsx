@@ -14,12 +14,7 @@ import {
   Users,
   MapPin,
   Building2,
-  ExternalLink,
-  Receipt,
-  FileCheck,
   CheckCircle,
-  Clock,
-  ChevronRight,
   Menu,
   X,
   HeartHandshake

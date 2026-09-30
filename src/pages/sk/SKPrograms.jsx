@@ -76,7 +76,7 @@ export default function SKPrograms() {
             title: row.title,
             description: row.description || "",
             category: row.category || CATEGORIES[0],
-            budget_amount: row.budget_amount ? String(row.budget_amount) : "",
+            budget_amount: row.budget_amount ? finalizeCurrencyInput(row.budget_amount) : "",
             sk_budget_id: row.sk_budget_id || "",
             start_date: row.start_date || "",
             end_date: row.end_date || "",

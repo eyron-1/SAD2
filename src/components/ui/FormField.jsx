@@ -11,21 +11,22 @@ export default function FormField({
   ...inputProps
 }) {
   const fieldId = useId();
+  const id = inputProps.id || fieldId;
   const [passwordVisible, setPasswordVisible] = useState(false);
   const fieldClass = `input-field ${error ? 'input-error' : ''} ${className}`;
   return (
     <div>
-      {label && <label htmlFor={fieldId} className="label">{label}</label>}
+      {label && <label htmlFor={id} className="label">{label}</label>}
       {as === 'textarea' ? (
-        <textarea id={fieldId} className={fieldClass} {...inputProps} />
+        <textarea id={id} className={fieldClass} {...inputProps} />
       ) : as === 'select' ? (
-        <select id={fieldId} className={fieldClass} {...inputProps}>
+        <select id={id} className={fieldClass} {...inputProps}>
           {children}
         </select>
       ) : (
         <div className={showPasswordToggle ? 'relative' : ''}>
           <input
-            id={fieldId}
+            id={id}
             className={`${fieldClass} ${showPasswordToggle ? 'pr-11' : ''}`}
             {...inputProps}
             type={showPasswordToggle && passwordVisible ? 'text' : inputProps.type}

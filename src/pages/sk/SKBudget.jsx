@@ -29,13 +29,13 @@ export default function SKBudget() {
 
   const validators = { fiscal_year: validateFiscalYear, category: (value) => validateRequired(value, 'Category'), amount: (value) => validateCurrency(value, 'Amount') };
   const openModal = (row = null) => {
-    setForm(row ? { fiscal_year: row.fiscal_year, category: row.category, amount: String(row.amount), description: row.description || '' } : { ...EMPTY, fiscal_year: String(new Date().getFullYear()) });
+    setForm(row ? { fiscal_year: row.fiscal_year, category: row.category, amount: finalizeCurrencyInput(row.amount), description: row.description || '' } : { ...EMPTY, fiscal_year: String(new Date().getFullYear()) });
     setEditingId(row?.id || null); setFieldErrors({}); setSubmitError(''); setModalOpen(true);
   };
   const closeModal = () => { setModalOpen(false); setEditingId(null); setForm(EMPTY); setFieldErrors({}); setSubmitError(''); };
   const handleSubmit = async (event) => {
     event.preventDefault(); const { errors, isValid } = runValidators(form, validators); setFieldErrors(errors); if (!isValid) return;
-    setSubmitting(true); const payload = { ...form, amount: Number(String(form.amount).replace(/,/g, '')), created_by: profile.id };
+    setSubmitting(true); const payload = { ...form, amount: parseCurrencyValue(form.amount), created_by: profile.id };
     const result = editingId ? await updateRow(editingId, payload) : await insertRow(payload); setSubmitting(false);
     if (result.error) setSubmitError(result.error); else closeModal();
   };
