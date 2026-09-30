@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
-import { validateRequired, validateCurrency, validateDateRange, runValidators, formatCurrencyInput, parseCurrencyValue } from '../../lib/validation';
+import { validateRequired, validateCurrency, validateDateRange, runValidators, formatCurrencyInput, finalizeCurrencyInput, parseCurrencyValue } from '../../lib/validation';
 import { validateMaxLength } from '../../lib/validation';
 import { isBarangayEditor } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
@@ -385,6 +385,7 @@ export default function ProgramManagement() {
                   placeholder="e.g. 50,000.00"
                   value={form.budget_amount}
                   onChange={(e) => setForm({ ...form, budget_amount: formatCurrencyInput(e.target.value) })}
+                  onBlur={(e) => setForm({ ...form, budget_amount: finalizeCurrencyInput(e.target.value) })}
                   error={fieldErrors.budget_amount}
                 />
                 <FormField

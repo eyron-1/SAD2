@@ -11,8 +11,8 @@ export const PATTERNS = {
   phMobile: /^(?:\+63|0)9\d{9}$/,
   // standard email
   email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-  // currency: optional leading peso or dollar sign, digits, optional 2-decimal
-  currency: /^(?:[$₱])?\d{1,3}(,\d{3})*(\.\d{1,2})?$|^(?:[$₱])?\d+(\.\d{1,2})?$/,
+  // currency: optional leading peso sign, digits, optional 2-decimal
+  currency: /^(?:₱)?\d{1,3}(,\d{3})*(\.\d{1,2})?$|^(?:₱)?\d+(\.\d{1,2})?$/,
   // fiscal year like 2026 or 2026-2027
   fiscalYear: /^\d{4}(-\d{4})?$/,
   // strong-ish password: min 8 chars, 1 upper, 1 lower, 1 number
@@ -53,7 +53,7 @@ export function validateEmail(value, { required = true } = {}) {
 
 export function normalizeCurrencyValue(value) {
   if (value === null || value === undefined) return '';
-  const raw = String(value).trim().replace(/[$₱\s]/g, '');
+  const raw = String(value).trim().replace(/[₱\s]/g, '');
   if (!raw) return '';
 
   const digits = raw.replace(/[^\d.]/g, '');
@@ -83,6 +83,28 @@ export function formatCurrencyInput(value) {
   return decimalPart !== undefined && decimalPart !== ''
     ? `${formattedWhole}.${decimalPart}`
     : formattedWhole + (normalized.endsWith('.') ? '.' : '');
+}
+
+// Call on blur to auto-append .00 decimals so "1000" becomes "1,000.00"
+export function finalizeCurrencyInput(value) {
+  if (!value || String(value).trim() === '') return '';
+  const formatted = formatCurrencyInput(value);
+  if (!formatted) return '';
+
+  // If there's no decimal point, add .00
+  if (!formatted.includes('.')) {
+    return formatted + '.00';
+  }
+
+  // If decimal exists but is incomplete (e.g. "1,000." or "1,000.5")
+  const [whole, decimal] = formatted.split('.');
+  if (decimal === undefined || decimal === '') {
+    return whole + '.00';
+  }
+  if (decimal.length === 1) {
+    return whole + '.' + decimal + '0';
+  }
+  return formatted;
 }
 
 export function parseCurrencyValue(value) {

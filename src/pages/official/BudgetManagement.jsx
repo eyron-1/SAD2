@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
-import { validateRequired, validateCurrency, validateFiscalYear, runValidators, formatCurrencyInput, parseCurrencyValue } from '../../lib/validation';
+import { validateRequired, validateCurrency, validateFiscalYear, runValidators, formatCurrencyInput, finalizeCurrencyInput, parseCurrencyValue } from '../../lib/validation';
 import { isBarangayEditor } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
@@ -310,6 +310,7 @@ export default function BudgetManagement() {
                 placeholder="e.g. 250,000.00"
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: formatCurrencyInput(e.target.value) })}
+                onBlur={(e) => setForm({ ...form, amount: finalizeCurrencyInput(e.target.value) })}
                 error={fieldErrors.amount}
               />
 

@@ -8,6 +8,7 @@ import {
   validateMaxLength,
   runValidators,
   formatCurrencyInput,
+  finalizeCurrencyInput,
   parseCurrencyValue,
 } from "../../lib/validation";
 import { isSkEditor } from "../../utils/roles";
@@ -310,11 +311,16 @@ export default function SKPrograms() {
                   ))}
                 </FormField>
                 <FormField
+                  type="text"
+                  inputMode="decimal"
                   label="Budget (₱)"
                   placeholder="e.g. 50,000.00"
                   value={form.budget_amount}
                   onChange={(event) =>
-                    setForm({ ...form, budget_amount: event.target.value })
+                    setForm({ ...form, budget_amount: formatCurrencyInput(event.target.value) })
+                  }
+                  onBlur={(event) =>
+                    setForm({ ...form, budget_amount: finalizeCurrencyInput(event.target.value) })
                   }
                   error={fieldErrors.budget_amount}
                 />
