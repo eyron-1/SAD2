@@ -12,6 +12,7 @@ const PublicPrograms = lazy(() => import('./pages/public/PublicPrograms'));
 const PublicSKOverview = lazy(() => import('./pages/public/PublicSKOverview'));
 const PublicSKBudget = lazy(() => import('./pages/public/PublicSKBudget'));
 const PublicSKPrograms = lazy(() => import('./pages/public/PublicSKPrograms'));
+const KKProfilingForm = lazy(() => import('./pages/public/KKProfilingForm'));
 const PublicOfficials = lazy(() => import('./pages/public/PublicOfficials'));
 const FeedbackForm = lazy(() => import('./pages/public/FeedbackForm'));
 const NotFound = lazy(() => import('./pages/public/NotFound'));
@@ -56,6 +57,7 @@ export default function App() {
               <Route index element={<PublicSKOverview />} />
               <Route path="budget" element={<PublicSKBudget />} />
               <Route path="programs" element={<PublicSKPrograms />} />
+              <Route path="profiling" element={<KKProfilingForm />} />
               <Route path="feedback" element={<FeedbackForm />} />
             </Route>
           </Route>

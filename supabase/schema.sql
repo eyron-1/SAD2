@@ -279,9 +279,17 @@ create table kk_monitoring (
   barangay_id uuid references barangays(id) on delete cascade not null,
   kk_name text not null,
   age integer check (age >= 15 and age <= 30),
+  sex text,
   purok text,
+  contact_number text,
+  education_level text,
+  employment_status text,
+  youth_classification text,
   sk_program_id uuid references sk_programs(id),
   participation_status text default 'registered',
+  profile_status text not null default 'pending_review' check (profile_status in ('pending_review', 'verified', 'rejected')),
+  consent_given boolean not null default false,
+  guardian_consent boolean not null default false,
   notes text,
   created_by uuid references profiles(id),
   created_at timestamptz default now()
@@ -466,6 +474,20 @@ create policy "sk officials read kk" on kk_monitoring for select using (belongs_
 create policy "sk officials write kk" on kk_monitoring for insert with check (belongs_to_barangay(auth.uid(), barangay_id));
 create policy "sk editors update kk" on kk_monitoring for update using (is_sk_editor(auth.uid()) and belongs_to_barangay(auth.uid(), barangay_id));
 create policy "sk editors delete kk" on kk_monitoring for delete using (is_sk_editor(auth.uid()) and belongs_to_barangay(auth.uid(), barangay_id));
+create policy "public submit kk profiling" on kk_monitoring for insert with check (
+  created_by is null
+  and profile_status = 'pending_review'
+  and participation_status = 'registered'
+  and sk_program_id is null
+  and notes is null
+  and age between 15 and 30
+  and consent_given
+  and (age >= 18 or guardian_consent)
+  and sex in ('female', 'male', 'prefer_not_to_say')
+  and education_level in ('elementary', 'junior_high', 'senior_high', 'college', 'vocational', 'not_in_school')
+  and employment_status in ('employed', 'self_employed', 'unemployed', 'not_applicable')
+  and youth_classification in ('in_school', 'out_of_school', 'working', 'youth_with_disability', 'indigenous_youth', 'other')
+);
 
 -- feedback
 create policy "anyone can submit feedback" on feedback for insert with check (true);

@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet, useLocation, useParams } from 'react-router-dom';
 import { usePublicBarangay } from '../../lib/usePublicBarangay';
-import { Building2, LayoutDashboard, PieChart, FolderKanban, Users, MessageSquarePlus, LogIn, ShieldCheck } from 'lucide-react';
+import { Building2, LayoutDashboard, PieChart, FolderKanban, Users, MessageSquarePlus, LogIn, ShieldCheck, ClipboardList } from 'lucide-react';
 
 export default function PublicLayout() {
   const { slug } = useParams();
@@ -16,6 +16,7 @@ export default function PublicLayout() {
         { to: '', label: 'SK Overview', icon: LayoutDashboard, end: true },
         { to: 'budget', label: 'SK Budget & Expenses', icon: PieChart },
         { to: 'programs', label: 'SK Youth Programs', icon: FolderKanban },
+        { to: 'profiling', label: 'KK Profiling', icon: ClipboardList },
         { to: 'feedback', label: 'Send SK Feedback', icon: MessageSquarePlus },
         { to: '', label: 'Open Barangay Portal', icon: Building2, base: 'barangay' },
       ]

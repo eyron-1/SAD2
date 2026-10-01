@@ -3,7 +3,7 @@ import { usePublicBarangay } from '../../lib/usePublicBarangay';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import { sumAmounts, sumActiveAmounts } from '../../lib/financial';
-import { FolderKanban, MessageSquare, PieChart, Receipt, Users, ArrowRight } from 'lucide-react';
+import { ClipboardList, FolderKanban, MessageSquare, PieChart, Receipt, Users, ArrowRight } from 'lucide-react';
 
 export default function PublicSKOverview() {
   const { slug } = useParams();
@@ -41,7 +41,8 @@ export default function PublicSKOverview() {
         <div className="card"><span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5"><FolderKanban className="w-4 h-4 text-blue-600" /> Youth Programs</span><p className="text-2xl font-extrabold text-civic-navy mt-2">{activePrograms} Ongoing</p></div>
       </div>
 
-      <div className="grid sm:grid-cols-3 gap-4">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Link to={`/b/${slug}/sk/profiling`} className="card border-emerald-200 hover:border-emerald-500 transition-colors"><ClipboardList className="w-6 h-6 text-emerald-700 mb-3" /><h2 className="font-bold text-civic-navy">KK Youth Profiling</h2><p className="text-xs text-slate-500 mt-1">Submit your profile directly to the SK for verification.</p><ArrowRight className="w-4 h-4 text-emerald-700 mt-3" /></Link>
         <Link to={`/b/${slug}/sk/budget`} className="card border-emerald-200 hover:border-emerald-500 transition-colors"><PieChart className="w-6 h-6 text-emerald-700 mb-3" /><h2 className="font-bold text-civic-navy">SK Budget & Expenses</h2><p className="text-xs text-slate-500 mt-1">View youth fund sources, allocations, and expenses.</p><ArrowRight className="w-4 h-4 text-emerald-700 mt-3" /></Link>
         <Link to={`/b/${slug}/sk/programs`} className="card border-emerald-200 hover:border-emerald-500 transition-colors"><FolderKanban className="w-6 h-6 text-emerald-700 mb-3" /><h2 className="font-bold text-civic-navy">SK Youth Programs</h2><p className="text-xs text-slate-500 mt-1">Review youth-focused projects and program budgets.</p><ArrowRight className="w-4 h-4 text-emerald-700 mt-3" /></Link>
         <Link to={`/b/${slug}/sk/feedback`} className="card border-emerald-200 hover:border-emerald-500 transition-colors"><MessageSquare className="w-6 h-6 text-emerald-700 mb-3" /><h2 className="font-bold text-civic-navy">Send SK Feedback</h2><p className="text-xs text-slate-500 mt-1">Send a concern or suggestion directly to SK officials.</p><ArrowRight className="w-4 h-4 text-emerald-700 mt-3" /></Link>
