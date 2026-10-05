@@ -1,61 +1,114 @@
-import { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { useSupabaseTable } from '../../lib/useSupabaseTable';
-import ErrorBanner from '../../components/ui/ErrorBanner';
-import { Bot, Send, Key, Copy, Check, Database, RefreshCw, FileText, HelpCircle, TrendingUp, Award } from 'lucide-react';
+import { useState } from "react";
+import { useAuth } from "../../context/AuthContext";
+import { useSupabaseTable } from "../../lib/useSupabaseTable";
+import ErrorBanner from "../../components/ui/ErrorBanner";
+import {
+  Bot,
+  Send,
+  Key,
+  Copy,
+  Check,
+  Database,
+  RefreshCw,
+  FileText,
+  HelpCircle,
+  TrendingUp,
+  Award,
+} from "lucide-react";
 
 const MODES = [
-  { id: 'report_draft', label: 'Draft Report', icon: FileText, placeholder: 'e.g. Draft a quarterly accomplishment summary for the health program covering Jan–Mar, 320 beneficiaries, ₱85,000 spent.' },
-  { id: 'inquiry', label: 'Governance Q&A', icon: HelpCircle, placeholder: 'e.g. What is the required minimum SK budget allocation from the barangay IRA according to RA 7160?' },
-  { id: 'budget_forecast', label: 'Budget Forecast', icon: TrendingUp, placeholder: 'e.g. Forecast next fiscal year\'s infrastructure budget based on our last 2 years of allocations.' },
-  { id: 'accomplishment_report', label: 'Accomplishment', icon: Award, placeholder: 'e.g. Write an accomplishment report for the completed disaster-preparedness program.' },
+  {
+    id: "report_draft",
+    label: "Draft Report",
+    icon: FileText,
+    placeholder:
+      "e.g. Draft a quarterly accomplishment summary for the health program covering Jan–Mar, 320 beneficiaries, ₱85,000 spent.",
+  },
+  {
+    id: "inquiry",
+    label: "Governance Q&A",
+    icon: HelpCircle,
+    placeholder:
+      "e.g. What is the required minimum SK budget allocation from the barangay IRA according to RA 7160?",
+  },
+  {
+    id: "budget_forecast",
+    label: "Budget Forecast",
+    icon: TrendingUp,
+    placeholder:
+      "e.g. Forecast next fiscal year's infrastructure budget based on our last 2 years of allocations.",
+  },
+  {
+    id: "accomplishment_report",
+    label: "Accomplishment",
+    icon: Award,
+    placeholder:
+      "e.g. Write an accomplishment report for the completed disaster-preparedness program.",
+  },
 ];
 
 export default function AIAssistant() {
   const { profile } = useAuth();
-  const [mode, setMode] = useState('report_draft');
-  const [input, setInput] = useState('');
+  const [mode, setMode] = useState("report_draft");
+  const [input, setInput] = useState("");
   const [messages, setMessages] = useState([]);
   const [sending, setSending] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [includeData, setIncludeData] = useState(true);
   const [copiedIndex, setCopiedIndex] = useState(null);
-  
+
   // Custom Groq Key state
-  const [groqKey, setGroqKey] = useState(() => localStorage.getItem('groq_api_key') || '');
+  const [groqKey, setGroqKey] = useState(
+    () => localStorage.getItem("groq_api_key") || "",
+  );
   const [showKeyModal, setShowKeyModal] = useState(false);
 
-  const { rows: allocations } = useSupabaseTable('budget_allocations', profile?.barangay_id);
-  const { rows: expenses } = useSupabaseTable('expenses', profile?.barangay_id);
-  const { rows: programs } = useSupabaseTable('programs', profile?.barangay_id);
+  const { rows: allocations } = useSupabaseTable(
+    "budget_allocations",
+    profile?.barangay_id,
+  );
+  const { rows: expenses } = useSupabaseTable("expenses", profile?.barangay_id);
+  const { rows: programs } = useSupabaseTable("programs", profile?.barangay_id);
 
   const activeMode = MODES.find((m) => m.id === mode);
 
   const saveGroqKey = (key) => {
     setGroqKey(key);
-    localStorage.setItem('groq_api_key', key);
+    localStorage.setItem("groq_api_key", key);
     setShowKeyModal(false);
   };
 
   const handleSend = async () => {
     if (!input.trim() || sending) return;
-    const newMessages = [...messages, { role: 'user', content: input }];
+    const newMessages = [...messages, { role: "user", content: input }];
     setMessages(newMessages);
-    setInput('');
+    setInput("");
     setSending(true);
-    setError('');
+    setError("");
 
     const context = includeData
-      ? { budget_allocations: allocations.slice(0, 50), expenses: expenses.slice(0, 50), programs: programs.slice(0, 50) }
+      ? {
+          budget_allocations: allocations.slice(0, 50),
+          expenses: expenses.slice(0, 50),
+          programs: programs.slice(0, 50),
+        }
       : null;
 
-    let aiResponse = '';
+    let aiResponse = "";
 
     // Attempt 1: Call Supabase Edge Function (Groq backed)
     try {
-      const { data, error: fnError } = await supabase.functions.invoke('ai-assistant', {
-        body: { mode, messages: newMessages, context, apiKey: groqKey || undefined },
-      });
+      const { data, error: fnError } = await supabase.functions.invoke(
+        "ai-assistant",
+        {
+          body: {
+            mode,
+            messages: newMessages,
+            context,
+            apiKey: groqKey || undefined,
+          },
+        },
+      );
 
       if (!fnError && data?.text) {
         aiResponse = data.text;
@@ -69,44 +122,61 @@ export default function AIAssistant() {
       try {
         const apiKeyToUse = groqKey || import.meta.env.VITE_GROQ_API_KEY;
         if (!apiKeyToUse) {
-          throw new Error('Groq API Key is not set. Please click "Set Groq API Key" above to configure your free key.');
+          throw new Error(
+            'Groq API Key is not set. Please click "Set Groq API Key" above to configure your free key.',
+          );
         }
 
-        const systemText = `You are a Philippine Barangay AI Assistant (${activeMode.label}). ` +
-          (context ? `\n\nBarangay Record Data Context:\n${JSON.stringify(context).slice(0, 8000)}` : '');
+        const systemText =
+          `You are a Philippine Barangay AI Assistant (${activeMode.label}). ` +
+          (context
+            ? `\n\nBarangay Record Data Context:\n${JSON.stringify(context).slice(0, 8000)}`
+            : "");
 
-        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            'authorization': `Bearer ${apiKeyToUse}`,
+        const res = await fetch(
+          "https://api.groq.com/openai/v1/chat/completions",
+          {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              authorization: `Bearer ${apiKeyToUse}`,
+            },
+            body: JSON.stringify({
+              model: "llama-3.3-70b-versatile",
+              messages: [
+                { role: "system", content: systemText },
+                ...newMessages.map((m) => ({
+                  role: m.role === "assistant" ? "assistant" : "user",
+                  content: m.content,
+                })),
+              ],
+              temperature: 0.5,
+              max_tokens: 1500,
+            }),
           },
-          body: JSON.stringify({
-            model: 'llama-3.3-70b-versatile',
-            messages: [
-              { role: 'system', content: systemText },
-              ...newMessages.map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content })),
-            ],
-            temperature: 0.5,
-            max_tokens: 1500,
-          }),
-        });
+        );
 
         const resData = await res.json();
         if (!res.ok) {
-          throw new Error(resData.error?.message || `Groq API returned error status ${res.status}`);
+          throw new Error(
+            resData.error?.message ||
+              `Groq API returned error status ${res.status}`,
+          );
         }
 
-        aiResponse = resData.choices?.[0]?.message?.content || '';
+        aiResponse = resData.choices?.[0]?.message?.content || "";
       } catch (clientErr) {
-        setError(clientErr.message || 'Unable to generate response. Please check your Groq API key.');
+        setError(
+          clientErr.message ||
+            "Unable to generate response. Please check your Groq API key.",
+        );
       }
     }
 
     setSending(false);
 
     if (aiResponse) {
-      setMessages([...newMessages, { role: 'assistant', content: aiResponse }]);
+      setMessages([...newMessages, { role: "assistant", content: aiResponse }]);
     }
   };
 
@@ -119,7 +189,7 @@ export default function AIAssistant() {
   const handleModeChange = (id) => {
     setMode(id);
     setMessages([]);
-    setError('');
+    setError("");
   };
 
   return (
@@ -132,7 +202,9 @@ export default function AIAssistant() {
             Groq AI Barangay Assistant
           </h1>
           <p className="text-slate-600 text-sm mt-1">
-            Powered by <strong>Groq Llama 3.3 70B</strong> · Draft reports, calculate forecasts, and get legal governance advice grounded in your barangay records.
+            Powered by <strong>Groq Llama 3.3 70B</strong> · Draft reports,
+            calculate forecasts, and get legal governance advice grounded in
+            your barangay records.
           </p>
         </div>
 
@@ -141,7 +213,7 @@ export default function AIAssistant() {
           className="btn-secondary text-xs shrink-0"
         >
           <Key className="w-3.5 h-3.5 text-civic-emerald" />
-          {groqKey ? 'Groq Key Configured ✓' : 'Set Groq API Key'}
+          {groqKey ? "Groq Key Configured ✓" : "Set Groq API Key"}
         </button>
       </div>
 
@@ -150,13 +222,21 @@ export default function AIAssistant() {
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl shadow-2xl border border-slate-200 p-6 max-w-md w-full space-y-4">
             <div className="flex items-center gap-2 text-civic-navy font-bold text-lg">
-              <Key className="w-5 h-5 text-civic-emerald" /> Configure Groq API Key
+              <Key className="w-5 h-5 text-civic-emerald" /> Configure Groq API
+              Key
             </div>
             <p className="text-xs text-slate-600">
-              Groq provides lightning-fast AI inference. You can get a 100% free API Key at{' '}
-              <a href="https://console.groq.com" target="_blank" rel="noreferrer" className="text-civic-emerald font-semibold underline">
+              Groq provides lightning-fast AI inference. You can get a 100% free
+              API Key at{" "}
+              <a
+                href="https://console.groq.com"
+                target="_blank"
+                rel="noreferrer"
+                className="text-civic-emerald font-semibold underline"
+              >
                 console.groq.com
-              </a>.
+              </a>
+              .
             </p>
             <input
               type="password"
@@ -166,8 +246,18 @@ export default function AIAssistant() {
               onChange={(e) => setGroqKey(e.target.value)}
             />
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowKeyModal(false)} className="btn-secondary text-xs">Cancel</button>
-              <button onClick={() => saveGroqKey(groqKey)} className="btn-emerald text-xs">Save Key</button>
+              <button
+                onClick={() => setShowKeyModal(false)}
+                className="btn-secondary text-xs"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => saveGroqKey(groqKey)}
+                className="btn-emerald text-xs"
+              >
+                Save Key
+              </button>
             </div>
           </div>
         </div>
@@ -183,11 +273,13 @@ export default function AIAssistant() {
               onClick={() => handleModeChange(m.id)}
               className={`p-3 rounded-xl border text-left transition-all duration-150 flex flex-col gap-1.5 ${
                 mode === m.id
-                  ? 'bg-civic-navy text-white border-civic-navy shadow-sm'
-                  : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                  ? "bg-civic-navy text-white border-civic-navy shadow-sm"
+                  : "bg-white text-slate-700 border-slate-200 hover:border-slate-300 hover:bg-slate-50"
               }`}
             >
-              <Icon className={`w-4 h-4 ${mode === m.id ? 'text-civic-emerald' : 'text-slate-400'}`} />
+              <Icon
+                className={`w-4 h-4 ${mode === m.id ? "text-civic-emerald" : "text-slate-400"}`}
+              />
               <span className="font-semibold text-xs">{m.label}</span>
             </button>
           );
@@ -204,7 +296,8 @@ export default function AIAssistant() {
             className="rounded border-slate-300 text-civic-emerald focus:ring-civic-emerald"
           />
           <Database className="w-3.5 h-3.5 text-civic-emerald" />
-          Feed current Barangay Records (Budgets, Expenses, Programs) into Groq AI Prompt
+          Feed current Barangay Records (Budgets, Expenses, Programs) into Groq
+          AI Prompt
         </label>
         {messages.length > 0 && (
           <button
@@ -224,8 +317,12 @@ export default function AIAssistant() {
               <div className="w-12 h-12 rounded-full bg-emerald-50 text-civic-emerald mx-auto flex items-center justify-center border border-emerald-100">
                 <FileText className="w-6 h-6" />
               </div>
-              <h3 className="font-bold text-civic-navy text-base">{activeMode.label} Mode Active</h3>
-              <p className="text-slate-500 text-xs max-w-md mx-auto">{activeMode.placeholder}</p>
+              <h3 className="font-bold text-civic-navy text-base">
+                {activeMode.label} Mode Active
+              </h3>
+              <p className="text-slate-500 text-xs max-w-md mx-auto">
+                {activeMode.placeholder}
+              </p>
             </div>
           )}
 
@@ -233,20 +330,24 @@ export default function AIAssistant() {
             <div
               key={i}
               className={`p-4 rounded-xl text-sm leading-relaxed ${
-                m.role === 'user'
-                  ? 'bg-civic-navy text-white ml-12'
-                  : 'bg-slate-50 text-slate-800 border border-slate-200 mr-12 space-y-2'
+                m.role === "user"
+                  ? "bg-civic-navy text-white ml-12"
+                  : "bg-slate-50 text-slate-800 border border-slate-200 mr-12 space-y-2"
               }`}
             >
               <div className="flex items-center justify-between mb-1 opacity-75 text-[11px] font-semibold uppercase tracking-wider">
-                <span>{m.role === 'user' ? 'You' : 'Groq Llama 3.3 AI'}</span>
-                {m.role === 'assistant' && (
+                <span>{m.role === "user" ? "You" : "Groq Llama 3.3 AI"}</span>
+                {m.role === "assistant" && (
                   <button
                     onClick={() => handleCopy(m.content, i)}
                     className="hover:text-civic-emerald flex items-center gap-1 text-[10px] font-normal"
                   >
-                    {copiedIndex === i ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                    {copiedIndex === i ? 'Copied' : 'Copy'}
+                    {copiedIndex === i ? (
+                      <Check className="w-3 h-3 text-emerald-600" />
+                    ) : (
+                      <Copy className="w-3 h-3" />
+                    )}
+                    {copiedIndex === i ? "Copied" : "Copy"}
                   </button>
                 )}
               </div>
@@ -256,13 +357,18 @@ export default function AIAssistant() {
 
           {sending && (
             <div className="bg-slate-50 text-slate-500 p-4 rounded-xl text-xs italic flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-civic-emerald" /> Groq AI is generating report response…
+              <span className="w-1.5 h-1.5 rounded-full bg-civic-emerald" />{" "}
+              Groq AI is generating report response…
             </div>
           )}
         </div>
 
         {/* Error Banner inside card */}
-        {error && <div className="px-6 py-2"><ErrorBanner message={error} /></div>}
+        {error && (
+          <div className="px-6 py-2">
+            <ErrorBanner message={error} />
+          </div>
+        )}
 
         {/* Input Bar */}
         <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-2">
@@ -273,7 +379,7 @@ export default function AIAssistant() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
+              if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 handleSend();
               }
@@ -292,4 +398,3 @@ export default function AIAssistant() {
     </div>
   );
 }
-

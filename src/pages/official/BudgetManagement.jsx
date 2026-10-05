@@ -1,56 +1,101 @@
-import { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { useSupabaseTable } from '../../lib/useSupabaseTable';
-import { validateRequired, validateCurrency, validateFiscalYear, runValidators, formatCurrencyInput, finalizeCurrencyInput, parseCurrencyValue } from '../../lib/validation';
-import { isBarangayEditor } from '../../utils/roles';
-import FormField from '../../components/ui/FormField';
-import ErrorBanner from '../../components/ui/ErrorBanner';
-import { PieChart, Plus, Search, Filter, Edit3, Trash2, X, Calendar, Layers, Landmark, Receipt, Wallet } from 'lucide-react';
+import { useState } from "react";
+import { useAuth } from "../../context/AuthContext";
+import { useSupabaseTable } from "../../lib/useSupabaseTable";
+import {
+  validateRequired,
+  validateCurrency,
+  validateFiscalYear,
+  runValidators,
+  formatCurrencyInput,
+  finalizeCurrencyInput,
+  parseCurrencyValue,
+} from "../../lib/validation";
+import { isBarangayEditor } from "../../utils/roles";
+import FormField from "../../components/ui/FormField";
+import ErrorBanner from "../../components/ui/ErrorBanner";
+import {
+  PieChart,
+  Plus,
+  Search,
+  Filter,
+  Edit3,
+  Trash2,
+  X,
+  Calendar,
+  Layers,
+  Landmark,
+  Receipt,
+  Wallet,
+} from "lucide-react";
 
-const CATEGORIES = ['Infrastructure', 'Health Services', 'Peace & Order', 'Education', 'Social Services', 'Administration', 'Disaster Preparedness', 'Other'];
-const EMPTY = { fiscal_year: '', category: CATEGORIES[0], amount: '', description: '' };
+const CATEGORIES = [
+  "Infrastructure",
+  "Health Services",
+  "Peace & Order",
+  "Education",
+  "Social Services",
+  "Administration",
+  "Disaster Preparedness",
+  "Other",
+];
+const EMPTY = {
+  fiscal_year: "",
+  category: CATEGORIES[0],
+  amount: "",
+  description: "",
+};
 
-const formatCurrency = (value) => new Intl.NumberFormat('en-PH', {
-  style: 'currency',
-  currency: 'PHP',
-  minimumFractionDigits: 2,
-}).format(Number(value || 0));
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+    minimumFractionDigits: 2,
+  }).format(Number(value || 0));
 
 export default function BudgetManagement() {
   const { profile } = useAuth();
   const canEdit = isBarangayEditor(profile?.role);
-  const { rows, loading, error, insertRow, updateRow, deleteRow } = useSupabaseTable('budget_allocations', profile?.barangay_id);
-  const { rows: funds } = useSupabaseTable('fund_sources', profile?.barangay_id);
-  const { rows: expenses } = useSupabaseTable('expenses', profile?.barangay_id);
+  const { rows, loading, error, insertRow, updateRow, deleteRow } =
+    useSupabaseTable("budget_allocations", profile?.barangay_id);
+  const { rows: funds } = useSupabaseTable(
+    "fund_sources",
+    profile?.barangay_id,
+  );
+  const { rows: expenses } = useSupabaseTable("expenses", profile?.barangay_id);
 
   const [form, setForm] = useState(EMPTY);
   const [fieldErrors, setFieldErrors] = useState({});
   const [editingId, setEditingId] = useState(null);
-  const [submitError, setSubmitError] = useState('');
+  const [submitError, setSubmitError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
 
   // Search and filter states
-  const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [yearFilter, setYearFilter] = useState('all');
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [yearFilter, setYearFilter] = useState("all");
 
   const validators = {
     fiscal_year: validateFiscalYear,
-    category: (v) => validateRequired(v, 'Category'),
-    amount: (v) => validateCurrency(v, 'Amount'),
+    category: (v) => validateRequired(v, "Category"),
+    amount: (v) => validateCurrency(v, "Amount"),
   };
 
   const openModal = (row = null) => {
     if (row) {
-      setForm({ fiscal_year: row.fiscal_year, category: row.category, amount: finalizeCurrencyInput(row.amount), description: row.description || '' });
+      setForm({
+        fiscal_year: row.fiscal_year,
+        category: row.category,
+        amount: finalizeCurrencyInput(row.amount),
+        description: row.description || "",
+      });
       setEditingId(row.id);
     } else {
       setForm({ ...EMPTY, fiscal_year: new Date().getFullYear().toString() });
       setEditingId(null);
     }
     setFieldErrors({});
-    setSubmitError('');
+    setSubmitError("");
     setModalOpen(true);
   };
 
@@ -68,11 +113,13 @@ export default function BudgetManagement() {
     if (!isValid) return;
 
     setSubmitting(true);
-    setSubmitError('');
+    setSubmitError("");
     const numericAmount = parseCurrencyValue(form.amount);
     const payload = { ...form, amount: numericAmount, created_by: profile.id };
 
-    const result = editingId ? await updateRow(editingId, payload) : await insertRow(payload);
+    const result = editingId
+      ? await updateRow(editingId, payload)
+      : await insertRow(payload);
     setSubmitting(false);
 
     if (result.error) {
@@ -83,50 +130,71 @@ export default function BudgetManagement() {
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this budget allocation? This action cannot be undone.')) return;
+    if (
+      !window.confirm(
+        "Delete this budget allocation? This action cannot be undone.",
+      )
+    )
+      return;
     const result = await deleteRow(id);
     if (result.error) setSubmitError(result.error);
   };
 
-  const years = Array.from(new Set(rows.map((r) => r.fiscal_year).filter(Boolean))).sort().reverse();
+  const years = Array.from(
+    new Set(rows.map((r) => r.fiscal_year).filter(Boolean)),
+  )
+    .sort()
+    .reverse();
 
   const filteredRows = rows.filter((r) => {
-    const matchesSearch = r.fiscal_year?.toLowerCase().includes(search.toLowerCase()) ||
+    const matchesSearch =
+      r.fiscal_year?.toLowerCase().includes(search.toLowerCase()) ||
       r.category?.toLowerCase().includes(search.toLowerCase()) ||
       r.description?.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = categoryFilter === 'all' || r.category === categoryFilter;
-    const matchesYear = yearFilter === 'all' || r.fiscal_year === yearFilter;
+    const matchesCategory =
+      categoryFilter === "all" || r.category === categoryFilter;
+    const matchesYear = yearFilter === "all" || r.fiscal_year === yearFilter;
     return matchesSearch && matchesCategory && matchesYear;
   });
 
   const totalSourced = funds.reduce((sum, r) => sum + Number(r.amount || 0), 0);
-  const totalAllocated = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+  const totalAllocated = rows.reduce(
+    (sum, r) => sum + Number(r.amount || 0),
+    0,
+  );
   const totalSpent = expenses
-    .filter((r) => r.status !== 'voided')
+    .filter((r) => r.status !== "voided")
     .reduce((sum, r) => sum + Number(r.amount || 0), 0);
   const unallocatedFund = totalSourced - totalAllocated;
   const remainingBudget = totalAllocated - totalSpent;
 
-  const budgetStatus = remainingBudget < 0
-    ? {
-        tone: 'rose',
-        title: 'Overspending Alert',
-        message: `Expenses exceed allocated budget by ${formatCurrency(Math.abs(remainingBudget))}. Immediate review is recommended.`,
-      }
-    : unallocatedFund < 0
+  const budgetStatus =
+    remainingBudget < 0
       ? {
-          tone: 'amber',
-          title: 'Budget exceeds available funding',
-          message: `Allocated amount exceeds current fund sources by ${formatCurrency(Math.abs(unallocatedFund))}.`,
+          tone: "rose",
+          title: "Overspending Alert",
+          message: `Expenses exceed allocated budget by ${formatCurrency(Math.abs(remainingBudget))}. Immediate review is recommended.`,
         }
-      : {
-          tone: 'emerald',
-          title: 'Budget is within target',
-          message: `Current allocations remain within available funding and spending is still under control.`,
-        };
+      : unallocatedFund < 0
+        ? {
+            tone: "amber",
+            title: "Budget exceeds available funding",
+            message: `Allocated amount exceeds current fund sources by ${formatCurrency(Math.abs(unallocatedFund))}.`,
+          }
+        : {
+            tone: "emerald",
+            title: "Budget is within target",
+            message: `Current allocations remain within available funding and spending is still under control.`,
+          };
 
-  const budgetUtilization = totalAllocated > 0 ? (totalSpent / totalAllocated) * 100 : 0;
-  const utilizationTone = budgetUtilization > 100 ? 'rose' : budgetUtilization > 80 ? 'amber' : 'emerald';
+  const budgetUtilization =
+    totalAllocated > 0 ? (totalSpent / totalAllocated) * 100 : 0;
+  const utilizationTone =
+    budgetUtilization > 100
+      ? "rose"
+      : budgetUtilization > 80
+        ? "amber"
+        : "emerald";
   const utilizationWidth = Math.min(Math.max(budgetUtilization, 0), 100);
 
   return (
@@ -135,7 +203,8 @@ export default function BudgetManagement() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-civic-navy flex items-center gap-3">
-            <PieChart className="w-8 h-8 text-civic-emerald" /> Budget Allocations
+            <PieChart className="w-8 h-8 text-civic-emerald" /> Budget
+            Allocations
           </h1>
           <p className="text-slate-600 text-sm mt-1">
             Manage statutory allocations per category and fiscal year.
@@ -151,13 +220,23 @@ export default function BudgetManagement() {
 
       <ErrorBanner message={error} />
 
-      <div className={`rounded-xl border p-4 ${budgetStatus.tone === 'rose' ? 'bg-rose-50 border-rose-200 text-rose-800' : budgetStatus.tone === 'amber' ? 'bg-amber-50 border-amber-200 text-amber-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
+      <div
+        className={`rounded-xl border p-4 ${budgetStatus.tone === "rose" ? "bg-rose-50 border-rose-200 text-rose-800" : budgetStatus.tone === "amber" ? "bg-amber-50 border-amber-200 text-amber-800" : "bg-emerald-50 border-emerald-200 text-emerald-800"}`}
+      >
         <div className="flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider">Budget Status</p>
+            <p className="text-xs font-bold uppercase tracking-wider">
+              Budget Status
+            </p>
             <h2 className="text-base font-bold mt-1">{budgetStatus.title}</h2>
           </div>
-          <div className="text-2xl">{budgetStatus.tone === 'rose' ? '⚠️' : budgetStatus.tone === 'amber' ? '📊' : '✅'}</div>
+          <div className="text-2xl">
+            {budgetStatus.tone === "rose"
+              ? "⚠️"
+              : budgetStatus.tone === "amber"
+                ? "📊"
+                : "✅"}
+          </div>
         </div>
         <p className="text-sm mt-2 leading-relaxed">{budgetStatus.message}</p>
       </div>
@@ -165,26 +244,33 @@ export default function BudgetManagement() {
       <div className="card p-4 sm:p-5">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Budget Utilization</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              Budget Utilization
+            </p>
             <h3 className="text-xl font-bold text-civic-navy mt-1">
               {budgetUtilization.toFixed(1)}%
             </h3>
           </div>
           <div className="text-sm font-semibold text-slate-600">
-            {formatCurrency(totalSpent)} spent of {formatCurrency(totalAllocated)}
+            {formatCurrency(totalSpent)} spent of{" "}
+            {formatCurrency(totalAllocated)}
           </div>
         </div>
 
         <div className="mt-4 h-3 w-full overflow-hidden rounded-full bg-slate-200">
           <div
-            className={`h-full rounded-full transition-all duration-300 ${utilizationTone === 'rose' ? 'bg-rose-500' : utilizationTone === 'amber' ? 'bg-amber-500' : 'bg-emerald-500'}`}
+            className={`h-full rounded-full transition-all duration-300 ${utilizationTone === "rose" ? "bg-rose-500" : utilizationTone === "amber" ? "bg-amber-500" : "bg-emerald-500"}`}
             style={{ width: `${utilizationWidth}%` }}
           />
         </div>
 
         <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
           <span>0%</span>
-          <span>{budgetUtilization > 100 ? 'Above allocated limit' : 'Current usage'}</span>
+          <span>
+            {budgetUtilization > 100
+              ? "Above allocated limit"
+              : "Current usage"}
+          </span>
           <span>100%</span>
         </div>
       </div>
@@ -193,7 +279,8 @@ export default function BudgetManagement() {
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="card space-y-1">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Landmark className="w-4 h-4 text-civic-emerald" /> Total Funds Sourced
+            <Landmark className="w-4 h-4 text-civic-emerald" /> Total Funds
+            Sourced
           </span>
           <p className="text-2xl font-bold text-civic-navy">
             {formatCurrency(totalSourced)}
@@ -202,7 +289,8 @@ export default function BudgetManagement() {
 
         <div className="card space-y-1">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <PieChart className="w-4 h-4 text-blue-600" /> Total Budget Allocated
+            <PieChart className="w-4 h-4 text-blue-600" /> Total Budget
+            Allocated
           </span>
           <p className="text-2xl font-bold text-civic-navy">
             {formatCurrency(totalAllocated)}
@@ -220,9 +308,12 @@ export default function BudgetManagement() {
 
         <div className="card space-y-1">
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Wallet className="w-4 h-4 text-emerald-600" /> Remaining Unspent Budget
+            <Wallet className="w-4 h-4 text-emerald-600" /> Remaining Unspent
+            Budget
           </span>
-          <p className={`text-2xl font-bold ${remainingBudget < 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
+          <p
+            className={`text-2xl font-bold ${remainingBudget < 0 ? "text-rose-600" : "text-emerald-700"}`}
+          >
             {formatCurrency(remainingBudget)}
           </p>
         </div>
@@ -250,7 +341,9 @@ export default function BudgetManagement() {
           >
             <option value="all">All Years</option>
             {years.map((y) => (
-              <option key={y} value={y}>{y}</option>
+              <option key={y} value={y}>
+                {y}
+              </option>
             ))}
           </select>
 
@@ -261,7 +354,9 @@ export default function BudgetManagement() {
           >
             <option value="all">All Categories</option>
             {CATEGORIES.map((c) => (
-              <option key={c} value={c}>{c}</option>
+              <option key={c} value={c}>
+                {c}
+              </option>
             ))}
           </select>
         </div>
@@ -274,9 +369,14 @@ export default function BudgetManagement() {
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <h2 className="text-xl font-bold text-civic-navy flex items-center gap-2">
                 <PieChart className="w-5 h-5 text-civic-emerald" />
-                {editingId ? 'Edit Budget Allocation' : 'Add New Budget Allocation'}
+                {editingId
+                  ? "Edit Budget Allocation"
+                  : "Add New Budget Allocation"}
               </h2>
-              <button onClick={closeModal} className="text-slate-400 hover:text-slate-600 p-1">
+              <button
+                onClick={closeModal}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -287,18 +387,24 @@ export default function BudgetManagement() {
                   label="Fiscal Year"
                   placeholder="e.g. 2026"
                   value={form.fiscal_year}
-                  onChange={(e) => setForm({ ...form, fiscal_year: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, fiscal_year: e.target.value })
+                  }
                   error={fieldErrors.fiscal_year}
                 />
                 <FormField
                   as="select"
                   label="Category"
                   value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, category: e.target.value })
+                  }
                   error={fieldErrors.category}
                 >
                   {CATEGORIES.map((c) => (
-                    <option key={c} value={c}>{c}</option>
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
                   ))}
                 </FormField>
               </div>
@@ -309,8 +415,18 @@ export default function BudgetManagement() {
                 label="Allocation Amount (₱)"
                 placeholder="e.g. 250,000.00"
                 value={form.amount}
-                onChange={(e) => setForm({ ...form, amount: formatCurrencyInput(e.target.value) })}
-                onBlur={(e) => setForm({ ...form, amount: finalizeCurrencyInput(e.target.value) })}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    amount: formatCurrencyInput(e.target.value),
+                  })
+                }
+                onBlur={(e) =>
+                  setForm({
+                    ...form,
+                    amount: finalizeCurrencyInput(e.target.value),
+                  })
+                }
                 error={fieldErrors.amount}
               />
 
@@ -320,15 +436,31 @@ export default function BudgetManagement() {
                 label="Description / Purpose (optional)"
                 placeholder="Specify purpose or official resolution number..."
                 value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, description: e.target.value })
+                }
               />
 
               <ErrorBanner message={submitError} />
 
               <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
-                <button type="button" onClick={closeModal} className="btn-secondary">Cancel</button>
-                <button type="submit" disabled={submitting} className="btn-emerald">
-                  {submitting ? 'Saving...' : editingId ? 'Save Changes' : 'Save Allocation'}
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="btn-emerald"
+                >
+                  {submitting
+                    ? "Saving..."
+                    : editingId
+                      ? "Save Changes"
+                      : "Save Allocation"}
                 </button>
               </div>
             </form>
@@ -342,37 +474,71 @@ export default function BudgetManagement() {
           <table className="w-full text-sm text-left">
             <thead className="bg-slate-50 text-slate-600 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200">
               <tr>
-                <th className="px-6 py-3.5"><div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-civic-emerald" /> Fiscal Year</div></th>
-                <th className="px-6 py-3.5"><div className="flex items-center gap-1.5"><Layers className="w-3.5 h-3.5 text-civic-emerald" /> Category</div></th>
-                <th className="px-6 py-3.5 text-right"><div className="flex items-center justify-end gap-1.5">Allocated Amount</div></th>
+                <th className="px-6 py-3.5">
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-civic-emerald" />{" "}
+                    Fiscal Year
+                  </div>
+                </th>
+                <th className="px-6 py-3.5">
+                  <div className="flex items-center gap-1.5">
+                    <Layers className="w-3.5 h-3.5 text-civic-emerald" />{" "}
+                    Category
+                  </div>
+                </th>
+                <th className="px-6 py-3.5 text-right">
+                  <div className="flex items-center justify-end gap-1.5">
+                    Allocated Amount
+                  </div>
+                </th>
                 <th className="px-6 py-3.5">Description</th>
                 {canEdit && <th className="px-6 py-3.5 text-right">Actions</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading && (
-                <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400">Loading allocations…</td></tr>
+                <tr>
+                  <td
+                    colSpan={5}
+                    className="px-6 py-12 text-center text-slate-400"
+                  >
+                    Loading allocations…
+                  </td>
+                </tr>
               )}
               {!loading && filteredRows.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
+                  <td
+                    colSpan={5}
+                    className="px-6 py-12 text-center text-slate-500"
+                  >
                     <PieChart className="w-10 h-10 mx-auto text-slate-300 mb-2" />
                     No budget allocations found matching your search.
                   </td>
                 </tr>
               )}
               {filteredRows.map((row) => (
-                <tr key={row.id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="px-6 py-4 font-semibold text-civic-navy">{row.fiscal_year}</td>
+                <tr
+                  key={row.id}
+                  className="hover:bg-slate-50/80 transition-colors"
+                >
+                  <td className="px-6 py-4 font-semibold text-civic-navy">
+                    {row.fiscal_year}
+                  </td>
                   <td className="px-6 py-4">
                     <span className="inline-block px-2.5 py-1 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200">
                       {row.category}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right font-bold text-emerald-700">
-                    ₱{Number(row.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    ₱
+                    {Number(row.amount).toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                    })}
                   </td>
-                  <td className="px-6 py-4 text-slate-600 max-w-xs truncate">{row.description || '—'}</td>
+                  <td className="px-6 py-4 text-slate-600 max-w-xs truncate">
+                    {row.description || "—"}
+                  </td>
                   {canEdit && (
                     <td className="px-6 py-4 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-2">
@@ -402,5 +568,3 @@ export default function BudgetManagement() {
     </div>
   );
 }
-
-

@@ -41,7 +41,7 @@ const KKMonitoring = lazy(() => import('./pages/sk/KKMonitoring'));
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
         <Suspense fallback={<div className="min-h-screen bg-civic-cream" />}>
           <Routes>

@@ -1,30 +1,57 @@
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { useSupabaseTable } from '../../lib/useSupabaseTable';
-import { roleLabel } from '../../utils/roles';
-import ErrorBanner from '../../components/ui/ErrorBanner';
-import { sumAmounts, sumActiveAmounts } from '../../lib/financial';
-import { PieChart, Receipt, FolderKanban, MessageSquare, ArrowUpRight, BarChart3, Bot, Users, Landmark, Building2 } from 'lucide-react';
+import { Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { useSupabaseTable } from "../../lib/useSupabaseTable";
+import { roleLabel } from "../../utils/roles";
+import ErrorBanner from "../../components/ui/ErrorBanner";
+import { sumAmounts, sumActiveAmounts } from "../../lib/financial";
+import {
+  PieChart,
+  Receipt,
+  FolderKanban,
+  MessageSquare,
+  ArrowUpRight,
+  BarChart3,
+  Bot,
+  Users,
+  Landmark,
+  Building2,
+} from "lucide-react";
 
-const formatCurrency = (value) => new Intl.NumberFormat('en-PH', {
-  style: 'currency',
-  currency: 'PHP',
-  minimumFractionDigits: 2,
-}).format(Number(value || 0));
+const formatCurrency = (value) =>
+  new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: "PHP",
+    minimumFractionDigits: 2,
+  }).format(Number(value || 0));
 
 export default function Dashboard() {
   const { profile } = useAuth();
-  const { rows: allocations, error: e1 } = useSupabaseTable('budget_allocations', profile?.barangay_id);
-  const { rows: expenses, error: e2 } = useSupabaseTable('expenses', profile?.barangay_id);
-  const { rows: programs, error: e3 } = useSupabaseTable('programs', profile?.barangay_id);
-  const { rows: feedback, error: e4 } = useSupabaseTable('feedback', profile?.barangay_id);
+  const { rows: allocations, error: e1 } = useSupabaseTable(
+    "budget_allocations",
+    profile?.barangay_id,
+  );
+  const { rows: expenses, error: e2 } = useSupabaseTable(
+    "expenses",
+    profile?.barangay_id,
+  );
+  const { rows: programs, error: e3 } = useSupabaseTable(
+    "programs",
+    profile?.barangay_id,
+  );
+  const { rows: feedback, error: e4 } = useSupabaseTable(
+    "feedback",
+    profile?.barangay_id,
+  );
 
   const totalBudget = sumAmounts(allocations);
   const totalSpent = sumActiveAmounts(expenses);
-  const ongoingPrograms = programs.filter((p) => p.status === 'ongoing').length;
-  const newFeedback = feedback.filter((f) => f.status === 'new').length;
+  const ongoingPrograms = programs.filter((p) => p.status === "ongoing").length;
+  const newFeedback = feedback.filter((f) => f.status === "new").length;
 
-  const spendPercentage = totalBudget > 0 ? Math.min(100, Math.round((totalSpent / totalBudget) * 100)) : 0;
+  const spendPercentage =
+    totalBudget > 0
+      ? Math.min(100, Math.round((totalSpent / totalBudget) * 100))
+      : 0;
   const logoUrl = profile?.barangays?.logo_url;
 
   return (
@@ -41,13 +68,19 @@ export default function Dashboard() {
           <p className="text-civic-cream/80 text-sm flex items-center gap-2">
             <span>{roleLabel(profile?.role)}</span>
             <span>·</span>
-            <span className="font-semibold text-white">{profile?.barangays?.name || 'Barangay'}</span>
+            <span className="font-semibold text-white">
+              {profile?.barangays?.name || "Barangay"}
+            </span>
           </p>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
           {logoUrl ? (
-            <img src={logoUrl} alt="" className="w-14 h-14 rounded-lg object-cover border border-white/20" />
+            <img
+              src={logoUrl}
+              alt=""
+              className="w-14 h-14 rounded-lg object-cover border border-white/20"
+            />
           ) : (
             <div className="w-14 h-14 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center">
               <Building2 className="w-7 h-7 text-white" />
@@ -60,55 +93,88 @@ export default function Dashboard() {
 
       {/* KPI Cards Grid */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <Link to="budget" className="card hover:border-civic-emerald/40 group transition-all duration-200">
+        <Link
+          to="budget"
+          className="card hover:border-civic-emerald/40 group transition-all duration-200"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Allocated</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Total Allocated
+            </span>
             <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
               <PieChart className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-civic-navy mt-3">{formatCurrency(totalBudget)}</p>
+          <p className="text-2xl font-bold text-civic-navy mt-3">
+            {formatCurrency(totalBudget)}
+          </p>
           <div className="flex items-center gap-1 text-xs text-slate-500 mt-2">
             <span>{allocations.length} records logged</span>
           </div>
         </Link>
 
-        <Link to="expenses" className="card hover:border-civic-emerald/40 group transition-all duration-200">
+        <Link
+          to="expenses"
+          className="card hover:border-civic-emerald/40 group transition-all duration-200"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Total Spent</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Total Spent
+            </span>
             <div className="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform">
               <Receipt className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-civic-navy mt-3">{formatCurrency(totalSpent)}</p>
+          <p className="text-2xl font-bold text-civic-navy mt-3">
+            {formatCurrency(totalSpent)}
+          </p>
           {/* Spending Progress Bar */}
           <div className="w-full bg-slate-100 rounded-full h-1.5 mt-3 overflow-hidden">
-            <div className="bg-amber-500 h-full rounded-full transition-all" style={{ width: `${spendPercentage}%` }}></div>
+            <div
+              className="bg-amber-500 h-full rounded-full transition-all"
+              style={{ width: `${spendPercentage}%` }}
+            ></div>
           </div>
-          <span className="text-[11px] font-semibold text-slate-500 mt-1 block">{spendPercentage}% of total budget spent</span>
+          <span className="text-[11px] font-semibold text-slate-500 mt-1 block">
+            {spendPercentage}% of total budget spent
+          </span>
         </Link>
 
-        <Link to="programs" className="card hover:border-civic-emerald/40 group transition-all duration-200">
+        <Link
+          to="programs"
+          className="card hover:border-civic-emerald/40 group transition-all duration-200"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Ongoing Programs</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              Ongoing Programs
+            </span>
             <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
               <FolderKanban className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-civic-navy mt-3">{ongoingPrograms}</p>
+          <p className="text-2xl font-bold text-civic-navy mt-3">
+            {ongoingPrograms}
+          </p>
           <div className="flex items-center gap-1 text-xs text-slate-500 mt-2">
             <span>{programs.length} total projects</span>
           </div>
         </Link>
 
-        <Link to="feedback" className="card hover:border-civic-emerald/40 group transition-all duration-200">
+        <Link
+          to="feedback"
+          className="card hover:border-civic-emerald/40 group transition-all duration-200"
+        >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">New Resident Feedback</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+              New Resident Feedback
+            </span>
             <div className="w-9 h-9 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center group-hover:scale-110 transition-transform">
               <MessageSquare className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-civic-navy mt-3">{newFeedback}</p>
+          <p className="text-2xl font-bold text-civic-navy mt-3">
+            {newFeedback}
+          </p>
           <div className="flex items-center gap-1 text-xs text-slate-500 mt-2">
             <span>{feedback.length} total responses</span>
           </div>
@@ -117,7 +183,9 @@ export default function Dashboard() {
 
       {/* Quick Action Hub */}
       <div className="card space-y-4">
-        <h2 className="text-lg font-bold text-civic-navy">Quick Official Operations</h2>
+        <h2 className="text-lg font-bold text-civic-navy">
+          Quick Official Operations
+        </h2>
         <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-3">
           <Link
             to="reports"
@@ -125,7 +193,9 @@ export default function Dashboard() {
           >
             <div className="flex items-center gap-3">
               <BarChart3 className="w-5 h-5 text-civic-emerald" />
-              <span className="text-sm font-semibold text-slate-800">Reports & Export</span>
+              <span className="text-sm font-semibold text-slate-800">
+                Reports & Export
+              </span>
             </div>
             <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-civic-emerald transition-colors" />
           </Link>
@@ -136,7 +206,9 @@ export default function Dashboard() {
           >
             <div className="flex items-center gap-3">
               <Bot className="w-5 h-5 text-civic-emerald" />
-              <span className="text-sm font-semibold text-slate-800">Groq AI Assistant</span>
+              <span className="text-sm font-semibold text-slate-800">
+                Groq AI Assistant
+              </span>
             </div>
             <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-civic-emerald transition-colors" />
           </Link>
@@ -147,7 +219,9 @@ export default function Dashboard() {
           >
             <div className="flex items-center gap-3">
               <Landmark className="w-5 h-5 text-civic-emerald" />
-              <span className="text-sm font-semibold text-slate-800">Record Fund Source</span>
+              <span className="text-sm font-semibold text-slate-800">
+                Record Fund Source
+              </span>
             </div>
             <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-civic-emerald transition-colors" />
           </Link>
@@ -158,7 +232,9 @@ export default function Dashboard() {
           >
             <div className="flex items-center gap-3">
               <Users className="w-5 h-5 text-civic-emerald" />
-              <span className="text-sm font-semibold text-slate-800">Officials Handover</span>
+              <span className="text-sm font-semibold text-slate-800">
+                Officials Handover
+              </span>
             </div>
             <ArrowUpRight className="w-4 h-4 text-slate-400 group-hover:text-civic-emerald transition-colors" />
           </Link>
@@ -167,4 +243,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
