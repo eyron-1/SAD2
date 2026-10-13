@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { usePublicBarangay } from '../../lib/usePublicBarangay';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
+import SystemLogo from '../../components/ui/SystemLogo';
 import { sumAmounts, sumActiveAmounts } from '../../lib/financial';
 import { Building2, PieChart, FolderKanban, MessageSquare, Users, ShieldCheck, ArrowRight, CalendarDays, FileText, Siren, Package } from 'lucide-react';
 
@@ -62,7 +63,7 @@ export default function PublicOverview() {
           </p>
         </div>
         <div className="flex items-center gap-3 shrink-0" aria-label="Barangay and SK logos">
-          <div className="text-center"><div className="w-14 h-14 rounded-full bg-white/10 border border-white/20 p-1 overflow-hidden flex items-center justify-center">{barangay.logo_url ? <img src={barangay.logo_url} alt="Barangay logo" className="w-full h-full object-cover rounded-full" /> : <Building2 className="w-7 h-7 text-civic-emerald" />}</div><span className="text-[10px] text-slate-300 mt-1 block">Barangay</span></div>
+          <div className="text-center"><div className="w-14 h-14 rounded-full bg-white/10 border border-white/20 p-1 overflow-hidden flex items-center justify-center">{barangay.logo_url ? <img src={barangay.logo_url} alt="Barangay logo" className="w-full h-full object-cover rounded-full" /> : <SystemLogo className="w-full h-full object-cover rounded-full" />}</div><span className="text-[10px] text-slate-300 mt-1 block">Barangay</span></div>
           <div className="text-center"><div className="w-14 h-14 rounded-full bg-emerald-400/10 border border-emerald-300/40 p-1 overflow-hidden flex items-center justify-center">{barangay.sk_logo_url ? <img src={barangay.sk_logo_url} alt="SK logo" className="w-full h-full object-cover rounded-full" /> : <Users className="w-7 h-7 text-emerald-300" />}</div><span className="text-[10px] text-emerald-200 mt-1 block">SK</span></div>
         </div>
       </div>
@@ -82,7 +83,7 @@ export default function PublicOverview() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-4">
-          <div className="rounded-xl border border-slate-200 p-4"><div className="flex items-center gap-3 mb-3"><div className="w-10 h-10 rounded-full bg-civic-navy/10 flex items-center justify-center overflow-hidden">{barangay.logo_url ? <img src={barangay.logo_url} alt="Barangay logo" className="w-full h-full object-cover" /> : <Building2 className="w-5 h-5 text-civic-navy" />}</div><h3 className="font-bold text-civic-navy">Barangay Government</h3></div><div className="grid grid-cols-3 gap-2 text-xs"><div><p className="text-slate-400">Budget</p><p className="font-bold text-civic-navy">{formatCurrency(totalBudget)}</p></div><div><p className="text-slate-400">Expenses</p><p className="font-bold text-civic-navy">{formatCurrency(totalSpent)}</p></div><div><p className="text-slate-400">Programs</p><p className="font-bold text-civic-navy">{programs.length}</p></div></div></div>
+          <div className="rounded-xl border border-slate-200 p-4"><div className="flex items-center gap-3 mb-3"><div className="w-10 h-10 rounded-full bg-civic-navy/10 flex items-center justify-center overflow-hidden">{barangay.logo_url ? <img src={barangay.logo_url} alt="Barangay logo" className="w-full h-full object-cover" /> : <SystemLogo className="w-full h-full object-cover" />}</div><h3 className="font-bold text-civic-navy">Barangay Government</h3></div><div className="grid grid-cols-3 gap-2 text-xs"><div><p className="text-slate-400">Budget</p><p className="font-bold text-civic-navy">{formatCurrency(totalBudget)}</p></div><div><p className="text-slate-400">Expenses</p><p className="font-bold text-civic-navy">{formatCurrency(totalSpent)}</p></div><div><p className="text-slate-400">Programs</p><p className="font-bold text-civic-navy">{programs.length}</p></div></div></div>
           <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4"><div className="flex items-center gap-3 mb-3"><div className="w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden">{barangay.sk_logo_url ? <img src={barangay.sk_logo_url} alt="SK logo" className="w-full h-full object-cover" /> : <Users className="w-5 h-5 text-emerald-700" />}</div><h3 className="font-bold text-emerald-900">Sangguniang Kabataan (SK)</h3></div><div className="grid grid-cols-3 gap-2 text-xs"><div><p className="text-emerald-700/70">Funds</p><p className="font-bold text-emerald-900">{formatCurrency(totalSkFunds)}</p></div><div><p className="text-emerald-700/70">Budget</p><p className="font-bold text-emerald-900">{formatCurrency(totalSkBudget)}</p></div><div><p className="text-emerald-700/70">Expenses</p><p className="font-bold text-emerald-900">{formatCurrency(totalSkExpenses)}</p></div></div></div>
         </div>
       </div>
@@ -258,4 +259,3 @@ export default function PublicOverview() {
     </div>
   );
 }
-

@@ -6,7 +6,7 @@ import { validateEmail, validateRequired, runValidators, friendlySupabaseError }
 import { isSkRole } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
-import { Landmark } from 'lucide-react';
+import SystemLogo from '../../components/ui/SystemLogo';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -81,9 +81,9 @@ export default function Login() {
           <div className="flex items-center justify-center gap-3">
             <Link
               to="/"
-              className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-civic-navy text-civic-gold shadow-md hover:scale-105 transition-transform"
+              className="inline-flex items-center justify-center w-14 h-14 rounded-2xl shadow-md hover:scale-105 transition-transform overflow-hidden"
             >
-              <Landmark className="w-7 h-7" />
+              <SystemLogo className="w-full h-full object-cover" />
             </Link>
           </div>
 

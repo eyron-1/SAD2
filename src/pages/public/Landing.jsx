@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
 import { friendlySupabaseError } from '../../lib/validation';
 import ErrorBanner from '../../components/ui/ErrorBanner';
+import SystemLogo from '../../components/ui/SystemLogo';
 import {
-  Landmark,
   Search,
   ArrowRight,
   ShieldCheck,
@@ -67,9 +67,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-[4.5rem] py-3 flex items-center justify-between gap-4">
           {/* Logo & Portal Identity */}
           <Link to="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-civic-navy text-civic-gold flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
-              <Landmark className="w-5 h-5" />
-            </div>
+            <SystemLogo className="w-10 h-10 rounded-xl object-cover shadow-sm group-hover:scale-105 transition-transform" />
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-display font-bold text-lg text-civic-navy tracking-tight">
@@ -572,10 +570,10 @@ export default function Landing() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-8 border-b border-slate-800 text-center md:text-left">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-civic-navy text-civic-gold flex items-center justify-center border border-white/10">
-                <Landmark className="w-5 h-5" />
+                <SystemLogo className="w-9 h-9 rounded-lg object-cover" />
               </div>
               <div>
-                <p className="font-bold text-white text-sm">Barangay Transparency Portal</p>
+                <p className="font-bold text-white text-sm">Barangay Transparency</p>
                 <p className="text-[11px] text-slate-500">A digital platform for local transparency and community engagement</p>
               </div>
             </div>
@@ -590,7 +588,7 @@ export default function Landing() {
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left text-[11px] text-slate-500">
             <p>
-              © {new Date().getFullYear()} Barangay Transparency Portal. Supporting informed and engaged communities.
+              © {new Date().getFullYear()} Barangay Transparency. Supporting informed and engaged communities.
             </p>
             <p className="flex items-center gap-1.5 justify-center">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />

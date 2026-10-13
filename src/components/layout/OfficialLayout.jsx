@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { isSkRole, isBarangayEditor, isSkEditor, roleLabel } from '../../utils/roles';
 import FloatingAIChat from '../ai/FloatingAIChat';
 import ErrorBanner from '../ui/ErrorBanner';
+import SystemLogo from '../ui/SystemLogo';
 import { friendlySupabaseError } from '../../lib/validation';
 import {
   LayoutDashboard,
@@ -89,7 +90,7 @@ export default function OfficialLayout() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 w-72 bg-civic-dark text-white flex flex-col z-50 transition-transform duration-300 ease-in-out ${
+        className={`fixed inset-y-0 left-0 w-72 bg-civic-dark text-white flex flex-col z-50 transition-transform duration-300 ease-in-out ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
@@ -99,7 +100,7 @@ export default function OfficialLayout() {
             {logoUrl ? (
               <img src={logoUrl} alt={bgyName} className="w-full h-full object-cover rounded-lg" />
             ) : (
-              <Building2 className="w-6 h-6 text-civic-emerald" />
+              <SystemLogo className="w-full h-full object-cover rounded-lg" />
             )}
           </div>
 
@@ -187,7 +188,7 @@ export default function OfficialLayout() {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 lg:ml-72">
         {/* Top Navbar */}
         <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-30 shadow-xs">
           <div className="flex items-center gap-3">
@@ -202,7 +203,7 @@ export default function OfficialLayout() {
               {logoUrl ? (
                 <img src={logoUrl} alt={bgyName} className="w-7 h-7 rounded-md object-cover border border-slate-200" />
               ) : (
-                <Building2 className="w-6 h-6 text-civic-navy" />
+                <SystemLogo className="w-7 h-7 rounded-md object-cover border border-slate-200" />
               )}
               <h1 className="font-bold text-slate-800 text-lg hidden sm:block">{bgyName}</h1>
             </div>
