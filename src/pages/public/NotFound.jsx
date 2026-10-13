@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Landmark, ArrowLeft, Home } from 'lucide-react';
+import { ArrowLeft, Home } from 'lucide-react';
+import SystemLogo from '../../components/ui/SystemLogo';
 
 export default function NotFound() {
   const navigate = useNavigate();
@@ -7,9 +8,7 @@ export default function NotFound() {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 font-body">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-card border border-slate-200 p-8 text-center space-y-6">
-        <div className="w-16 h-16 rounded-2xl bg-emerald-50 text-civic-emerald flex items-center justify-center mx-auto border border-emerald-100 shadow-inner">
-          <Landmark className="w-8 h-8" />
-        </div>
+        <SystemLogo className="w-16 h-16 rounded-2xl object-cover mx-auto shadow-sm" />
 
         <div className="space-y-2">
           <span className="text-4xl font-extrabold text-civic-navy tracking-tight">404</span>

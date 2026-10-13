@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet, useLocation, useParams } from 'react-router-dom';
 import { usePublicBarangay } from '../../lib/usePublicBarangay';
+import SystemLogo from '../ui/SystemLogo';
 import { ArrowLeft, Building2, LayoutDashboard, PieChart, FolderKanban, Users, MessageSquarePlus, LogIn, ShieldCheck, ClipboardList } from 'lucide-react';
 
 export default function PublicLayout() {
@@ -38,7 +39,7 @@ export default function PublicLayout() {
               {logoUrl ? (
                 <img src={logoUrl} alt={portalName} className="w-full h-full object-cover rounded-lg" />
               ) : (
-                <Building2 className="w-5 h-5 text-civic-emerald" />
+                <SystemLogo className="w-full h-full object-cover rounded-lg" />
               )}
             </div>
             <Link to={isSkPortal ? `/b/${slug}/sk` : `/b/${slug}`} className="group">

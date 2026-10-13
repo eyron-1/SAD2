@@ -3,6 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useSupabaseTable } from "../../lib/useSupabaseTable";
 import { roleLabel } from "../../utils/roles";
 import ErrorBanner from "../../components/ui/ErrorBanner";
+import SystemLogo from "../../components/ui/SystemLogo";
 import { sumAmounts, sumActiveAmounts } from "../../lib/financial";
 import {
   PieChart,
@@ -14,7 +15,6 @@ import {
   Bot,
   Users,
   Landmark,
-  Building2,
 } from "lucide-react";
 
 const formatCurrency = (value) =>
@@ -83,7 +83,7 @@ export default function Dashboard() {
             />
           ) : (
             <div className="w-14 h-14 rounded-lg bg-white/10 border border-white/20 flex items-center justify-center">
-              <Building2 className="w-7 h-7 text-white" />
+              <SystemLogo className="w-full h-full rounded-lg object-cover" />
             </div>
           )}
         </div>
