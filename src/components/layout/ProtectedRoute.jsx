@@ -1,11 +1,23 @@
+import { useState } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { isSkRole } from '../../utils/roles';
 import { ShieldAlert, LogOut, UserPlus } from 'lucide-react';
+import ErrorBanner from '../ui/ErrorBanner';
+import { friendlySupabaseError } from '../../lib/validation';
 
 // scope: 'official' | 'sk' | 'any' — restricts by which dashboard the role belongs to
 export default function ProtectedRoute({ children, scope = 'any' }) {
   const { session, profile, loading, signOut } = useAuth();
+  const [signOutError, setSignOutError] = useState('');
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      setSignOutError(friendlySupabaseError(error));
+    }
+  };
 
   if (loading) {
     return (
@@ -28,6 +40,7 @@ export default function ProtectedRoute({ children, scope = 'any' }) {
             <ShieldAlert className="w-6 h-6" />
           </div>
           <h2 className="text-lg font-bold text-civic-navy">Official Profile Not Found</h2>
+          <ErrorBanner message={signOutError} />
           <p className="text-xs text-slate-500 leading-relaxed">
             You are signed in as <span className="font-semibold text-slate-700">{session.user?.email}</span>, but no active barangay official profile was found for this user ID.
           </p>
@@ -37,7 +50,7 @@ export default function ProtectedRoute({ children, scope = 'any' }) {
             </Link>
             <button
               onClick={() => {
-                if (window.confirm('Are you sure you want to sign out?')) signOut();
+                if (window.confirm('Are you sure you want to sign out?')) handleSignOut();
               }}
               className="btn-secondary text-xs flex items-center justify-center gap-1.5"
             >

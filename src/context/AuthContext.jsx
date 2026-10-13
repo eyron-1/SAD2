@@ -88,11 +88,16 @@ export function AuthProvider({ children }) {
     };
   }, [loadProfile]);
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
+  const signOut = useCallback(async () => {
+    const { error: signOutError } = await supabase.auth.signOut({ scope: 'local' });
+    if (signOutError) {
+      setError(friendlySupabaseError(signOutError));
+      throw signOutError;
+    }
+    setError('');
     setProfile(null);
     setSession(null);
-  };
+  }, []);
 
   const value = {
     session,
@@ -113,4 +118,3 @@ export function useAuth() {
   if (!ctx) throw new Error('useAuth must be used within AuthProvider');
   return ctx;
 }
-

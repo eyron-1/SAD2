@@ -3,6 +3,8 @@ import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { isSkRole, isBarangayEditor, isSkEditor, roleLabel } from '../../utils/roles';
 import FloatingAIChat from '../ai/FloatingAIChat';
+import ErrorBanner from '../ui/ErrorBanner';
+import { friendlySupabaseError } from '../../lib/validation';
 import {
   LayoutDashboard,
   PieChart,
@@ -18,9 +20,9 @@ import {
   Building2,
   Menu,
   X,
-  ExternalLink,
   ShieldAlert,
-  UserCheck
+  UserCheck,
+  ArrowRight
 } from 'lucide-react';
 
 const BARANGAY_NAV = [
@@ -52,6 +54,7 @@ export default function OfficialLayout() {
   const { profile, signOut } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [signOutError, setSignOutError] = useState('');
 
   const skMember = isSkRole(profile?.role);
   const nav = skMember ? SK_NAV : BARANGAY_NAV;
@@ -59,8 +62,12 @@ export default function OfficialLayout() {
 
   const handleSignOut = async () => {
     if (!window.confirm('Are you sure you want to sign out?')) return;
-    await signOut();
-    navigate('/login');
+    try {
+      await signOut();
+      navigate('/');
+    } catch (error) {
+      setSignOutError(friendlySupabaseError(error));
+    }
   };
 
   const bgyName = profile?.barangays?.name || 'Barangay Portal';
@@ -119,13 +126,12 @@ export default function OfficialLayout() {
           <div className="px-3 pt-3 pb-1">
             <Link
               to={`/b/${slug}`}
-              target="_blank"
               className="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/60 transition-colors"
             >
               <span className="flex items-center gap-2">
-                <UserCheck className="w-3.5 h-3.5 text-civic-emerald" /> Public Resident View
+                <UserCheck className="w-3.5 h-3.5 text-civic-emerald" /> Public Resident Portal
               </span>
-              <ExternalLink className="w-3 h-3 text-slate-400" />
+              <ArrowRight className="w-3 h-3 text-slate-400" />
             </Link>
           </div>
         )}
@@ -212,6 +218,7 @@ export default function OfficialLayout() {
 
         {/* Page Content */}
         <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+          <ErrorBanner message={signOutError} />
           <Outlet />
         </main>
       </div>

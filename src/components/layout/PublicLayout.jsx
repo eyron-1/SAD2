@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet, useLocation, useParams } from 'react-router-dom';
 import { usePublicBarangay } from '../../lib/usePublicBarangay';
-import { Building2, LayoutDashboard, PieChart, FolderKanban, Users, MessageSquarePlus, LogIn, ShieldCheck, ClipboardList } from 'lucide-react';
+import { ArrowLeft, Building2, LayoutDashboard, PieChart, FolderKanban, Users, MessageSquarePlus, LogIn, ShieldCheck, ClipboardList } from 'lucide-react';
 
 export default function PublicLayout() {
   const { slug } = useParams();
@@ -32,7 +32,7 @@ export default function PublicLayout() {
     <div className="min-h-screen flex flex-col bg-slate-50 font-body">
       {/* Top Banner Header */}
       <header className="bg-civic-dark text-white border-b border-slate-800 sticky top-0 z-40 shadow-md">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-white/10 p-0.5 flex items-center justify-center border border-white/20 overflow-hidden shadow-inner">
               {logoUrl ? (
@@ -50,13 +50,22 @@ export default function PublicLayout() {
             </Link>
           </div>
 
-          <Link
-            to="/login"
-            className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-2 rounded-lg border border-white/15 transition-all"
-          >
-            <LogIn className="w-3.5 h-3.5 text-civic-emerald" />
-            Official Login
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/"
+              className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-2 rounded-lg border border-white/15 transition-all whitespace-nowrap"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-civic-emerald" />
+              Back to Home
+            </Link>
+            <Link
+              to="/login"
+              className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-2 rounded-lg border border-white/15 transition-all whitespace-nowrap"
+            >
+              <LogIn className="w-3.5 h-3.5 text-civic-emerald" />
+              Official Login
+            </Link>
+          </div>
         </div>
 
         {/* Navigation Tabs */}
@@ -102,4 +111,3 @@ export default function PublicLayout() {
     </div>
   );
 }
-

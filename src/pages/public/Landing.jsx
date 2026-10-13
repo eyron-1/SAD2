@@ -64,7 +64,7 @@ export default function Landing() {
     <div className="min-h-screen bg-slate-50 text-slate-800 font-body flex flex-col selection:bg-civic-navy selection:text-white">
       {/* Top Civic Navigation */}
       <nav className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-h-[4.5rem] py-3 flex items-center justify-between gap-4">
           {/* Logo & Portal Identity */}
           <Link to="/" className="flex items-center gap-3 group">
             <div className="w-10 h-10 rounded-xl bg-civic-navy text-civic-gold flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
@@ -79,17 +79,17 @@ export default function Landing() {
                   Open Portal
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 font-medium">Republic of the Philippines · Local Government</p>
+              <p className="text-[11px] text-slate-500 font-medium">Public information for stronger communities</p>
             </div>
           </Link>
 
           {/* Desktop Nav Links */}
-          <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
+          <div className="hidden lg:flex items-center gap-5 text-sm font-medium text-slate-600">
             <a href="#directory" className="hover:text-civic-navy transition-colors">
-              Find Barangay
+              Find a Barangay
             </a>
             <a href="#pillars" className="hover:text-civic-navy transition-colors">
-              Transparency Pillars
+              What You Can Explore
             </a>
             <a href="#how-it-works" className="hover:text-civic-navy transition-colors">
               How It Works
@@ -97,26 +97,28 @@ export default function Landing() {
           </div>
 
           {/* Action Buttons */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-3">
             <Link
               to="/login"
               className="text-sm font-semibold text-slate-700 hover:text-civic-navy px-3.5 py-2 rounded-lg hover:bg-slate-100 transition-colors"
             >
-              Official Log In
+              Official Sign In
             </Link>
             <Link
               to="/signup"
               className="btn-emerald text-sm font-semibold py-2 px-4 shadow-sm hover:shadow-md"
             >
-              Register Barangay
+              Register a Barangay
             </Link>
           </div>
 
           {/* Mobile Menu Button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100"
-            aria-label="Toggle menu"
+            className="lg:hidden p-2 text-slate-600 hover:text-slate-900 rounded-lg hover:bg-slate-100"
+            aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-navigation"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -124,20 +126,20 @@ export default function Landing() {
 
         {/* Mobile Dropdown */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-5 space-y-3 shadow-lg">
+          <div id="mobile-navigation" className="lg:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-5 space-y-3 shadow-lg">
             <a
               href="#directory"
               onClick={() => setMobileMenuOpen(false)}
               className="block py-2 text-sm font-medium text-slate-700 hover:text-civic-navy"
             >
-              Find Barangay
+              Find a Barangay
             </a>
             <a
               href="#pillars"
               onClick={() => setMobileMenuOpen(false)}
               className="block py-2 text-sm font-medium text-slate-700 hover:text-civic-navy"
             >
-              Transparency Pillars
+              What You Can Explore
             </a>
             <a
               href="#how-it-works"
@@ -152,14 +154,14 @@ export default function Landing() {
                 onClick={() => setMobileMenuOpen(false)}
                 className="w-full text-center py-2 text-sm font-semibold text-slate-700 bg-slate-100 rounded-lg"
               >
-                Official Log In
+                Official Sign In
               </Link>
               <Link
                 to="/signup"
                 onClick={() => setMobileMenuOpen(false)}
                 className="w-full text-center py-2 text-sm font-semibold text-white bg-civic-leaf rounded-lg"
               >
-                Register Barangay
+                Register a Barangay
               </Link>
             </div>
           </div>
@@ -167,107 +169,109 @@ export default function Landing() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-civic-navy via-slate-900 to-sky-950 text-white pt-16 pb-24">
+      <section className="relative overflow-hidden bg-gradient-to-br from-civic-navy via-slate-900 to-sky-950 text-white py-14 sm:py-20 lg:py-24">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(201,162,75,0.18),transparent_22%),radial-gradient(circle_at_bottom_right,_rgba(47,107,79,0.18),transparent_28%)]" />
         <div className="absolute -top-20 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-civic-gold/10 blur-3xl" />
 
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-7">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-white/15 bg-white/5 text-civic-gold text-xs font-semibold backdrop-blur-sm shadow-glass">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>In Accordance with DILG Full Disclosure Policy & RA 7160</span>
+        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8">
+          <div className="inline-flex max-w-full flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-full border border-white/15 bg-white/5 text-civic-gold text-xs font-semibold text-center backdrop-blur-sm shadow-glass">
+            <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>Supporting the DILG Full Disclosure Policy and the Local Government Code (RA 7160)</span>
           </div>
 
-          <div className="space-y-5">
-            <h1 className="font-display text-4xl sm:text-5xl md:text-6xl text-white tracking-tight leading-[1.05] max-w-4xl mx-auto font-bold">
-              Transparent Governance for Every Filipino Barangay
+          <div className="space-y-4">
+            <h1 className="font-display text-4xl sm:text-5xl md:text-6xl text-white tracking-tight leading-[1.08] max-w-4xl mx-auto font-bold">
+              Building Trust Through Transparent Governance. 
             </h1>
 
             <p className="text-base sm:text-lg text-slate-200 max-w-3xl mx-auto leading-relaxed">
-              Open budgets, itemized expenditures, project updates, and direct public feedback — all in one civic portal designed to build trust and accountability.
-              <span className="text-emerald-300 font-semibold"> 100% free and open to residents.</span>
+                Access public budgets, discover local programs, and stay informed about your community.
             </p>
           </div>
 
-          <div className="pt-2 max-w-2xl mx-auto">
-            <div className="relative flex items-center bg-white/95 backdrop-blur-sm rounded-2xl p-2 shadow-card-hover border border-white/20 text-slate-800">
+          <div className="pt-1 max-w-2xl mx-auto">
+            <div className="relative flex items-center bg-white/95 backdrop-blur-sm rounded-2xl p-2 shadow-card-hover border border-white/20 text-slate-800 focus-within:ring-4 focus-within:ring-emerald-300/40">
               <Search className="w-5 h-5 text-slate-400 ml-3 shrink-0" />
               <input
                 type="text"
-                placeholder="Search your barangay, municipality, or province..."
+                aria-label="Search barangays"
+                placeholder="Search by barangay, municipality, or province"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full px-3 py-3 text-sm sm:text-base outline-none bg-transparent placeholder:text-slate-400 font-medium"
+                className="w-full min-w-0 px-3 py-3 text-sm sm:text-base outline-none bg-transparent placeholder:text-slate-400 font-medium"
               />
               {search && (
                 <button
                   onClick={() => setSearch('')}
-                  className="p-2 text-slate-500 hover:text-slate-700 rounded-lg mr-1 text-xs font-semibold transition-colors"
+                  aria-label="Clear barangay search"
+                  className="shrink-0 p-2 text-slate-500 hover:text-slate-700 rounded-lg mr-1 text-xs font-semibold transition-colors"
                 >
                   Clear
                 </button>
               )}
               <a
                 href="#directory"
-                className="btn-emerald text-sm font-semibold py-2.5 px-5 rounded-xl shrink-0 hidden sm:inline-flex"
+                className="btn-emerald text-sm font-semibold py-2.5 px-4 rounded-xl shrink-0 hidden sm:inline-flex"
               >
                 Browse All
               </a>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 pt-8 max-w-4xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 pt-2 sm:pt-4 max-w-4xl mx-auto">
             <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm text-center shadow-glass">
               <p className="text-2xl sm:text-3xl font-bold text-emerald-300 font-display">
-                {barangays.length}
+                {loading ? '—' : barangays.length}
               </p>
-              <p className="text-xs text-slate-300 font-medium mt-1">Barangays Onboarded</p>
+              <p className="text-xs text-slate-300 font-medium mt-1">Barangay portals</p>
             </div>
 
             <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm text-center shadow-glass">
               <p className="text-2xl sm:text-3xl font-bold text-civic-gold font-display">24/7</p>
-              <p className="text-xs text-slate-300 font-medium mt-1">Public Access</p>
+              <p className="text-xs text-slate-300 font-medium mt-1">Available anytime</p>
             </div>
 
             <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm text-center shadow-glass">
-              <p className="text-2xl sm:text-3xl font-bold text-sky-300 font-display">Live</p>
-              <p className="text-xs text-slate-300 font-medium mt-1">Financial Tracking</p>
+              <p className="text-2xl sm:text-3xl font-bold text-sky-300 font-display">Open</p>
+              <p className="text-xs text-slate-300 font-medium mt-1">Published records</p>
             </div>
 
             <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-sm text-center shadow-glass">
               <p className="text-2xl sm:text-3xl font-bold text-civic-gold font-display">SK</p>
-              <p className="text-xs text-slate-300 font-medium mt-1">Youth Governance</p>
+              <p className="text-xs text-slate-300 font-medium mt-1">SK information</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Main Directory Section */}
-      <section id="directory" className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-20 flex-1 w-full">
+      <section id="directory" className="scroll-mt-28 py-12 sm:py-16 lg:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-20 flex-1 w-full">
         {/* Directory Controls Header */}
-        <div className="bg-white rounded-3xl shadow-card-hover border border-slate-200 p-6 mb-8 space-y-4">
+        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-card-hover border border-slate-200 p-5 sm:p-7 mb-7 sm:mb-8 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 mb-3 text-[10px] font-bold uppercase tracking-[0.16em]">
                 <Building2 className="w-3.5 h-3.5" />
                 Community Directory
               </div>
-              <h2 className="text-2xl font-bold text-civic-navy font-display flex items-center gap-2">
-                <Building2 className="w-6 h-6 text-civic-emerald" />
-                Find Your Barangay Portal
+              <h2 className="text-2xl sm:text-3xl font-bold text-civic-navy font-display flex items-center gap-2">
+                <Building2 className="w-6 h-6 text-civic-emerald shrink-0" />
+                Find your barangay
               </h2>
-              <p className="text-slate-500 text-sm mt-1.5">
-                Select your barangay to review its published budget, ongoing community projects, and submit feedback.
+              <p className="text-slate-600 text-sm mt-2 max-w-2xl leading-relaxed">
+                Browse a portal to explore published budgets, community programs, local officials, and ways to share feedback.
               </p>
             </div>
 
             {/* Province Filter */}
             {provinces.length > 2 && (
               <div className="flex items-center gap-2 shrink-0">
-                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Province:</span>
+                <label htmlFor="province-filter" className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Province</label>
                 <select
+                  id="province-filter"
                   value={selectedProvince}
                   onChange={(e) => setSelectedProvince(e.target.value)}
-                  className="input-field text-xs font-semibold text-slate-700 py-1.5 px-3 w-40"
+                  className="input-field text-xs font-semibold text-slate-700 py-2 px-3 w-40"
                 >
                   <option value="all">All Provinces</option>
                   {provinces.filter((p) => p !== 'all').map((p) => (
@@ -283,7 +287,7 @@ export default function Landing() {
 
         {/* Loading Skeleton / State */}
         {loading && (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div role="status" aria-label="Loading barangay portals" className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {[1, 2, 3].map((n) => (
               <div key={n} className="card p-6 animate-pulse space-y-4">
                 <div className="flex items-center gap-3">
@@ -300,29 +304,42 @@ export default function Landing() {
         )}
 
         {/* Empty State */}
-        {!loading && filtered.length === 0 && (
-          <div className="card text-center py-16 px-6 max-w-lg mx-auto space-y-4">
+        {!loading && !error && filtered.length === 0 && (
+          <div className="card text-center py-12 sm:py-16 px-5 sm:px-6 max-w-lg mx-auto space-y-4">
             <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto border border-amber-200">
               <Building2 className="w-7 h-7" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-civic-navy">No barangay found</h3>
-              <p className="text-sm text-slate-500 mt-1">
-                We couldn't find a portal matching <span className="font-semibold text-slate-700">"{search}"</span>.
+              <h3 className="text-lg font-bold text-civic-navy">No matching barangay portals</h3>
+              <p className="text-sm text-slate-500 mt-1 leading-relaxed">
+                Try another search or change the province filter. If your barangay is not listed, an official can register its portal.
               </p>
             </div>
-            <div className="pt-2">
+            <div className="flex flex-wrap justify-center gap-3 pt-2">
+              {(search || selectedProvince !== 'all') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch('');
+                    setSelectedProvince('all');
+                  }}
+                  className="btn-secondary text-xs"
+                >
+                  Clear filters
+                </button>
+              )}
               <Link to="/signup" className="btn-emerald text-xs inline-flex items-center gap-2">
-                Register Your Barangay Today <ArrowRight className="w-3.5 h-3.5" />
+                Register a barangay <ArrowRight className="w-3.5 h-3.5" />
               </Link>
             </div>
           </div>
         )}
 
         {/* Barangay Directory Grid */}
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((b) => (
-            <div
+        {!loading && filtered.length > 0 && (
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+            {filtered.map((b) => (
+              <div
               key={b.id}
               className="card p-6 flex flex-col justify-between hover:shadow-card-hover hover:-translate-y-1 hover:border-civic-emerald/40 transition-all duration-200 group bg-white border border-slate-200 rounded-2xl"
             >
@@ -334,7 +351,7 @@ export default function Landing() {
                       <img src={b.logo_url} alt={b.name} className="w-full h-full object-cover" />
                     ) : (
                       <span className="font-display font-bold text-xl text-civic-navy">
-                        {b.name.charAt(0)}
+                        {b.name?.charAt(0) || <Building2 className="w-6 h-6" />}
                       </span>
                     )}
                   </div>
@@ -343,7 +360,7 @@ export default function Landing() {
                     <div className="flex items-center gap-1.5">
                       <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
                       <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
-                        Active Portal
+                        Public portal
                       </span>
                     </div>
                     <h3 className="font-display font-bold text-lg text-civic-navy truncate group-hover:text-civic-leaf transition-colors mt-0.5">
@@ -389,72 +406,72 @@ export default function Landing() {
                 to={`/b/${b.slug}`}
                 className="btn-primary mt-5 w-full flex items-center justify-between text-xs py-2.5 font-semibold group/btn"
               >
-                <span>Enter Public Portal</span>
+                <span>Visit public portal</span>
                 <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
               </Link>
-            </div>
-          ))}
-        </div>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Core Transparency Pillars Section */}
-      <section id="pillars" className="py-20 bg-white border-y border-slate-200">
+      <section id="pillars" className="scroll-mt-24 py-14 sm:py-16 lg:py-20 bg-white border-y border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
+          <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-12 space-y-4">
             <span className="text-xs font-bold text-civic-leaf uppercase tracking-wider bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-              Open Governance Pillars
+              What You Can Explore
             </span>
             <h2 className="text-3xl sm:text-4xl font-display font-bold text-civic-navy">
-              Built for Community Trust & Accountability
+              Useful information for your community
             </h2>
             <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-              Every barangay transaction and program is held to the highest standard of public transparency,
-              fostering active civic participation across every sector.
+              Explore the information barangays and Sangguniang Kabataan offices publish, and find ways to take part in community life.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
             {/* Pillar 1 */}
-            <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-4 hover:shadow-card-hover transition-all">
+            <div className="p-5 sm:p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 hover:shadow-card-hover transition-all">
               <div className="w-12 h-12 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
                 <PieChart className="w-6 h-6 text-civic-emerald" />
               </div>
-              <h3 className="font-bold text-lg text-civic-navy">Financial Transparency</h3>
+              <h3 className="font-bold text-lg text-civic-navy">Budgets and expenses</h3>
               <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
-                Clear breakdown of IRA shares, local revenue, and itemized expenses with attached receipt documentation.
+                Review published budgets, sources of funds, and recorded expenses.
               </p>
             </div>
 
             {/* Pillar 2 */}
-            <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-4 hover:shadow-card-hover transition-all">
+            <div className="p-5 sm:p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 hover:shadow-card-hover transition-all">
               <div className="w-12 h-12 rounded-xl bg-blue-100 text-blue-800 flex items-center justify-center">
                 <HeartHandshake className="w-6 h-6 text-blue-600" />
               </div>
-              <h3 className="font-bold text-lg text-civic-navy">Categorized Beneficiaries</h3>
+              <h3 className="font-bold text-lg text-civic-navy">Programs and services</h3>
               <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
-                Track community programs serving Senior Citizens, PWDs, Solo Parents, Youth, and indigent 4Ps families.
+                Learn about local programs, projects, and the community members they serve.
               </p>
             </div>
 
             {/* Pillar 3 */}
-            <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-4 hover:shadow-card-hover transition-all">
+            <div className="p-5 sm:p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 hover:shadow-card-hover transition-all">
               <div className="w-12 h-12 rounded-xl bg-slate-200 text-civic-navy flex items-center justify-center">
                 <MessageSquare className="w-6 h-6 text-civic-navy" />
               </div>
-              <h3 className="font-bold text-lg text-civic-navy">Direct Citizen Voice</h3>
+              <h3 className="font-bold text-lg text-civic-navy">Resident feedback</h3>
               <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
-                Submit community suggestions, inquiries, or reports directly to council officials with photo verification.
+                Send questions, suggestions, or concerns to your barangay through its public portal.
               </p>
             </div>
 
             {/* Pillar 4 */}
-            <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-4 hover:shadow-card-hover transition-all">
+            <div className="p-5 sm:p-6 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 hover:shadow-card-hover transition-all">
               <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-900 flex items-center justify-center">
                 <Users className="w-6 h-6 text-amber-700" />
               </div>
-              <h3 className="font-bold text-lg text-civic-navy">SK Youth Empowerment</h3>
+              <h3 className="font-bold text-lg text-civic-navy">Youth programs</h3>
               <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
-                Dedicated portal for Sangguniang Kabataan allocations, youth sports programs, and Katipunan ng Kabataan monitoring.
+                Explore Sangguniang Kabataan budgets, programs, and community updates.
               </p>
             </div>
           </div>
@@ -462,66 +479,66 @@ export default function Landing() {
       </section>
 
       {/* How It Works Section */}
-      <section id="how-it-works" className="py-20 bg-slate-50">
+      <section id="how-it-works" className="scroll-mt-24 py-14 sm:py-16 lg:py-20 bg-slate-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-16 space-y-2">
-            <h2 className="text-3xl font-display font-bold text-civic-navy">How The System Works</h2>
-            <p className="text-slate-600 text-sm">A unified platform serving both everyday residents and local council officials.</p>
+          <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-12 space-y-3">
+            <h2 className="text-3xl sm:text-4xl font-display font-bold text-civic-navy">How it works</h2>
+            <p className="text-slate-600 text-sm sm:text-base leading-relaxed">Residents can browse public information, while barangay officials manage what appears on their portal.</p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 gap-5 sm:gap-6">
             {/* For Residents */}
-            <div className="card p-8 space-y-6 border-slate-200 bg-white">
+            <div className="card p-5 sm:p-7 space-y-5 border-slate-200 bg-white">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm">
                   1
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg text-civic-navy">For Residents & Citizens</h3>
-                  <p className="text-xs text-slate-500">No account or login required</p>
+                  <h3 className="font-bold text-lg text-civic-navy">For residents</h3>
+                  <p className="text-xs text-slate-500">Browse public information without signing in</p>
                 </div>
               </div>
 
               <ul className="space-y-4 text-sm text-slate-600">
                 <li className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                  <span><strong>Search your barangay:</strong> Access your specific community's public URL (e.g. <code>/b/your-barangay</code>).</span>
+                  <span><strong>Find your barangay:</strong> Search the directory and open its public portal.</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                  <span><strong>Audit public funds:</strong> Examine budget allocations, incoming fund sources, and actual expenses in real-time.</span>
+                  <span><strong>Explore published information:</strong> Review budgets, recorded expenses, programs, and projects.</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
-                  <span><strong>Send feedback:</strong> Submit concerns, commendations, or photos directly to your officials without bureaucracy.</span>
+                  <span><strong>Share feedback:</strong> Send a question, suggestion, or concern through the public feedback form.</span>
                 </li>
               </ul>
             </div>
 
             {/* For Officials */}
-            <div className="card p-8 space-y-6 border-slate-200 bg-white">
+            <div className="card p-5 sm:p-7 space-y-5 border-slate-200 bg-white">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-civic-navy text-white flex items-center justify-center font-bold text-sm">
                   2
                 </div>
                 <div>
-                  <h3 className="font-bold text-lg text-civic-navy">For Barangay & SK Officials</h3>
-                  <p className="text-xs text-slate-500">Role-gated administrative suite</p>
+                  <h3 className="font-bold text-lg text-civic-navy">For barangay and SK officials</h3>
+                  <p className="text-xs text-slate-500">Sign in to manage your barangay portal</p>
                 </div>
               </div>
 
               <ul className="space-y-4 text-sm text-slate-600">
                 <li className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-civic-navy shrink-0 mt-0.5" />
-                  <span><strong>Secure onboarding:</strong> Register your barangay in under 3 minutes with role-based permissions (Captain, Secretary, Treasurer, SK).</span>
+                  <span><strong>Set up your portal:</strong> Register your barangay and provide the details residents need to find it.</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-civic-navy shrink-0 mt-0.5" />
-                  <span><strong>Publish records:</strong> Maintain verified logs of programs, categorized beneficiaries, expenses, and election transition handovers.</span>
+                  <span><strong>Manage information:</strong> Keep budget, expense, program, and community information up to date.</span>
                 </li>
                 <li className="flex items-start gap-3">
                   <CheckCircle className="w-5 h-5 text-civic-navy shrink-0 mt-0.5" />
-                  <span><strong>AI Assistant:</strong> Leverage Groq AI to draft council resolutions, accomplishment reports, and budget forecasts instantly.</span>
+                  <span><strong>Respond to residents:</strong> Review and manage feedback submitted through your public portal.</span>
                 </li>
               </ul>
             </div>
@@ -530,20 +547,20 @@ export default function Landing() {
       </section>
 
       {/* Official Call-to-Action Banner */}
-      <section className="bg-civic-navy text-white py-16 px-4">
-        <div className="max-w-4xl mx-auto text-center space-y-6">
+      <section className="bg-civic-navy text-white py-14 sm:py-16 px-4">
+        <div className="max-w-4xl mx-auto text-center space-y-5">
           <h2 className="text-3xl sm:text-4xl font-display font-bold text-white">
-            Ready to Bring Open Transparency to Your Barangay?
+            Bring your barangay’s information together
           </h2>
           <p className="text-slate-300 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-            Join barangays modernizing their public communication and financial accountability with our free, multi-tenant portal.
+            Create a public place for residents to find local updates, published records, and ways to get in touch.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 pt-1">
             <Link to="/signup" className="btn-emerald px-6 py-3 text-base font-semibold shadow-md hover:scale-105 transition-transform">
-              Register New Barangay
+              Register a Barangay
             </Link>
             <Link to="/login" className="btn-secondary bg-white/10 hover:bg-white/20 text-white border-white/20 px-6 py-3 text-base font-semibold">
-              Official Portal Sign In
+              Official Sign In
             </Link>
           </div>
         </div>
@@ -551,7 +568,7 @@ export default function Landing() {
 
       {/* Modern Civic Footer */}
       <footer className="bg-slate-900 text-slate-400 text-xs py-12 border-t border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-7">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6 pb-8 border-b border-slate-800 text-center md:text-left">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-civic-navy text-civic-gold flex items-center justify-center border border-white/10">
@@ -559,25 +576,25 @@ export default function Landing() {
               </div>
               <div>
                 <p className="font-bold text-white text-sm">Barangay Transparency Portal</p>
-                <p className="text-[11px] text-slate-500">Republic of the Philippines · Local Government Support System</p>
+                <p className="text-[11px] text-slate-500">A digital platform for local transparency and community engagement</p>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-6 font-medium text-slate-400">
               <a href="#directory" className="hover:text-white transition-colors">Directory</a>
-              <a href="#pillars" className="hover:text-white transition-colors">Pillars</a>
-              <Link to="/login" className="hover:text-white transition-colors">Official Login</Link>
-              <Link to="/signup" className="hover:text-white transition-colors">Register Barangay</Link>
+              <a href="#pillars" className="hover:text-white transition-colors">What You Can Explore</a>
+              <Link to="/login" className="hover:text-white transition-colors">Official Sign In</Link>
+              <Link to="/signup" className="hover:text-white transition-colors">Register a Barangay</Link>
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left text-[11px] text-slate-500">
             <p>
-              © {new Date().getFullYear()} Barangay Transparency System. Developed for civic transparency and community development.
+              © {new Date().getFullYear()} Barangay Transparency Portal. Supporting informed and engaged communities.
             </p>
             <p className="flex items-center gap-1.5 justify-center">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Full compliance with Republic Act No. 7160</span>
+              <span>Supporting transparent local governance</span>
             </p>
           </div>
         </div>
@@ -585,4 +602,3 @@ export default function Landing() {
     </div>
   );
 }
-
