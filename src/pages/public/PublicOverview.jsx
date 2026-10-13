@@ -3,7 +3,7 @@ import { usePublicBarangay } from '../../lib/usePublicBarangay';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import { sumAmounts, sumActiveAmounts } from '../../lib/financial';
-import { Building2, PieChart, FolderKanban, MessageSquare, Users, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Building2, PieChart, FolderKanban, MessageSquare, Users, ShieldCheck, ArrowRight, CalendarDays, FileText, Siren, Package } from 'lucide-react';
 
 const formatCurrency = (value) => new Intl.NumberFormat('en-PH', {
   style: 'currency',
@@ -21,6 +21,10 @@ export default function PublicOverview() {
   const { rows: skPrograms, error: e5 } = useSupabaseTable('sk_programs', barangay?.id);
   const { rows: skAllocations, error: e6 } = useSupabaseTable('sk_budget', barangay?.id);
   const { rows: skExpenses, error: e7 } = useSupabaseTable('sk_expenses', barangay?.id);
+  const { rows: activities, error: e8 } = useSupabaseTable('activity_calendar', barangay?.id, { orderBy: 'starts_at', ascending: true });
+  const { rows: documents, error: e9 } = useSupabaseTable('official_documents', barangay?.id, { orderBy: 'document_date' });
+  const { rows: incidents, error: e10 } = useSupabaseTable('disaster_incidents', barangay?.id, { orderBy: 'incident_date' });
+  const { rows: distributions, error: e11 } = useSupabaseTable('relief_distributions', barangay?.id, { orderBy: 'distributed_on' });
 
   if (bLoading) return <p className="text-slate-400 text-center py-12">Loading barangay profile…</p>;
   if (bError || !barangay) return <ErrorBanner message={bError || 'Barangay not found.'} />;
@@ -83,7 +87,7 @@ export default function PublicOverview() {
         </div>
       </div>
 
-      <ErrorBanner message={e1 || e2 || e3 || e4 || e5 || e6 || e7} />
+      <ErrorBanner message={e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9 || e10 || e11} />
 
       {/* Financial Summary */}
       <section className="space-y-4">
@@ -174,6 +178,16 @@ export default function PublicOverview() {
           <p className="text-xs text-slate-500">No account required to browse</p>
         </div>
       </div>
+
+      <section className="space-y-4">
+        <div><p className="text-xs font-bold uppercase tracking-wider text-civic-emerald">Community updates</p><h2 className="mt-1 text-xl font-bold text-civic-navy">Activities, documents, and response updates</h2></div>
+        <div className="grid lg:grid-cols-2 gap-4">
+          <div className="card space-y-3"><h3 className="flex items-center gap-2 font-bold text-civic-navy"><CalendarDays className="h-4 w-4 text-civic-emerald" />Upcoming activities</h3>{activities.filter((item) => new Date(item.starts_at) >= new Date()).slice(0, 5).map((item) => <div key={item.id} className="border-t border-slate-100 pt-2"><p className="text-sm font-semibold text-slate-800">{item.title}</p><p className="text-xs text-slate-500">{new Date(item.starts_at).toLocaleString()}{item.location ? ` · ${item.location}` : ''}</p></div>)}{activities.filter((item) => new Date(item.starts_at) >= new Date()).length === 0 && <p className="text-sm text-slate-500">No upcoming public activities posted.</p>}</div>
+          <div className="card space-y-3"><h3 className="flex items-center gap-2 font-bold text-civic-navy"><FileText className="h-4 w-4 text-civic-emerald" />Public documents</h3>{documents.filter((item) => item.is_public).slice(0, 5).map((item) => <div key={item.id} className="border-t border-slate-100 pt-2"><p className="text-sm font-semibold text-slate-800">{item.title}</p><p className="text-xs text-slate-500">{item.document_type} · {item.document_date || 'Undated'}</p>{item.document_url && <a className="text-xs font-semibold text-civic-emerald hover:underline" href={item.document_url} target="_blank" rel="noreferrer">Open document</a>}</div>)}{documents.filter((item) => item.is_public).length === 0 && <p className="text-sm text-slate-500">No public documents posted.</p>}</div>
+          <div className="card space-y-3"><h3 className="flex items-center gap-2 font-bold text-civic-navy"><Siren className="h-4 w-4 text-amber-600" />Incident updates</h3>{incidents.filter((item) => item.is_public).slice(0, 4).map((item) => <div key={item.id} className="border-t border-slate-100 pt-2"><p className="text-sm font-semibold text-slate-800">{item.title}</p><p className="text-xs text-slate-500">{item.incident_type} · {item.status} · {item.incident_date}{item.location ? ` · ${item.location}` : ''}</p></div>)}{incidents.filter((item) => item.is_public).length === 0 && <p className="text-sm text-slate-500">No public incident updates posted.</p>}</div>
+          <div className="card space-y-3"><h3 className="flex items-center gap-2 font-bold text-civic-navy"><Package className="h-4 w-4 text-civic-emerald" />Relief distributions</h3>{distributions.filter((item) => item.is_public).slice(0, 4).map((item) => <div key={item.id} className="border-t border-slate-100 pt-2"><p className="text-sm font-semibold text-slate-800">{item.item_name}: {item.quantity} {item.unit}</p><p className="text-xs text-slate-500">{item.distributed_on}{item.location ? ` · ${item.location}` : ''}</p></div>)}{distributions.filter((item) => item.is_public).length === 0 && <p className="text-sm text-slate-500">No relief distributions posted.</p>}</div>
+        </div>
+      </section>
 
       {/* Public Records Directory */}
       <div className="card space-y-4">

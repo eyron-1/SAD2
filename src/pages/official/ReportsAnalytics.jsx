@@ -9,7 +9,11 @@ import { BarChart3, Download, PieChart as PieIcon, Landmark, Receipt, Percent, F
 const COLORS = ['#0F2D4A', '#0D9488', '#D97706', '#B4472B', '#1E4258', '#6D28D9'];
 
 function toCSV(rows, headers) {
-  const escape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const escape = (v) => {
+    let value = String(v ?? '');
+    if (typeof v === 'string' && /^[\t\r ]*[=+\-@]/.test(value)) value = `'${value}`;
+    return `"${value.replace(/"/g, '""')}"`;
+  };
   const lines = [headers.map(([, label]) => escape(label)).join(',')];
   rows.forEach((row) => {
     lines.push(headers.map(([key]) => escape(row[key])).join(','));
@@ -41,22 +45,26 @@ export default function ReportsAnalytics() {
 
   const expenseByCategory = useMemo(() => {
     const map = {};
-    activeRows(expenses).forEach((e) => { map[e.category] = (map[e.category] || 0) + Number(e.amount || 0); });
-    return Object.entries(map).map(([name, value]) => ({ name, value }));
+    activeRows(expenses).forEach((e) => { map[e.category] = (map[e.category] || 0) + Math.round(Number(e.amount || 0) * 100); });
+    return Object.entries(map).map(([name, cents]) => ({ name, value: cents / 100 }));
   }, [expenses]);
 
   const budgetVsExpense = useMemo(() => {
     const byYear = {};
     allocations.forEach((a) => {
-      byYear[a.fiscal_year] = byYear[a.fiscal_year] || { fiscal_year: a.fiscal_year, budget: 0, expenses: 0 };
-      byYear[a.fiscal_year].budget += Number(a.amount || 0);
+      byYear[a.fiscal_year] = byYear[a.fiscal_year] || { fiscal_year: a.fiscal_year, budgetCents: 0, expenseCents: 0 };
+      byYear[a.fiscal_year].budgetCents += Math.round(Number(a.amount || 0) * 100);
     });
     activeRows(expenses).forEach((e) => {
       const fy = e.date_incurred ? e.date_incurred.slice(0, 4) : 'Unspecified';
-      byYear[fy] = byYear[fy] || { fiscal_year: fy, budget: 0, expenses: 0 };
-      byYear[fy].expenses += Number(e.amount || 0);
+      byYear[fy] = byYear[fy] || { fiscal_year: fy, budgetCents: 0, expenseCents: 0 };
+      byYear[fy].expenseCents += Math.round(Number(e.amount || 0) * 100);
     });
-    return Object.values(byYear);
+    return Object.values(byYear).map((row) => ({
+      fiscal_year: row.fiscal_year,
+      budget: row.budgetCents / 100,
+      expenses: row.expenseCents / 100,
+    }));
   }, [allocations, expenses]);
 
   const programStatusCounts = useMemo(() => {
@@ -170,12 +178,15 @@ export default function ReportsAnalytics() {
       <div className="card space-y-4">
         <div className="border-b border-slate-100 pb-3">
           <h2 className="text-base font-bold text-civic-navy flex items-center gap-2">
-            <FileSpreadsheet className="w-5 h-5 text-civic-emerald" /> Export DILG Audit Data (CSV)
+            <FileSpreadsheet className="w-5 h-5 text-civic-emerald" /> Export DILG Audit Data (CSV / Excel)
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">Download full transparent record spreadsheets for offline reporting.</p>
+          <p className="text-xs text-slate-500 mt-0.5">Download CSV files that open in Excel, or print this report and choose Save as PDF.</p>
         </div>
 
         <div className="flex flex-wrap gap-3">
+          <button className="btn-secondary text-xs" onClick={() => window.print()}>
+            <Download className="w-3.5 h-3.5 text-civic-emerald" /> Print / Save PDF
+          </button>
           <button
             className="btn-secondary text-xs"
             onClick={() => downloadCSV('budget_allocations.csv', toCSV(allocations, [['fiscal_year', 'Fiscal Year'], ['category', 'Category'], ['amount', 'Amount'], ['description', 'Description']]))}

@@ -15,6 +15,7 @@ import FormField from "../../components/ui/FormField";
 import ErrorBanner from "../../components/ui/ErrorBanner";
 import Badge from "../../components/ui/Badge";
 import ImageLightbox from "../../components/ui/ImageLightbox";
+import { sumAmounts, sumActiveAmounts } from "../../lib/financial";
 import {
   Receipt,
   Plus,
@@ -29,6 +30,7 @@ import {
   PieChart,
   Wallet,
   Eye,
+  ShieldCheck,
 } from "lucide-react";
 
 const CATEGORIES = [
@@ -84,14 +86,11 @@ export default function ExpenseManagement() {
   };
 
   const getAvailableAmount = (allocation) => {
-    const committed = rows
-      .filter(
-        (row) =>
-          row.status !== "voided" &&
-          row.budget_allocation_id === allocation.id &&
-          row.id !== editingId,
-      )
-      .reduce((sum, row) => sum + Number(row.amount || 0), 0);
+    const committed = sumActiveAmounts(
+      rows.filter(
+        (row) => row.budget_allocation_id === allocation.id && row.id !== editingId,
+      ),
+    );
     return Number(allocation.amount || 0) - committed;
   };
   const selectedAllocation = allocations.find(
@@ -226,6 +225,14 @@ export default function ExpenseManagement() {
     if (result.error) setSubmitError(result.error);
   };
 
+  const handleVerifyReceipt = async (row) => {
+    const result = await updateRow(row.id, {
+      receipt_verified_at: new Date().toISOString(),
+      receipt_verified_by: profile.id,
+    });
+    if (result.error) setSubmitError(result.error);
+  };
+
   const filteredRows = rows.filter((r) => {
     const matchesSearch =
       r.category?.toLowerCase().includes(search.toLowerCase()) ||
@@ -236,13 +243,8 @@ export default function ExpenseManagement() {
     return matchesSearch && matchesCategory;
   });
 
-  const totalSpent = rows
-    .filter((r) => r.status !== "voided")
-    .reduce((sum, r) => sum + Number(r.amount || 0), 0);
-  const totalAllocated = allocations.reduce(
-    (sum, r) => sum + Number(r.amount || 0),
-    0,
-  );
+  const totalSpent = sumActiveAmounts(rows);
+  const totalAllocated = sumAmounts(allocations);
   const remainingBudget = totalAllocated - totalSpent;
 
   return (
@@ -577,13 +579,20 @@ export default function ExpenseManagement() {
                     </td>
                     <td className="px-6 py-4">
                       {row.receipt_url ? (
-                        <button
-                          type="button"
-                          onClick={() => setLightboxUrl(row.receipt_url)}
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-civic-emerald hover:underline"
-                        >
-                          <Eye className="w-3.5 h-3.5" /> View Receipt
-                        </button>
+                        <div className="space-y-1">
+                          <button
+                            type="button"
+                            onClick={() => setLightboxUrl(row.receipt_url)}
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-civic-emerald hover:underline"
+                          >
+                            <Eye className="w-3.5 h-3.5" /> View Receipt
+                          </button>
+                          {row.receipt_verified_at ? (
+                            <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700"><ShieldCheck className="h-3 w-3" />Verified</span>
+                          ) : canEdit ? (
+                            <button type="button" onClick={() => handleVerifyReceipt(row)} className="flex items-center gap-1 text-[11px] font-semibold text-slate-600 hover:text-civic-emerald"><ShieldCheck className="h-3 w-3" />Verify receipt</button>
+                          ) : null}
+                        </div>
                       ) : (
                         <span className="text-slate-400 text-xs">—</span>
                       )}

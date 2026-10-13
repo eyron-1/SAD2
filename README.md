@@ -34,6 +34,38 @@ npm run dev
 
 The app runs at `http://localhost:5173`.
 
+## Upgrade an existing Supabase database
+
+After the existing schema and security/financial workflow migrations are in
+place, run `supabase/migration_operations_audit.sql` once in the Supabase SQL
+Editor. It adds the operations, approval, notification, milestone, calendar,
+inventory, disaster response, document, audit, and receipt-verification tables
+and policies without dropping or recreating existing data. Do not rerun
+`schema.sql` against an existing database; it contains destructive drop
+statements.
+
+To link milestones to SK programs, run `supabase/migration_sk_program_milestones.sql`
+after the operations migration. Existing barangay milestones remain linked and
+unchanged.
+
+To separate authenticated SK and Barangay access, then run
+`supabase/migration_sk_data_isolation.sql`. Apply it after the SK milestone
+migration. It keeps SK figures available through the anonymous public portal,
+but prevents logged-in Barangay accounts from reading SK financial and audit
+records. Barangay operations and SK operations have separate pages.
+
+The Operations page exports a tenant-scoped JSON data snapshot. Store it in an
+access-controlled location. Restore must be performed by a Supabase
+administrator through a controlled database recovery process, not by replaying
+rows from the browser with the public API key. Official documents are linked
+by HTTPS URL; configure file storage separately if direct uploads are needed.
+
+Run the financial and validation regression tests with:
+
+```bash
+node --test src/lib/validation.test.js
+```
+
 ## 3. Create the first barangay + official account
 
 Go to `/signup`, choose **Set up new barangay**, fill in the barangay's name

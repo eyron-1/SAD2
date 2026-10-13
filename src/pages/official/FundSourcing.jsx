@@ -5,6 +5,7 @@ import { validateRequired, validateCurrency, validateFiscalYear, runValidators, 
 import { isBarangayEditor } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
+import { sumAmounts } from '../../lib/financial';
 import { supabase } from '../../lib/supabaseClient';
 import ImageLightbox from '../../components/ui/ImageLightbox';
 import { Landmark, Plus, Search, Edit3, Trash2, X, Calendar, Tag, PieChart, Wallet, Upload, FileText, Eye } from 'lucide-react';
@@ -139,8 +140,8 @@ export default function FundSourcing() {
     r.fiscal_year?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const totalSourced = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
-  const totalAllocated = allocations.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+  const totalSourced = sumAmounts(rows);
+  const totalAllocated = sumAmounts(allocations);
   const unallocatedBalance = totalSourced - totalAllocated;
 
   return (

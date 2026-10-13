@@ -50,6 +50,8 @@ const formatDate = (dateStr) => {
   }
 };
 
+const amountInCents = (amount) => Math.round(Number(amount || 0) * 100);
+
 export default function PublicBudget() {
   const { slug } = useParams();
   const { barangay, loading: bLoading } = usePublicBarangay(slug);
@@ -156,17 +158,19 @@ export default function PublicBudget() {
     const map = {};
     filteredBarangayAllocations.forEach((item) => {
       const cat = item.category || 'General';
-      if (!map[cat]) map[cat] = { category: cat, allocated: 0, spent: 0 };
-      map[cat].allocated += Number(item.amount || 0);
+      if (!map[cat]) map[cat] = { category: cat, allocatedCents: 0, spentCents: 0 };
+      map[cat].allocatedCents += amountInCents(item.amount);
     });
 
     filteredBarangayExpenses.forEach((item) => {
       const cat = item.category || 'General';
-      if (!map[cat]) map[cat] = { category: cat, allocated: 0, spent: 0 };
-      map[cat].spent += Number(item.amount || 0);
+      if (!map[cat]) map[cat] = { category: cat, allocatedCents: 0, spentCents: 0 };
+      map[cat].spentCents += amountInCents(item.amount);
     });
 
-    return Object.values(map).sort((a, b) => b.allocated - a.allocated);
+    return Object.values(map)
+      .map((item) => ({ ...item, allocated: item.allocatedCents / 100, spent: item.spentCents / 100 }))
+      .sort((a, b) => b.allocated - a.allocated);
   }, [filteredBarangayAllocations, filteredBarangayExpenses]);
 
   // Combined totals for "All" tab

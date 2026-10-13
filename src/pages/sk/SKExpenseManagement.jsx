@@ -8,7 +8,7 @@ import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import ImageLightbox from '../../components/ui/ImageLightbox';
 import { sumActiveAmounts } from '../../lib/financial';
-import { Receipt, Plus, Pencil, Trash2, Upload, FileText, X, Eye } from 'lucide-react';
+import { Receipt, Plus, Pencil, Trash2, Upload, FileText, X, Eye, ShieldCheck } from 'lucide-react';
 
 const CATEGORIES = ['Youth Development', 'Sports & Recreation', 'Education & Training', 'Environment', 'Health Awareness', 'Livelihood', 'Other'];
 const EMPTY = { category: CATEGORIES[0], amount: '', description: '', date_incurred: '', sk_budget_id: '' };
@@ -33,9 +33,7 @@ export default function SKExpenseManagement() {
 
   // Compute how much remaining balance an SK allocation has
   const getAvailableAmount = (allocation) => {
-    const committed = rows
-      .filter((row) => row.status !== 'voided' && row.sk_budget_id === allocation.id && row.id !== editingId)
-      .reduce((sum, row) => sum + Number(row.amount || 0), 0);
+    const committed = sumActiveAmounts(rows.filter((row) => row.sk_budget_id === allocation.id && row.id !== editingId));
     return Number(allocation.amount || 0) - committed;
   };
   const selectedAllocation = allocations.find((a) => a.id === form.sk_budget_id);
@@ -123,6 +121,14 @@ export default function SKExpenseManagement() {
     if (result.error) setSubmitError(result.error);
   };
 
+  const handleVerifyReceipt = async (row) => {
+    const result = await updateRow(row.id, {
+      receipt_verified_at: new Date().toISOString(),
+      receipt_verified_by: profile.id,
+    });
+    if (result.error) setSubmitError(result.error);
+  };
+
   const totalSpent = sumActiveAmounts(rows);
 
   return (
@@ -185,7 +191,7 @@ export default function SKExpenseManagement() {
         <table className="w-full text-sm"><thead className="bg-civic-navy/5 text-civic-slate text-left"><tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Category</th><th className="px-4 py-3">Description</th><th className="px-4 py-3 text-right">Amount</th><th className="px-4 py-3">Receipt</th>{canEdit && <th className="px-4 py-3" />}</tr></thead><tbody>
           {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">Loading SK expenses…</td></tr>}
           {!loading && rows.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">No SK expenses recorded yet.</td></tr>}
-          {rows.map((row) => <tr key={row.id} className="border-t border-slate-100"><td className="px-4 py-3">{row.date_incurred}</td><td className="px-4 py-3">{row.category}</td><td className="px-4 py-3">{row.description || '—'}</td><td className="px-4 py-3 text-right">₱{Number(row.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td className="px-4 py-3">{row.receipt_url ? <button type="button" onClick={() => setLightboxUrl(row.receipt_url)} className="inline-flex items-center gap-1 text-xs text-civic-emerald hover:underline font-semibold"><Eye className="w-3.5 h-3.5" /> View</button> : '—'}</td>{canEdit && <td className="px-4 py-3 text-right whitespace-nowrap"><button onClick={() => handleEdit(row)} className="text-civic-navy hover:underline mr-3 text-xs"><Pencil className="w-3 h-3 inline" /> Edit</button><button onClick={() => handleDelete(row.id)} className="text-civic-clay hover:underline text-xs"><Trash2 className="w-3 h-3 inline" /> Delete</button></td>}</tr>)}
+          {rows.map((row) => <tr key={row.id} className="border-t border-slate-100"><td className="px-4 py-3">{row.date_incurred}</td><td className="px-4 py-3">{row.category}</td><td className="px-4 py-3">{row.description || '—'}</td><td className="px-4 py-3 text-right">₱{Number(row.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td className="px-4 py-3">{row.receipt_url ? <div><button type="button" onClick={() => setLightboxUrl(row.receipt_url)} className="inline-flex items-center gap-1 text-xs text-civic-emerald hover:underline font-semibold"><Eye className="w-3.5 h-3.5" /> View</button>{row.receipt_verified_at ? <span className="flex items-center gap-1 text-[11px] text-emerald-700"><ShieldCheck className="h-3 w-3" />Verified</span> : canEdit && <button type="button" onClick={() => handleVerifyReceipt(row)} className="flex items-center gap-1 text-[11px] font-semibold text-slate-600 hover:text-civic-emerald"><ShieldCheck className="h-3 w-3" />Verify</button>}</div> : '—'}</td>{canEdit && <td className="px-4 py-3 text-right whitespace-nowrap"><button onClick={() => handleEdit(row)} className="text-civic-navy hover:underline mr-3 text-xs"><Pencil className="w-3 h-3 inline" /> Edit</button><button onClick={() => handleDelete(row.id)} className="text-civic-clay hover:underline text-xs"><Trash2 className="w-3 h-3 inline" /> Delete</button></td>}</tr>)}
         </tbody></table>
       </div>
 

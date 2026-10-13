@@ -11,6 +11,7 @@ import {
   parseCurrencyValue,
 } from "../../lib/validation";
 import { isBarangayEditor } from "../../utils/roles";
+import { sumAmounts, sumActiveAmounts } from "../../lib/financial";
 import FormField from "../../components/ui/FormField";
 import ErrorBanner from "../../components/ui/ErrorBanner";
 import {
@@ -157,14 +158,9 @@ export default function BudgetManagement() {
     return matchesSearch && matchesCategory && matchesYear;
   });
 
-  const totalSourced = funds.reduce((sum, r) => sum + Number(r.amount || 0), 0);
-  const totalAllocated = rows.reduce(
-    (sum, r) => sum + Number(r.amount || 0),
-    0,
-  );
-  const totalSpent = expenses
-    .filter((r) => r.status !== "voided")
-    .reduce((sum, r) => sum + Number(r.amount || 0), 0);
+  const totalSourced = sumAmounts(funds);
+  const totalAllocated = sumAmounts(rows);
+  const totalSpent = sumActiveAmounts(expenses);
   const unallocatedFund = totalSourced - totalAllocated;
   const remainingBudget = totalAllocated - totalSpent;
 

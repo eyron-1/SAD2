@@ -3,7 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useSupabaseTable } from "../../lib/useSupabaseTable";
 import { roleLabel } from "../../utils/roles";
 import ErrorBanner from "../../components/ui/ErrorBanner";
-import { sumAmounts, sumActiveAmounts } from "../../lib/financial";
+import { forecastAnnualSpend, sumAmounts, sumActiveAmounts } from "../../lib/financial";
 import {
   PieChart,
   Receipt,
@@ -15,6 +15,9 @@ import {
   Users,
   Landmark,
   Building2,
+  Bell,
+  CalendarDays,
+  TrendingUp,
 } from "lucide-react";
 
 const formatCurrency = (value) =>
@@ -42,11 +45,22 @@ export default function Dashboard() {
     "feedback",
     profile?.barangay_id,
   );
+  const { rows: notifications, error: e5 } = useSupabaseTable("notifications", profile?.barangay_id, { filter: { user_id: profile?.id } });
+  const { rows: activities, error: e6 } = useSupabaseTable("activity_calendar", profile?.barangay_id, { orderBy: "starts_at", ascending: true });
 
   const totalBudget = sumAmounts(allocations);
   const totalSpent = sumActiveAmounts(expenses);
   const ongoingPrograms = programs.filter((p) => p.status === "ongoing").length;
   const newFeedback = feedback.filter((f) => f.status === "new").length;
+  const currentDate = new Date();
+  const currentYear = String(currentDate.getFullYear());
+  const yearBudget = sumAmounts(allocations.filter((row) => String(row.fiscal_year) === currentYear));
+  const yearSpend = sumActiveAmounts(expenses.filter((row) => row.date_incurred?.startsWith(currentYear)));
+  const yearForecast = forecastAnnualSpend(yearSpend, currentDate.getMonth() + 1);
+  const forecastOverBudget = yearBudget > 0 && yearForecast > yearBudget;
+  const highUtilization = yearBudget > 0 && yearSpend / yearBudget >= 0.85;
+  const unreadCount = notifications.filter((row) => !row.read_at).length;
+  const upcomingActivities = activities.filter((row) => new Date(row.starts_at) >= currentDate).slice(0, 3);
 
   const spendPercentage =
     totalBudget > 0
@@ -89,7 +103,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <ErrorBanner message={e1 || e2 || e3 || e4} />
+      <ErrorBanner message={e1 || e2 || e3 || e4 || e5 || e6} />
 
       {/* KPI Cards Grid */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -179,6 +193,19 @@ export default function Dashboard() {
             <span>{feedback.length} total responses</span>
           </div>
         </Link>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-4">
+        <section className={`card space-y-3 ${forecastOverBudget || highUtilization ? "border-amber-300" : ""}`}>
+          <div className="flex items-center justify-between gap-3"><h2 className="font-bold text-civic-navy flex items-center gap-2"><TrendingUp className="h-4 w-4 text-civic-emerald" />Fiscal-year budget outlook</h2><span className="text-xs font-semibold text-slate-500">{currentYear}</span></div>
+          {yearBudget > 0 ? <><div className="grid grid-cols-2 gap-3"><div><p className="text-xs text-slate-500">Spent to date</p><p className="font-bold text-civic-navy">{formatCurrency(yearSpend)}</p></div><div><p className="text-xs text-slate-500">Run-rate forecast</p><p className={`font-bold ${forecastOverBudget ? "text-rose-700" : "text-civic-navy"}`}>{formatCurrency(yearForecast)}</p></div></div><p className={`text-xs ${forecastOverBudget || highUtilization ? "text-amber-800" : "text-slate-500"}`}>{forecastOverBudget ? "At the current spending pace, expenses may exceed this year’s allocation." : highUtilization ? "More than 85% of this year’s allocation has been spent." : "Current spending is within the annual allocation."} Forecast annualizes spending across elapsed months.</p></> : <p className="text-sm text-slate-500">No {currentYear} allocation is recorded for this forecast.</p>}
+        </section>
+        <section className="card space-y-3">
+          <div className="flex items-center justify-between gap-3"><h2 className="font-bold text-civic-navy flex items-center gap-2"><CalendarDays className="h-4 w-4 text-civic-emerald" />Upcoming activities</h2><Link to="operations" className="text-xs font-semibold text-civic-emerald hover:underline">Operations</Link></div>
+          {upcomingActivities.map((activity) => <div key={activity.id} className="border-t border-slate-100 pt-2"><p className="text-sm font-semibold text-slate-800">{activity.title}</p><p className="text-xs text-slate-500">{new Date(activity.starts_at).toLocaleString()}</p></div>)}
+          {upcomingActivities.length === 0 && <p className="text-sm text-slate-500">No upcoming activities scheduled.</p>}
+          <Link to="operations" className="inline-flex items-center gap-2 text-xs font-semibold text-civic-emerald hover:underline"><Bell className="h-3.5 w-3.5" />{unreadCount} unread notification{unreadCount === 1 ? "" : "s"}</Link>
+        </section>
       </div>
 
       {/* Quick Action Hub */}

@@ -23,8 +23,11 @@ const parseBeneficiary = (row) => {
   };
 };
 
-function ProgramCard({ row }) {
+function ProgramCard({ row, milestones = [] }) {
   const { beneficiary_category, clean_description } = parseBeneficiary(row);
+  const progress = milestones.length
+    ? Math.round(milestones.reduce((sum, item) => sum + Number(item.progress_percent || 0), 0) / milestones.length)
+    : 0;
 
   return (
     <div className="card space-y-3 hover:border-slate-300 transition-all">
@@ -34,6 +37,14 @@ function ProgramCard({ row }) {
       </div>
 
       <p className="text-sm text-slate-600 leading-relaxed">{clean_description || 'No description provided.'}</p>
+
+      {milestones.length > 0 && (
+        <div className="space-y-2 border-t border-slate-100 pt-3">
+          <div className="flex items-center justify-between text-xs"><span className="font-semibold text-slate-600">Milestone progress</span><span className="font-bold text-civic-navy">{progress}%</span></div>
+          <div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full bg-civic-emerald" style={{ width: `${progress}%` }} /></div>
+          <ul className="space-y-1 text-xs text-slate-500">{milestones.map((item) => <li key={item.id} className="flex flex-wrap justify-between gap-2"><span>{item.title}</span><span>{item.progress_percent}%{item.due_date ? ` · Due ${item.due_date}` : ''}</span></li>)}</ul>
+        </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-2.5 text-xs pt-2 border-t border-slate-100">
         {row.category && (
@@ -75,6 +86,7 @@ export default function PublicPrograms() {
   const { barangay, loading: bLoading } = usePublicBarangay(slug);
   const { rows: programs, loading: l1, error: e1 } = useSupabaseTable('programs', barangay?.id);
   const { rows: skPrograms, loading: l2, error: e2 } = useSupabaseTable('sk_programs', barangay?.id);
+  const { rows: milestones, error: e3 } = useSupabaseTable('program_milestones', barangay?.id, { orderBy: 'due_date', ascending: true });
 
   const [activeTab, setActiveTab] = useState('all'); // 'all' | 'barangay' | 'sk'
   const [searchTerm, setSearchTerm] = useState('');
@@ -140,7 +152,7 @@ export default function PublicPrograms() {
         </div>
       </div>
 
-      <ErrorBanner message={e1 || e2} />
+      <ErrorBanner message={e1 || e2 || e3} />
 
       {/* Scope Navigation Tabs */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-3">
@@ -211,7 +223,7 @@ export default function PublicPrograms() {
           <div className="grid gap-4">
             {l1 && <p className="text-civic-slate text-sm">Loading…</p>}
             {!l1 && filteredPrograms.length === 0 && <p className="text-civic-slate text-sm">No programs found.</p>}
-            {filteredPrograms.map((row) => <ProgramCard key={row.id} row={row} />)}
+            {filteredPrograms.map((row) => <ProgramCard key={row.id} row={row} milestones={milestones.filter((item) => item.program_id === row.id)} />)}
           </div>
         </section>
       )}
@@ -231,7 +243,7 @@ export default function PublicPrograms() {
           <div className="grid gap-4">
             {l2 && <p className="text-civic-slate text-sm">Loading…</p>}
             {!l2 && filteredSkPrograms.length === 0 && <p className="text-civic-slate text-sm">No SK programs found.</p>}
-            {filteredSkPrograms.map((row) => <ProgramCard key={row.id} row={row} />)}
+            {filteredSkPrograms.map((row) => <ProgramCard key={row.id} row={row} milestones={milestones.filter((item) => item.sk_program_id === row.id)} />)}
           </div>
         </section>
       )}
