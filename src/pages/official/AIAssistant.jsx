@@ -220,7 +220,7 @@ export default function AIAssistant() {
       {/* Groq Key Modal */}
       {showKeyModal && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 p-6 max-w-md w-full space-y-4">
+          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 p-4 sm:p-6 max-w-md w-full space-y-4 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center gap-2 text-civic-navy font-bold text-lg">
               <Key className="w-5 h-5 text-civic-emerald" /> Configure Groq API
               Key

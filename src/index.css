@@ -3,8 +3,17 @@
 @tailwind utilities;
 
 @layer base {
+  #root {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
   body {
     @apply bg-civic-cream text-slate-800 font-body antialiased selection:bg-civic-navy selection:text-white min-h-screen;
+  }
+
+  img {
+    max-width: 100%;
   }
   h1, h2, h3, h4 {
     @apply font-display text-civic-navy tracking-tight;
@@ -73,4 +82,3 @@
   main { padding: 0 !important; overflow: visible !important; }
   .card { box-shadow: none !important; break-inside: avoid; }
 }
-

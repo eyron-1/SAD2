@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Building2, CheckCircle2, MapPin, ShieldCheck, UsersRound } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import {
   validateEmail, validatePassword, validateName, validateMobile,
@@ -8,6 +9,7 @@ import {
 import { ROLES, roleLabel, ROLE_SEAT_LIMITS } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
+import SystemLogo from '../../components/ui/SystemLogo';
 import { PROVINCES_LIST, getCitiesMunicipalities, getBarangays, generateSlug } from '../../lib/philippineLocations';
 
 export default function Signup() {
@@ -172,71 +174,165 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen bg-civic-cream flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-md space-y-6">
-        <div className="text-center">
-          <h1 className="font-display text-2xl">Official Sign Up</h1>
-          <p className="text-civic-slate text-sm mt-1">Create your barangay or SK official account.</p>
-        </div>
+    <main className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-civic-cream px-4 py-6 font-body sm:px-6 sm:py-10">
+      <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-civic-gold/10 blur-3xl" />
+      <div aria-hidden="true" className="pointer-events-none absolute -bottom-32 -left-24 h-96 w-96 rounded-full bg-civic-leaf/10 blur-3xl" />
 
-        <form onSubmit={handleSubmit} className="card space-y-4">
-          <FormField label="Full Name" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} error={fieldErrors.full_name} />
-          <FormField label="Email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} error={fieldErrors.email} />
-          <FormField label="Password" type="password" autoComplete="new-password" showPasswordToggle value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} error={fieldErrors.password} />
-          <FormField label="Contact Number (optional)" placeholder="09171234567" value={form.contact_number} onChange={(e) => setForm({ ...form, contact_number: e.target.value })} error={fieldErrors.contact_number} />
+      <div className="relative mx-auto grid w-full max-w-6xl items-start gap-8 lg:grid-cols-[0.82fr_1.18fr] lg:gap-12">
+        <section className="flex flex-col lg:sticky lg:top-10">
+          <Link to="/" className="inline-flex w-fit items-center gap-3 rounded-xl focus-visible:outline-offset-4">
+            <SystemLogo className="h-12 w-12 rounded-xl object-cover shadow-sm" />
+            <span className="text-sm font-bold tracking-wide text-civic-navy">BARANGAY TRANSPARENCY</span>
+          </Link>
 
-          <FormField as="select" label="Role / Position" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} error={fieldErrors.role}>
-            {selfRegisterableRoles.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
-          </FormField>
-          {tenantMode === 'existing' && (
-            <p className="text-xs text-slate-500 -mt-2">
-              SK Chairperson and SK Treasurer can register when that seat is still available in this barangay.
-            </p>
-          )}
-
-          <div>
-            <label className="label">Barangay</label>
-            <div className="flex gap-2 mb-2 text-xs">
-              <button type="button" onClick={() => changeTenantMode('existing')} className={`px-2 py-1 rounded border ${tenantMode === 'existing' ? 'bg-civic-navy text-white border-civic-navy' : 'border-civic-navy/20'}`}>Join existing</button>
-              <button type="button" onClick={() => changeTenantMode('new')} className={`px-2 py-1 rounded border ${tenantMode === 'new' ? 'bg-civic-navy text-white border-civic-navy' : 'border-civic-navy/20'}`}>Set up new barangay</button>
+          <div className="mt-8 space-y-5 sm:mt-12 lg:mt-16">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-emerald-800">
+              <ShieldCheck className="h-4 w-4" />
+              Official registration
             </div>
-
-            {tenantMode === 'existing' ? (
-              <FormField as="select" value={form.barangay_id} onChange={(e) => setForm({ ...form, barangay_id: e.target.value })} error={fieldErrors.barangay_id}>
-                <option value="">— select your barangay —</option>
-                {barangays.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-              </FormField>
-            ) : (
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <FormField as="select" label="Province / Region" value={selectedProvince?.code || ''} onChange={(e) => setSelectedProvince(PROVINCES_LIST.find((p) => p.code === e.target.value) || null)}>
-                    <option value="">— select province / region —</option>
-                    {PROVINCES_LIST.map((province) => <option key={province.code} value={province.code}>{province.name}</option>)}
-                  </FormField>
-                  <FormField as="select" label="Municipality / City" value={selectedCity?.code || ''} onChange={(e) => setSelectedCity(cities.find((city) => city.code === e.target.value) || null)} disabled={!selectedProvince}>
-                    <option value="">— select municipality / city —</option>
-                    {cities.map((city) => <option key={city.code} value={city.code}>{city.name}</option>)}
-                  </FormField>
-                </div>
-                <FormField as="select" label="Barangay Name" value={locationBarangays.find((barangay) => barangay.name === form.new_barangay_name)?.code || ''} onChange={(e) => {
-                  const selectedBarangay = locationBarangays.find((barangay) => barangay.code === e.target.value);
-                  if (selectedBarangay) setForm((prev) => ({ ...prev, new_barangay_name: selectedBarangay.name }));
-                }} disabled={!selectedCity}>
-                  <option value="">— select barangay —</option>
-                  {locationBarangays.map((barangay) => <option key={barangay.code} value={barangay.code}>{barangay.name}</option>)}
-                </FormField>
-              </div>
-            )}
+            <div className="space-y-3">
+              <h1 className="max-w-lg font-display text-3xl font-bold leading-tight text-civic-navy sm:text-4xl lg:text-5xl">
+                Your community work starts here.
+              </h1>
+              <p className="max-w-lg text-sm leading-6 text-slate-600 sm:text-base sm:leading-7">
+                Create an account for your barangay or SK office. Join an existing barangay or register a new one.
+              </p>
+            </div>
           </div>
 
-          <ErrorBanner message={submitError} />
-          <button type="submit" disabled={submitting} className="btn-primary w-full">{submitting ? 'Creating account…' : 'Create account'}</button>
-        </form>
+          <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:mt-10 lg:grid-cols-1">
+            <div className="flex items-start gap-3 rounded-2xl border border-white/80 bg-white/75 p-4 shadow-sm">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-civic-navy/5 text-civic-navy">
+                <UsersRound className="h-5 w-5" />
+              </span>
+              <div>
+                <h2 className="text-sm font-semibold text-civic-navy">For barangay and SK officials</h2>
+                <p className="mt-1 text-xs leading-5 text-slate-500">Choose the position that matches your office.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 rounded-2xl border border-white/80 bg-white/75 p-4 shadow-sm">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-civic-leaf/10 text-civic-leaf">
+                <MapPin className="h-5 w-5" />
+              </span>
+              <div>
+                <h2 className="text-sm font-semibold text-civic-navy">Linked to your community</h2>
+                <p className="mt-1 text-xs leading-5 text-slate-500">Select your barangay or set up its location.</p>
+              </div>
+            </div>
+          </div>
 
-        <p className="text-center text-sm text-civic-slate">
-          Already have an account? <Link to="/login" className="text-civic-navy hover:underline">Log in</Link>
-        </p>
+          <Link to="/" className="mt-8 inline-flex w-fit items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-civic-navy lg:mt-auto lg:pt-12">
+            <ArrowLeft className="h-4 w-4" />
+            Back to resident portal
+          </Link>
+        </section>
+
+        <section className="min-w-0">
+          <form onSubmit={handleSubmit} className="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-[0_24px_70px_-32px_rgba(15,45,74,0.28)] sm:p-8">
+            <div className="mb-7 border-b border-slate-100 pb-6">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-civic-leaf">Create an account</p>
+              <h2 className="mt-2 font-display text-2xl font-bold text-civic-navy sm:text-3xl">Official sign up</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-500">Enter your details, position, and barangay information.</p>
+            </div>
+
+            <div className="space-y-7">
+              <fieldset className="space-y-4">
+                <legend className="mb-3 flex items-center gap-2 text-sm font-bold text-civic-navy">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-civic-navy/5 text-xs">1</span>
+                  Your account
+                </legend>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormField label="Full name" autoComplete="name" value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} error={fieldErrors.full_name} />
+                  <FormField label="Email address" type="email" autoComplete="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} error={fieldErrors.email} />
+                  <FormField label="Password" type="password" autoComplete="new-password" showPasswordToggle value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} error={fieldErrors.password} />
+                  <FormField label="Contact number (optional)" type="tel" autoComplete="tel" placeholder="09171234567" value={form.contact_number} onChange={(e) => setForm({ ...form, contact_number: e.target.value })} error={fieldErrors.contact_number} />
+                </div>
+              </fieldset>
+
+              <fieldset className="space-y-4 border-t border-slate-100 pt-6">
+                <legend className="mb-3 flex items-center gap-2 text-sm font-bold text-civic-navy">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-civic-navy/5 text-xs">2</span>
+                  Your position
+                </legend>
+                <FormField as="select" label="Role / position" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} error={fieldErrors.role}>
+                  {selfRegisterableRoles.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
+                </FormField>
+                {tenantMode === 'existing' && (
+                  <p className="-mt-2 text-xs leading-5 text-slate-500">
+                    SK Chairperson and SK Treasurer can register when that seat is still available in this barangay.
+                  </p>
+                )}
+              </fieldset>
+
+              <fieldset className="space-y-4 border-t border-slate-100 pt-6">
+                <legend className="mb-3 flex items-center gap-2 text-sm font-bold text-civic-navy">
+                  <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-civic-navy/5 text-xs">3</span>
+                  <Building2 className="h-4 w-4" />
+                  Barangay
+                </legend>
+
+                <div className="grid grid-cols-2 rounded-xl bg-slate-100 p-1" role="group" aria-label="Barangay registration option">
+                  <button
+                    type="button"
+                    onClick={() => changeTenantMode('existing')}
+                    aria-pressed={tenantMode === 'existing'}
+                    className={`min-h-10 rounded-lg px-2 py-2 text-xs font-semibold transition-all sm:text-sm ${tenantMode === 'existing' ? 'bg-white text-civic-navy shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    Join existing
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => changeTenantMode('new')}
+                    aria-pressed={tenantMode === 'new'}
+                    className={`min-h-10 rounded-lg px-2 py-2 text-xs font-semibold transition-all sm:text-sm ${tenantMode === 'new' ? 'bg-white text-civic-navy shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                  >
+                    Set up new
+                  </button>
+                </div>
+
+                {tenantMode === 'existing' ? (
+                  <FormField as="select" label="Select your barangay" value={form.barangay_id} onChange={(e) => setForm({ ...form, barangay_id: e.target.value })} error={fieldErrors.barangay_id}>
+                    <option value="">— select your barangay —</option>
+                    {barangays.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </FormField>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <FormField as="select" label="Province / region" value={selectedProvince?.code || ''} onChange={(e) => setSelectedProvince(PROVINCES_LIST.find((p) => p.code === e.target.value) || null)}>
+                        <option value="">— select province / region —</option>
+                        {PROVINCES_LIST.map((province) => <option key={province.code} value={province.code}>{province.name}</option>)}
+                      </FormField>
+                      <FormField as="select" label="Municipality / city" value={selectedCity?.code || ''} onChange={(e) => setSelectedCity(cities.find((city) => city.code === e.target.value) || null)} disabled={!selectedProvince}>
+                        <option value="">— select municipality / city —</option>
+                        {cities.map((city) => <option key={city.code} value={city.code}>{city.name}</option>)}
+                      </FormField>
+                    </div>
+                    <FormField as="select" label="Barangay name" value={locationBarangays.find((barangay) => barangay.name === form.new_barangay_name)?.code || ''} onChange={(e) => {
+                      const selectedBarangay = locationBarangays.find((barangay) => barangay.code === e.target.value);
+                      if (selectedBarangay) setForm((prev) => ({ ...prev, new_barangay_name: selectedBarangay.name }));
+                    }} disabled={!selectedCity}>
+                      <option value="">— select barangay —</option>
+                      {locationBarangays.map((barangay) => <option key={barangay.code} value={barangay.code}>{barangay.name}</option>)}
+                    </FormField>
+                  </div>
+                )}
+              </fieldset>
+            </div>
+
+            <div className="mt-7 space-y-4 border-t border-slate-100 pt-6">
+              <ErrorBanner message={submitError} />
+              <button type="submit" disabled={submitting} className="btn-primary min-h-12 w-full rounded-xl text-sm font-semibold">
+                {submitting ? 'Creating account…' : (
+                  <><CheckCircle2 className="h-4 w-4" /> Create official account</>
+                )}
+              </button>
+              <p className="text-center text-sm text-slate-500">
+                Already have an account? <Link to="/login" className="font-semibold text-civic-navy hover:underline">Log in</Link>
+              </p>
+            </div>
+          </form>
+        </section>
       </div>
-    </div>
+    </main>
   );
 }

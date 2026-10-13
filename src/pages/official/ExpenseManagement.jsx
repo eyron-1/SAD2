@@ -346,7 +346,7 @@ export default function ExpenseManagement() {
       {/* Modal Dialog Form */}
       {modalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-card-hover border border-slate-200 p-6 max-w-lg w-full space-y-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-card-hover border border-slate-200 p-4 sm:p-6 max-w-lg w-full space-y-6 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <h2 className="text-xl font-bold text-civic-navy flex items-center gap-2">
                 <Receipt className="w-5 h-5 text-civic-emerald" />
@@ -361,7 +361,7 @@ export default function ExpenseManagement() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   as="select"
                   label="Category"
@@ -400,7 +400,7 @@ export default function ExpenseManagement() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   type="date"
                   label="Date Incurred"

@@ -174,7 +174,7 @@ export default function SKPrograms() {
         )}
       </div>
       <ErrorBanner message={error} />
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="card">
           <p className="text-xs font-bold text-slate-500 uppercase">
             Total SK Programs
@@ -269,7 +269,7 @@ export default function SKPrograms() {
       </div>
       {modalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-card-hover border border-slate-200 p-6 max-w-xl w-full space-y-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-card-hover border border-slate-200 p-4 sm:p-6 max-w-xl w-full space-y-6 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <div>
                 <h2 className="text-xl font-bold text-civic-navy">

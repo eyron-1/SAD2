@@ -148,7 +148,7 @@ export default function SKExpenseManagement() {
       </div>
 
       {canEdit && modalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"><form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-card-hover border border-slate-200 p-6 max-w-lg w-full space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"><form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-card-hover border border-slate-200 p-4 sm:p-6 max-w-lg w-full space-y-4 max-h-[calc(100dvh-2rem)] overflow-y-auto">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4"><h2 className="font-bold text-civic-navy flex items-center gap-2"><Plus className="w-4 h-4 text-civic-emerald" />{editingId ? 'Edit SK Expense' : 'Record SK Expense'}</h2><button type="button" onClick={resetForm} aria-label="Close expense form" className="text-slate-400 hover:text-slate-600 p-1"><X className="w-5 h-5" /></button></div>
           <div className="grid sm:grid-cols-3 gap-4">
             <FormField as="select" label="Category" value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} error={fieldErrors.category}>
@@ -188,11 +188,13 @@ export default function SKExpenseManagement() {
 
       <div className="card p-0 overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2"><Receipt className="w-4 h-4 text-civic-emerald" /><h2 className="font-bold text-sm text-civic-navy">SK Expense Records</h2></div>
+        <div className="overflow-x-auto">
         <table className="w-full text-sm"><thead className="bg-civic-navy/5 text-civic-slate text-left"><tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Category</th><th className="px-4 py-3">Description</th><th className="px-4 py-3 text-right">Amount</th><th className="px-4 py-3">Receipt</th>{canEdit && <th className="px-4 py-3" />}</tr></thead><tbody>
           {loading && <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">Loading SK expenses…</td></tr>}
           {!loading && rows.length === 0 && <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">No SK expenses recorded yet.</td></tr>}
           {rows.map((row) => <tr key={row.id} className="border-t border-slate-100"><td className="px-4 py-3">{row.date_incurred}</td><td className="px-4 py-3">{row.category}</td><td className="px-4 py-3">{row.description || '—'}</td><td className="px-4 py-3 text-right">₱{Number(row.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td className="px-4 py-3">{row.receipt_url ? <div><button type="button" onClick={() => setLightboxUrl(row.receipt_url)} className="inline-flex items-center gap-1 text-xs text-civic-emerald hover:underline font-semibold"><Eye className="w-3.5 h-3.5" /> View</button>{row.receipt_verified_at ? <span className="flex items-center gap-1 text-[11px] text-emerald-700"><ShieldCheck className="h-3 w-3" />Verified</span> : canEdit && <button type="button" onClick={() => handleVerifyReceipt(row)} className="flex items-center gap-1 text-[11px] font-semibold text-slate-600 hover:text-civic-emerald"><ShieldCheck className="h-3 w-3" />Verify</button>}</div> : '—'}</td>{canEdit && <td className="px-4 py-3 text-right whitespace-nowrap"><button onClick={() => handleEdit(row)} className="text-civic-navy hover:underline mr-3 text-xs"><Pencil className="w-3 h-3 inline" /> Edit</button><button onClick={() => handleDelete(row.id)} className="text-civic-clay hover:underline text-xs"><Trash2 className="w-3 h-3 inline" /> Delete</button></td>}</tr>)}
         </tbody></table>
+        </div>
       </div>
 
       {/* In-page Image Lightbox */}

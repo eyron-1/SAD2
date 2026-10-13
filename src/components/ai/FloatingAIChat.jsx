@@ -124,9 +124,9 @@ export default function FloatingAIChat() {
   if (!profile) return null;
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end font-body">
+    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end font-body">
       {open && (
-        <div className="mb-3 w-[380px] max-w-[92vw] h-[540px] max-h-[80vh] bg-white rounded-2xl shadow-card-hover border border-slate-200 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="mb-3 w-[380px] max-w-[calc(100vw-2rem)] h-[540px] max-h-[calc(100dvh-7rem)] bg-white rounded-2xl shadow-card-hover border border-slate-200 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
           {/* Header */}
           <div className="bg-civic-dark text-white px-4 py-3.5 flex items-center justify-between shrink-0 border-b border-slate-800">
             <div className="flex items-center gap-2">

@@ -84,12 +84,12 @@ export default function KKMonitoring() {
 
       {canEdit && <form onSubmit={handleSubmit} className="card space-y-4">
         <h2 className="font-medium">{editingId ? 'Edit KK member' : 'Register KK member'}</h2>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <FormField label="Full Name" value={form.kk_name} onChange={(e) => setForm({ ...form, kk_name: e.target.value })} error={fieldErrors.kk_name} />
           <FormField label="Age" type="number" min="15" max="30" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} error={fieldErrors.age} />
           <FormField label="Purok / Zone" value={form.purok} onChange={(e) => setForm({ ...form, purok: e.target.value })} />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField as="select" label="Linked SK Program (optional)" value={form.sk_program_id} onChange={(e) => setForm({ ...form, sk_program_id: e.target.value })}>
             <option value="">— none —</option>
             {skPrograms.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}

@@ -136,7 +136,7 @@ export default function OfficialsTransition() {
       <ErrorBanner message={error} />
 
       {/* Seat Quota Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+      <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
         {[
           { role: ROLES.CAPTAIN, label: 'Captain', limit: 1 },
           { role: ROLES.KAGAWAD, label: 'Kagawads', limit: 7 },
@@ -207,7 +207,7 @@ export default function OfficialsTransition() {
       {/* Modal Dialog Form for Official Turnover */}
       {modalOpen && (
         <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
-          <div className="bg-white rounded-xl border border-slate-200 p-6 max-w-lg w-full space-y-6 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 max-w-lg w-full space-y-6 max-h-[calc(100dvh-2rem)] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-4">
               <h2 className="text-xl font-bold text-civic-navy flex items-center gap-2">
                 <History className="w-5 h-5 text-civic-leaf" /> Log Official Turnover / End of Term
@@ -263,7 +263,7 @@ export default function OfficialsTransition() {
                 ))}
               </FormField>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
                   type="date"
                   label="New Term Start Date"
@@ -337,5 +337,4 @@ export default function OfficialsTransition() {
     </div>
   );
 }
-
 

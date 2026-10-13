@@ -34,7 +34,7 @@ export default function PublicLayout() {
       {/* Top Banner Header */}
       <header className="bg-civic-dark text-white border-b border-slate-800 sticky top-0 z-40 shadow-md">
         <div className="max-w-6xl mx-auto px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-white/10 p-0.5 flex items-center justify-center border border-white/20 overflow-hidden shadow-inner">
               {logoUrl ? (
                 <img src={logoUrl} alt={portalName} className="w-full h-full object-cover rounded-lg" />
@@ -42,16 +42,16 @@ export default function PublicLayout() {
                 <SystemLogo className="w-full h-full object-cover rounded-lg" />
               )}
             </div>
-            <Link to={isSkPortal ? `/b/${slug}/sk` : `/b/${slug}`} className="group">
-              <h1 className="font-bold text-base md:text-lg text-white leading-tight flex items-center gap-2">
-                {portalName}
+            <Link to={isSkPortal ? `/b/${slug}/sk` : `/b/${slug}`} className="group min-w-0">
+              <h1 className="font-bold text-base md:text-lg text-white leading-tight flex items-center gap-2 min-w-0">
+                <span className="truncate">{portalName}</span>
                 <ShieldCheck className="w-4 h-4 text-civic-emerald" />
               </h1>
               <p className="text-[11px] text-slate-300 font-medium">{isSkPortal ? 'SK Youth Transparency Portal' : 'Barangay Government Transparency Portal'}</p>
             </Link>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Link
               to="/"
               className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-2 rounded-lg border border-white/15 transition-all whitespace-nowrap"

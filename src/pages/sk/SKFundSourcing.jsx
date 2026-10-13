@@ -197,7 +197,7 @@ export default function SKFundSourcing() {
 
       {/* Add / Edit Form */}
       {canEdit && modalOpen && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"><form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-card-hover border border-slate-200 p-6 max-w-lg w-full space-y-4 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50"><form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-card-hover border border-slate-200 p-4 sm:p-6 max-w-lg w-full space-y-4 max-h-[calc(100dvh-2rem)] overflow-y-auto">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <h2 className="font-bold text-civic-navy flex items-center gap-2"><Plus className="w-4 h-4 text-civic-emerald" />{editingId ? 'Edit Fund Source' : 'Add New SK Fund Source'}</h2>
             <button type="button" onClick={resetForm} aria-label="Close fund source form" className="text-slate-400 hover:text-slate-600 p-1"><X className="w-5 h-5" /></button>
@@ -284,6 +284,7 @@ export default function SKFundSourcing() {
           <Landmark className="w-4 h-4 text-civic-emerald" />
           <h2 className="font-bold text-sm text-civic-navy">All SK Fund Sources</h2>
         </div>
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-civic-navy/5 text-civic-slate text-left">
             <tr>
@@ -361,6 +362,7 @@ export default function SKFundSourcing() {
             ))}
           </tbody>
         </table>
+          </div>
       </div>
 
       {/* In-page Image Lightbox */}
