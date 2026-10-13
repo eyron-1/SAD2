@@ -1,4 +1,11 @@
-import { Suspense, lazy, useEffect, useRef, useState } from "react";
+import {
+  Component,
+  Suspense,
+  lazy,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   BrowserRouter,
   Routes,
@@ -12,6 +19,50 @@ import PublicLayout from "./components/layout/PublicLayout";
 import OfficialLayout from "./components/layout/OfficialLayout";
 import ErrorBanner from "./components/ui/ErrorBanner";
 import { friendlySupabaseError } from "./lib/validation";
+
+class AppErrorBoundary extends Component {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error("Application render error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <main className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
+          <div className="card max-w-lg space-y-4 text-center">
+            <h1 className="text-xl font-bold text-civic-navy">
+              This page could not be displayed
+            </h1>
+            <p className="text-sm text-slate-600">
+              An unexpected error stopped this page from loading. Reload the
+              page and try again.
+            </p>
+            <div className="flex justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="btn-primary"
+              >
+                Reload page
+              </button>
+              <a href="/" className="btn-secondary">
+                Return to home
+              </a>
+            </div>
+          </div>
+        </main>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 function OfficialSessionExitHandler() {
   const location = useLocation();
@@ -121,8 +172,18 @@ export default function App() {
     >
       <AuthProvider>
         <OfficialSessionExitHandler />
-        <Suspense fallback={<div className="min-h-screen bg-civic-cream" />}>
-          <Routes>
+        <AppErrorBoundary>
+          <Suspense
+            fallback={
+              <main className="min-h-screen flex items-center justify-center bg-civic-cream">
+                <div className="flex flex-col items-center gap-3 text-civic-navy">
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-civic-emerald border-t-transparent" />
+                  <p className="text-sm font-medium">Loading page…</p>
+                </div>
+              </main>
+            }
+          >
+            <Routes>
             {/* Public / resident-facing — no login required */}
             <Route path="/" element={<Landing />} />
             <Route path="/b/:slug" element={<PublicLayout />}>
@@ -189,8 +250,9 @@ export default function App() {
 
             {/* 404 Catch-All */}
             <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
+            </Routes>
+          </Suspense>
+        </AppErrorBoundary>
       </AuthProvider>
     </BrowserRouter>
   );

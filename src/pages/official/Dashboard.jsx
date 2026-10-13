@@ -3,7 +3,12 @@ import { useAuth } from "../../context/AuthContext";
 import { useSupabaseTable } from "../../lib/useSupabaseTable";
 import { roleLabel } from "../../utils/roles";
 import ErrorBanner from "../../components/ui/ErrorBanner";
-import { sumAmounts, sumActiveAmounts } from "../../lib/financial";
+import SystemLogo from "../../components/ui/SystemLogo";
+import {
+  forecastAnnualSpend,
+  sumAmounts,
+  sumActiveAmounts,
+} from "../../lib/financial";
 import {
   PieChart,
   Receipt,
@@ -15,6 +20,9 @@ import {
   Users,
   Landmark,
   Building2,
+  TrendingUp,
+  CalendarDays,
+  Bell,
 } from "lucide-react";
 
 const formatCurrency = (value) =>

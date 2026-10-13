@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { friendlySupabaseError } from '../lib/validation';
 
@@ -9,81 +9,114 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null); // includes role + barangay_id
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const activeUserId = useRef(null);
+  const profileRequests = useRef(new Map());
 
-  const loadProfile = useCallback(async (userId) => {
+  const loadProfile = useCallback((userId) => {
     if (!userId) {
       setProfile(null);
-      return null;
+      return Promise.resolve(null);
     }
-    try {
-      const { data, error: profileError } = await supabase
-        .from('profiles')
-        .select('*, barangays(name, slug, logo_url, sk_logo_url)')
-        .eq('id', userId)
-        .single();
 
-      if (profileError) {
-        // Fallback without relation join in case barangays table or relation has an issue
-        const { data: fallback } = await supabase
+    const pendingRequest = profileRequests.current.get(userId);
+    if (pendingRequest) return pendingRequest;
+
+    const request = (async () => {
+      try {
+        const { data, error: profileError } = await supabase
           .from('profiles')
-          .select('*')
+          .select('*, barangays(name, slug, logo_url, sk_logo_url)')
           .eq('id', userId)
           .single();
 
-        if (fallback) {
-          setProfile(fallback);
-          setError('');
+        if (profileError && ['PGRST200', 'PGRST201'].includes(profileError.code)) {
+          const { data: fallback, error: fallbackError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', userId)
+            .single();
+
+          if (fallbackError) {
+            if (activeUserId.current === userId) {
+              setError(friendlySupabaseError(profileError));
+              setProfile(null);
+            }
+            return null;
+          }
+
+          if (activeUserId.current === userId) {
+            setProfile(fallback);
+            setError('');
+          }
           return fallback;
         }
 
-        setError(friendlySupabaseError(profileError));
-        setProfile(null);
-        return null;
-      } else {
-        setProfile(data);
-        setError('');
+        if (profileError) {
+          if (activeUserId.current === userId) {
+            setError(friendlySupabaseError(profileError));
+            setProfile(null);
+          }
+          return null;
+        }
+
+        if (activeUserId.current === userId) {
+          setProfile(data);
+          setError('');
+        }
         return data;
+      } catch (err) {
+        console.error('loadProfile error:', err);
+        if (activeUserId.current === userId) {
+          setError(String(err));
+          setProfile(null);
+        }
+        return null;
+      } finally {
+        profileRequests.current.delete(userId);
       }
-    } catch (err) {
-      console.error('loadProfile error:', err);
-      setError(String(err));
-      setProfile(null);
-      return null;
-    }
+    })();
+
+    profileRequests.current.set(userId, request);
+    return request;
   }, []);
 
   useEffect(() => {
     let mounted = true;
+    let profileLoadTimer;
 
-    async function initAuth() {
-      try {
-        const { data } = await supabase.auth.getSession();
-        if (!mounted) return;
-        setSession(data.session);
-        if (data.session?.user?.id) {
-          await loadProfile(data.session.user.id);
-        }
-      } catch (err) {
-        console.error('Auth initialization error:', err);
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-
-    initAuth();
-
-    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, newSession) => {
       if (!mounted) return;
+
+      const userId = newSession?.user?.id ?? null;
       setSession(newSession);
-      if (newSession?.user?.id) {
-        await loadProfile(newSession.user.id);
-      } else {
+
+      if (!userId) {
+        if (profileLoadTimer) clearTimeout(profileLoadTimer);
+        activeUserId.current = null;
         setProfile(null);
+        setLoading(false);
+        return;
       }
+
+      const shouldLoadProfile =
+        event === 'INITIAL_SESSION' ||
+        event === 'USER_UPDATED' ||
+        activeUserId.current !== userId;
+      if (!shouldLoadProfile) return;
+
+      if (profileLoadTimer) clearTimeout(profileLoadTimer);
+      activeUserId.current = userId;
+      setLoading(true);
+      profileLoadTimer = setTimeout(() => {
+        loadProfile(userId).finally(() => {
+          if (mounted && activeUserId.current === userId) setLoading(false);
+        });
+      }, 0);
     });
 
     return () => {
       mounted = false;
+      if (profileLoadTimer) clearTimeout(profileLoadTimer);
       listener?.subscription?.unsubscribe();
     };
   }, [loadProfile]);
