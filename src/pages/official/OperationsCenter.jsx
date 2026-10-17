@@ -5,6 +5,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { isBarangayEditor } from '../../utils/roles';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import Badge from '../../components/ui/Badge';
+import AuditLogList from '../../components/ui/AuditLogList';
 import {
   Activity, Archive, Bell, CalendarDays, Check, ClipboardCheck, Download,
   FileText, Package, Plus, ShieldCheck, Siren, Trash2, X,
@@ -288,7 +289,7 @@ export default function OperationsCenter() {
 
     if (tab === 'notifications') return renderRows(notifications.rows, (row) => <div className="flex flex-wrap justify-between gap-3"><div><h3 className={`font-semibold ${row.read_at ? 'text-slate-600' : 'text-civic-navy'}`}>{row.title}</h3><p className="mt-1 text-sm text-slate-600">{row.message}</p><p className="mt-1 text-xs text-slate-400">{new Date(row.created_at).toLocaleString()}</p></div>{!row.read_at && <button className="btn-secondary py-1.5 text-xs" onClick={() => markRead(row)}><Check className="h-3.5 w-3.5" />Mark read</button>}</div>, notifications, false);
 
-    if (tab === 'audit') return renderRows(audit.rows, (row) => <div className="flex flex-wrap items-center gap-2"><Badge status={row.action.toLowerCase()} /><span className="text-sm font-semibold text-slate-800">{row.entity_table}</span><span className="text-xs text-slate-500">Record {row.record_id || '—'}</span><span className="ml-auto text-xs text-slate-400">{new Date(row.created_at).toLocaleString()}</span><details className="basis-full text-xs text-slate-500"><summary className="cursor-pointer">View change details</summary><pre className="mt-2 whitespace-pre-wrap break-all">{JSON.stringify({ before: row.before_data, after: row.after_data }, null, 2)}</pre></details></div>, audit, false);
+    if (tab === 'audit') return <AuditLogList rows={audit.rows} loading={audit.loading} emptyMessage="No barangay audit events yet." />;
 
     return <div className="card space-y-3"><h2 className="text-lg font-bold text-civic-navy">Tenant backup</h2><p className="text-sm text-slate-600">Export a JSON snapshot of this barangay’s financial data, projects, operations, approvals, and audit history.</p><button onClick={exportBackup} className="btn-emerald"><Download className="h-4 w-4" />Download JSON backup</button><p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">Store exports securely. Recovery must be performed by an authorized database administrator; this client cannot safely restore rows using the public API key.</p></div>;
   };

@@ -3,8 +3,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import { isSkEditor } from '../../utils/roles';
 import ErrorBanner from '../../components/ui/ErrorBanner';
-import Badge from '../../components/ui/Badge';
-import { Activity, Bell, CalendarDays, Check, ClipboardList, Plus, ShieldCheck } from 'lucide-react';
+import AuditLogList from '../../components/ui/AuditLogList';
+import { Activity, Bell, Check, CheckCircle2, ClipboardList, Plus, ShieldCheck } from 'lucide-react';
 
 const EMPTY_FORM = {
   sk_program_id: '',
@@ -22,6 +22,7 @@ export default function SKOperationsCenter() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [saving, setSaving] = useState(false);
+  const [updatingId, setUpdatingId] = useState('');
 
   const programs = useSupabaseTable('sk_programs', profile?.barangay_id);
   const milestones = useSupabaseTable('program_milestones', profile?.barangay_id, { orderBy: 'due_date', ascending: true });
@@ -29,11 +30,11 @@ export default function SKOperationsCenter() {
   const notifications = useSupabaseTable('notifications', profile?.barangay_id, { filter: { user_id: user?.id } });
   const queryError = [programs.error, milestones.error, audit.error, notifications.error].find(Boolean);
 
-  const completedCount = milestones.rows.filter((row) => row.progress_percent === 100).length;
+  const completedCount = milestones.rows.filter((row) => Number(row.progress_percent) === 100).length;
   const averageProgress = milestones.rows.length
     ? Math.round(milestones.rows.reduce((sum, row) => sum + Number(row.progress_percent || 0), 0) / milestones.rows.length)
     : 0;
-  const overdueCount = milestones.rows.filter((row) => row.due_date && row.due_date < new Date().toISOString().slice(0, 10) && row.progress_percent < 100).length;
+  const overdueCount = milestones.rows.filter((row) => row.due_date && row.due_date < new Date().toISOString().slice(0, 10) && Number(row.progress_percent) < 100).length;
   const unreadCount = notifications.rows.filter((row) => !row.read_at).length;
 
   const createMilestone = async (event) => {
@@ -65,11 +66,14 @@ export default function SKOperationsCenter() {
   };
 
   const updateProgress = async (row) => {
-    const progress = Math.min(100, row.progress_percent + 10);
+    setError('');
+    const progress = Math.min(100, Number(row.progress_percent) + 10);
+    setUpdatingId(row.id);
     const result = await milestones.updateRow(row.id, {
       progress_percent: progress,
       status: progress === 100 ? 'complete' : 'in_progress',
     });
+    setUpdatingId('');
     if (result.error) setError(result.error);
   };
 
@@ -109,35 +113,116 @@ export default function SKOperationsCenter() {
       </nav>
 
       {tab === 'milestones' && <div className="space-y-5">
-        {canEdit && <form onSubmit={createMilestone} className="card space-y-4">
-          <h2 className="flex items-center gap-2 font-bold text-civic-navy"><Plus className="h-4 w-4 text-civic-emerald" />Add an SK milestone</h2>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <label className="block"><span className="label">SK program</span><select className="input-field" value={form.sk_program_id} onChange={(event) => setForm({ ...form, sk_program_id: event.target.value })} required><option value="">Select an SK program</option>{programs.rows.map((program) => <option key={program.id} value={program.id}>{program.title}</option>)}</select></label>
-            <label className="block"><span className="label">Milestone</span><input className="input-field" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} maxLength={200} required /></label>
-            <label className="block"><span className="label">Due date</span><input type="date" className="input-field" value={form.due_date} onChange={(event) => setForm({ ...form, due_date: event.target.value })} /></label>
-            <label className="block"><span className="label">Progress (%)</span><input type="number" className="input-field" min="0" max="100" step="1" value={form.progress_percent} onChange={(event) => setForm({ ...form, progress_percent: event.target.value })} required /></label>
-            <label className="block sm:col-span-2"><span className="label">Update notes</span><textarea className="input-field" rows="2" maxLength={5000} value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} /></label>
+        <section className="card space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <h2 className="font-bold text-civic-navy">Milestone progress</h2>
+              <p className="mt-1 text-sm text-slate-600">
+                {milestones.rows.length} total · {completedCount} completed · {overdueCount} overdue
+              </p>
+            </div>
+            <div className="min-w-36 rounded-lg bg-civic-navy/5 px-4 py-3">
+              <p className="text-xs font-semibold text-slate-500">Average progress</p>
+              <p className="mt-1 text-xl font-bold text-civic-navy">{averageProgress}%</p>
+            </div>
           </div>
-          <div className="flex justify-end"><button className="btn-emerald" disabled={saving}><Plus className="h-4 w-4" />{saving ? 'Saving…' : 'Save SK milestone'}</button></div>
+        </section>
+
+        {canEdit && <form onSubmit={createMilestone} className="card space-y-4">
+          <div>
+            <h2 className="flex items-center gap-2 font-bold text-civic-navy"><Plus className="h-4 w-4 text-civic-emerald" />Add a milestone</h2>
+            <p className="mt-1 text-sm text-slate-600">Choose a program, name the deliverable, and set its progress.</p>
+          </div>
+          {programs.rows.length === 0 ? (
+            <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              Add an SK program before creating milestones.
+            </p>
+          ) : <>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="block min-w-0">
+                <span className="label">SK program <span className="text-rose-600">*</span></span>
+                <select className="input-field" value={form.sk_program_id} onChange={(event) => setForm((current) => ({ ...current, sk_program_id: event.target.value }))} required>
+                  <option value="">Choose a program</option>
+                  {programs.rows.map((program) => <option key={program.id} value={program.id}>{program.title}</option>)}
+                </select>
+              </label>
+              <label className="block min-w-0">
+                <span className="label">Milestone name <span className="text-rose-600">*</span></span>
+                <input className="input-field" placeholder="e.g. Complete community sports clinic" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} maxLength={200} required />
+              </label>
+              <label className="block min-w-0">
+                <span className="label">Due date</span>
+                <input type="date" className="input-field" value={form.due_date} onChange={(event) => setForm((current) => ({ ...current, due_date: event.target.value }))} />
+              </label>
+              <label className="block min-w-0">
+                <span className="label">Current progress (%)</span>
+                <input type="number" className="input-field" min="0" max="100" step="1" value={form.progress_percent} onChange={(event) => setForm((current) => ({ ...current, progress_percent: event.target.value }))} required />
+                <span className="mt-1 block text-xs text-slate-500">Enter a number from 0 to 100.</span>
+              </label>
+              <label className="block min-w-0 sm:col-span-2">
+                <span className="label">Notes <span className="font-normal normal-case tracking-normal">(optional)</span></span>
+                <textarea className="input-field" placeholder="Add a short progress update or useful context" rows="2" maxLength={5000} value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} />
+              </label>
+            </div>
+            <div className="flex justify-end">
+              <button className="btn-emerald" disabled={saving || programs.rows.length === 0}>
+                <Plus className="h-4 w-4" />{saving ? 'Saving…' : 'Add milestone'}
+              </button>
+            </div>
+          </>}
         </form>}
 
-        <div className="card p-0 divide-y divide-slate-100 overflow-hidden">
-          {milestoneRows.length === 0 ? <p className="p-5 text-sm text-slate-500">No SK milestones yet.</p> : milestoneRows.map((row) => <article key={row.id} className="space-y-2 p-4 sm:p-5">
-            <div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold text-slate-800">{row.title}</h3><Badge status={row.status} /></div>
-            <p className="text-xs text-slate-500">{row.programTitle}{row.due_date ? ` · Due ${row.due_date}` : ''}</p>
-            <div className="h-2 max-w-xl overflow-hidden rounded-full bg-slate-100"><div className="h-full bg-civic-emerald" style={{ width: `${row.progress_percent}%` }} /></div>
-            <p className="text-xs font-semibold text-civic-navy">{row.progress_percent}% complete</p>
-            {row.notes && <p className="text-sm text-slate-600">{row.notes}</p>}
-            {canEdit && row.progress_percent < 100 && <button className="btn-secondary py-1.5 text-xs" onClick={() => updateProgress(row)}><Check className="h-3.5 w-3.5" />Update progress +10%</button>}
-          </article>)}
-        </div>
+        <section className="space-y-3" aria-label="SK milestones">
+          {milestoneRows.length === 0 ? (
+            <div className="card py-8 text-center">
+              <ClipboardList className="mx-auto h-8 w-8 text-slate-300" />
+              <h3 className="mt-3 font-semibold text-civic-navy">No milestones yet</h3>
+              <p className="mt-1 text-sm text-slate-500">{canEdit ? 'Add a milestone above to start tracking a program.' : 'Milestones will appear here when they are added.'}</p>
+            </div>
+          ) : milestoneRows.map((row) => {
+            const progress = Math.max(0, Math.min(100, Number(row.progress_percent) || 0));
+            const isOverdue = row.due_date && row.due_date < new Date().toISOString().slice(0, 10) && progress < 100;
+            return <article key={row.id} className="card space-y-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-civic-emerald">{row.programTitle}</p>
+                  <h3 className="mt-1 font-semibold text-slate-800">{row.title}</h3>
+                </div>
+                <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${isOverdue ? 'bg-rose-50 text-rose-700' : progress === 100 ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+                  {isOverdue ? 'Overdue' : progress === 100 ? <><CheckCircle2 className="h-3.5 w-3.5" />Complete</> : progress === 0 ? 'Not started' : 'In progress'}
+                </span>
+              </div>
+              {row.due_date && <p className={`text-sm ${isOverdue ? 'font-medium text-rose-700' : 'text-slate-500'}`}>Due {new Date(`${row.due_date}T00:00:00`).toLocaleDateString()}</p>}
+              <div>
+                <div className="mb-1.5 flex justify-between text-xs">
+                  <span className="font-medium text-slate-600">Progress</span>
+                  <span className="font-semibold text-civic-navy">{progress}%</span>
+                </div>
+                <div
+                  className="h-2.5 overflow-hidden rounded-full bg-slate-100"
+                  role="progressbar"
+                  aria-label={`${row.title} progress`}
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow={progress}
+                >
+                  <div className="h-full rounded-full bg-civic-emerald transition-all" style={{ width: `${progress}%` }} />
+                </div>
+              </div>
+              {row.notes && <p className="text-sm text-slate-600">{row.notes}</p>}
+              {canEdit && progress < 100 && <button className="btn-secondary py-1.5 text-xs" disabled={updatingId === row.id} onClick={() => updateProgress(row)}>
+                <Check className="h-3.5 w-3.5" />{updatingId === row.id ? 'Updating…' : 'Add 10% progress'}
+              </button>}
+            </article>;
+          })}
+        </section>
       </div>}
 
-      {tab === 'audit' && <div className="card p-0 divide-y divide-slate-100 overflow-hidden">
-        {audit.rows.filter((row) => row.entity_table.startsWith('sk_') || (row.entity_table === 'program_milestones' && (row.after_data?.sk_program_id || row.before_data?.sk_program_id))).length === 0
-          ? <p className="p-5 text-sm text-slate-500">No SK audit events yet.</p>
-          : audit.rows.filter((row) => row.entity_table.startsWith('sk_') || (row.entity_table === 'program_milestones' && (row.after_data?.sk_program_id || row.before_data?.sk_program_id))).map((row) => <article key={row.id} className="flex flex-wrap items-center gap-2 p-4"><Badge status={row.action.toLowerCase()} /><span className="text-sm font-semibold text-slate-800">{row.entity_table}</span><span className="text-xs text-slate-500">Record {row.record_id || '—'}</span><span className="ml-auto text-xs text-slate-400">{new Date(row.created_at).toLocaleString()}</span><details className="basis-full text-xs text-slate-500"><summary className="cursor-pointer">View change details</summary><pre className="mt-2 whitespace-pre-wrap break-all">{JSON.stringify({ before: row.before_data, after: row.after_data }, null, 2)}</pre></details></article>)}
-      </div>}
+      {tab === 'audit' && <AuditLogList
+        rows={audit.rows.filter((row) => row.entity_table.startsWith('sk_') || (row.entity_table === 'program_milestones' && (row.after_data?.sk_program_id || row.before_data?.sk_program_id)))}
+        loading={audit.loading}
+        emptyMessage="No SK audit events yet."
+      />}
 
       {tab === 'notifications' && <div className="card p-0 divide-y divide-slate-100 overflow-hidden">
         {notifications.rows.length === 0 ? <p className="p-5 text-sm text-slate-500">No notifications yet.</p> : notifications.rows.map((row) => <article key={row.id} className="flex flex-wrap justify-between gap-3 p-4"><div><h3 className={`font-semibold ${row.read_at ? 'text-slate-600' : 'text-civic-navy'}`}>{row.title}</h3><p className="mt-1 text-sm text-slate-600">{row.message}</p><p className="mt-1 text-xs text-slate-400">{new Date(row.created_at).toLocaleString()}</p></div>{!row.read_at && <button className="btn-secondary py-1.5 text-xs" onClick={() => markRead(row)}><Check className="h-3.5 w-3.5" />Mark read</button>}</article>)}
