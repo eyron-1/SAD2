@@ -12,6 +12,17 @@ import ErrorBanner from '../../components/ui/ErrorBanner';
 import SystemLogo from '../../components/ui/SystemLogo';
 import { PROVINCES_LIST, getCitiesMunicipalities, getBarangays, generateSlug } from '../../lib/philippineLocations';
 
+const EXISTING_BARANGAY_SELF_REGISTERABLE_ROLES = [
+  ROLES.CAPTAIN,
+  ROLES.SECRETARY,
+  ROLES.TREASURER,
+  ROLES.KAGAWAD,
+  ROLES.STAFF,
+  ROLES.SK_CHAIRPERSON,
+  ROLES.SK_TREASURER,
+  ROLES.SK_KAGAWAD,
+];
+
 export default function Signup() {
   const navigate = useNavigate();
   const [barangays, setBarangays] = useState([]);
@@ -31,11 +42,11 @@ export default function Signup() {
 
   const selfRegisterableRoles = tenantMode === 'new'
     ? Object.values(ROLES)
-    : [ROLES.KAGAWAD, ROLES.STAFF, ROLES.SK_CHAIRPERSON, ROLES.SK_TREASURER, ROLES.SK_KAGAWAD];
+    : EXISTING_BARANGAY_SELF_REGISTERABLE_ROLES;
 
   const changeTenantMode = (mode) => {
     setTenantMode(mode);
-    if (mode === 'existing' && ![ROLES.KAGAWAD, ROLES.STAFF, ROLES.SK_CHAIRPERSON, ROLES.SK_TREASURER, ROLES.SK_KAGAWAD].includes(form.role)) {
+    if (mode === 'existing' && !EXISTING_BARANGAY_SELF_REGISTERABLE_ROLES.includes(form.role)) {
       setForm((prev) => ({ ...prev, role: ROLES.SK_KAGAWAD }));
     }
   };
@@ -92,6 +103,31 @@ export default function Signup() {
     }
 
     try {
+      let barangayId = form.barangay_id;
+
+      if (tenantMode === 'existing') {
+        const limit = ROLE_SEAT_LIMITS[form.role] || 1;
+        const { data: existingProfiles, error: checkErr } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('barangay_id', barangayId)
+          .eq('role', form.role)
+          .neq('is_active', false);
+
+        if (checkErr) {
+          setSubmitError(friendlySupabaseError(checkErr));
+          setSubmitting(false);
+          return;
+        }
+        if (existingProfiles && existingProfiles.length >= limit) {
+          setSubmitError(
+            `Official Seat Limit Reached: This barangay already has ${existingProfiles.length}/${limit} active ${roleLabel(form.role)}(s). An official turnover/handover must be logged to free up this seat.`
+          );
+          setSubmitting(false);
+          return;
+        }
+      }
+
       // Sign up FIRST — every insert below is protected by permission rules
       // that check who's logged in, so they only work once a session exists.
       const { data: authData, error: authErr } = await supabase.auth.signUp({
@@ -112,8 +148,6 @@ export default function Signup() {
         return;
       }
 
-      let barangayId = form.barangay_id;
-
       if (tenantMode === 'new') {
       const { data: newBarangay, error: bErr } = await supabase
         .from('barangays')
@@ -131,26 +165,7 @@ export default function Signup() {
         return;
       }
       barangayId = newBarangay.id;
-      } else {
-      // Check active seat quota for existing barangay
-      const limit = ROLE_SEAT_LIMITS[form.role] || 1;
-      const { data: existingProfiles, error: checkErr } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('barangay_id', barangayId)
-        .eq('role', form.role)
-        .neq('is_active', false);
-
-      if (checkErr) {
-        console.warn('Seat quota check warning', checkErr);
-      } else if (existingProfiles && existingProfiles.length >= limit) {
-        setSubmitError(
-          `Official Seat Limit Reached: This barangay already has ${existingProfiles.length}/${limit} active ${roleLabel(form.role)}(s). An official turnover/handover must be logged to free up this seat.`
-        );
-        setSubmitting(false);
-        return;
       }
-    }
 
       const { error: profileErr } = await supabase.from('profiles').insert([{
       id: authData.user.id,
@@ -163,7 +178,13 @@ export default function Signup() {
 
       setSubmitting(false);
       if (profileErr) {
-        setSubmitError(friendlySupabaseError(profileErr));
+        if (profileErr.code === '42501' || profileErr.message?.includes('row-level security')) {
+          setSubmitError(
+            'The database signup permissions are out of date. Ask your administrator to run supabase/migration_signup_barangay_editors.sql in the Supabase SQL Editor. If this account was already created without a profile, remove that incomplete user from Supabase Authentication > Users before signing up again.'
+          );
+        } else {
+          setSubmitError(friendlySupabaseError(profileErr));
+        }
       } else {
         navigate('/dashboard');
       }
@@ -259,7 +280,7 @@ export default function Signup() {
                 </FormField>
                 {tenantMode === 'existing' && (
                   <p className="-mt-2 text-xs leading-5 text-slate-500">
-                    SK Chairperson and SK Treasurer can register when that seat is still available in this barangay.
+                    Barangay Captain, Secretary, Treasurer, SK Chairperson, and SK Treasurer can register when their seat is still available.
                   </p>
                 )}
               </fieldset>

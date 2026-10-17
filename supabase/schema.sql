@@ -159,6 +159,17 @@ returns boolean language sql security definer set search_path = public as $$
     );
 $$;
 
+create or replace function is_barangay_role_available(bgy uuid, requested_role text)
+returns boolean language sql security definer set search_path = public as $$
+  select requested_role in ('captain', 'secretary', 'treasurer')
+    and not exists (
+      select 1 from profiles
+      where barangay_id = bgy
+        and role::text = requested_role
+        and is_active
+    );
+$$;
+
 -- ------------------------------------------------------------
 -- FUND SOURCING
 -- ------------------------------------------------------------
@@ -622,6 +633,7 @@ create policy "users create own profile" on profiles for insert with check (
   and (
     role in ('kagawad', 'staff', 'sk_kagawad')
       or (role in ('sk_chairperson', 'sk_treasurer') and is_sk_role_available(barangay_id, role::text))
+      or (role in ('captain', 'secretary', 'treasurer') and is_barangay_role_available(barangay_id, role::text))
     or is_empty_barangay(barangay_id)
   )
 );

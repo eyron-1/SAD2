@@ -68,6 +68,10 @@ recording the expense. Then run
 a program cannot exceed that program's budget, even when its category allocation
 has a higher balance.
 
+To allow self-registration for an unoccupied Barangay Captain, Secretary, or
+Treasurer seat in an existing barangay, run
+`supabase/migration_signup_barangay_editors.sql`.
+
 The Operations page exports a tenant-scoped JSON data snapshot. Store it in an
 access-controlled location. Restore must be performed by a Supabase
 administrator through a controlled database recovery process, not by replaying
@@ -85,7 +89,9 @@ node --test src/lib/validation.test.js
 Go to `/signup`, choose **Set up new barangay**, fill in the barangay's name
 and a URL slug (e.g. `san-isidro` → the public portal becomes `/b/san-isidro`),
 and pick your role. The first Captain/Secretary/Treasurer account for a
-barangay should sign up this way; everyone after that picks **Join existing**.
+barangay should sign up this way. For an existing barangay, Captain, Secretary,
+and Treasurer can also join when their seat is unoccupied; everyone else picks
+**Join existing**.
 
 Only **Captain, Secretary, and Treasurer** can create/edit/delete barangay
 financial and program records. Only **SK Chairperson and SK Treasurer** can
