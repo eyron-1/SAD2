@@ -90,12 +90,12 @@ export default function OfficialLayout() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 w-[min(18rem,calc(100vw-2rem))] bg-civic-dark text-white flex flex-col z-50 transition-transform duration-300 ease-in-out ${
+        className={`fixed inset-y-0 left-0 w-[min(18rem,calc(100vw-2rem))] bg-gradient-to-b from-civic-dark to-[#0a2034] text-white flex flex-col z-50 transition-transform duration-300 ease-in-out ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
         {/* Sidebar Header with Barangay Logo */}
-        <div className="p-5 border-b border-slate-800 flex items-center gap-3.5">
+        <div className="p-5 border-b border-white/10 flex items-center gap-3.5">
           <div className="w-12 h-12 rounded-xl bg-white/10 p-1 flex items-center justify-center shrink-0 border border-white/15 overflow-hidden shadow-inner">
             {logoUrl ? (
               <img src={logoUrl} alt={bgyName} className="w-full h-full object-cover rounded-lg" />
@@ -141,7 +141,7 @@ export default function OfficialLayout() {
         )}
 
         {/* Navigation Items */}
-        <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
+        <nav aria-label="Portal navigation" className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {nav.map((item) => {
             const Icon = item.icon;
             return (
@@ -153,7 +153,7 @@ export default function OfficialLayout() {
                 className={({ isActive }) =>
                   `flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
                     isActive
-                      ? 'bg-civic-emerald text-white shadow-sm font-semibold'
+                      ? 'bg-civic-emerald text-white shadow-md shadow-emerald-950/20 font-semibold'
                       : 'text-slate-300 hover:bg-white/10 hover:text-white'
                   }`
                 }
@@ -166,7 +166,7 @@ export default function OfficialLayout() {
         </nav>
 
         {/* Footer User Info & Sign out */}
-        <div className="p-4 border-t border-slate-800 flex items-center justify-between">
+        <div className="p-4 border-t border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-8 h-8 rounded-full bg-civic-emerald/20 text-civic-emerald border border-civic-emerald/30 font-bold text-xs flex items-center justify-center shrink-0">
               {profile?.full_name?.charAt(0) || 'U'}
@@ -190,7 +190,7 @@ export default function OfficialLayout() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 lg:ml-72">
         {/* Top Navbar */}
-        <header className="bg-white border-b border-slate-200 px-3 py-3 sm:px-6 sm:py-4 flex items-center justify-between gap-2 sticky top-0 z-30 shadow-xs">
+        <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-3 py-3 sm:px-6 sm:py-4 flex items-center justify-between gap-2 sticky top-0 z-30 shadow-sm">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileOpen(true)}
@@ -223,9 +223,11 @@ export default function OfficialLayout() {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 xl:p-9 overflow-y-auto">
           <ErrorBanner message={signOutError} />
-          <Outlet />
+          <div className="portal-page-content">
+            <Outlet />
+          </div>
         </main>
       </div>
 

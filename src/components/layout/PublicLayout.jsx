@@ -32,8 +32,8 @@ export default function PublicLayout() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 font-body">
       {/* Top Banner Header */}
-      <header className="bg-civic-dark text-white border-b border-slate-800 sticky top-0 z-40 shadow-md">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <header className="bg-civic-dark text-white border-b border-white/10 sticky top-0 z-40 shadow-lg shadow-slate-900/10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-white/10 p-0.5 flex items-center justify-center border border-white/20 overflow-hidden shadow-inner">
               {logoUrl ? (
@@ -70,8 +70,8 @@ export default function PublicLayout() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="bg-slate-900/60 border-t border-slate-800/80">
-          <nav className="max-w-6xl mx-auto px-4 flex gap-1.5 overflow-x-auto text-xs py-1.5">
+        <div className="bg-slate-950/30 border-t border-white/10">
+          <nav aria-label="Public portal navigation" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-1.5 overflow-x-auto text-xs py-2 [scrollbar-width:none]">
             {nav.map((item) => {
               const Icon = item.icon;
               return (
@@ -82,7 +82,7 @@ export default function PublicLayout() {
                   className={({ isActive }) =>
                     `flex items-center gap-2 px-3 py-2 rounded-lg font-medium whitespace-nowrap transition-all duration-150 ${
                       isActive
-                        ? 'bg-civic-emerald text-white font-semibold shadow-xs'
+                        ? 'bg-civic-emerald text-white font-semibold shadow-sm'
                         : 'text-slate-300 hover:bg-white/10 hover:text-white'
                     }`
                   }
@@ -96,12 +96,14 @@ export default function PublicLayout() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-6xl mx-auto px-4 py-8 w-full">
-        <Outlet />
+      <main className="flex-1 max-w-7xl mx-auto px-4 py-7 sm:px-6 sm:py-10 lg:px-8 w-full">
+        <div className="public-page-content">
+          <Outlet />
+        </div>
       </main>
 
-      <footer className="bg-white border-t border-slate-200 text-center text-xs text-slate-500 py-6 px-4">
-        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+      <footer className="bg-white border-t border-slate-200/80 text-center text-xs text-slate-500 py-6 px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="flex items-center gap-1.5 font-medium">
             <ShieldCheck className="w-4 h-4 text-civic-emerald" />
             Published under the Philippine Barangay Full Disclosure Policy (DILG)
