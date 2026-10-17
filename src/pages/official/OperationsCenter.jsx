@@ -5,9 +5,8 @@ import { supabase } from '../../lib/supabaseClient';
 import { isBarangayEditor } from '../../utils/roles';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import Badge from '../../components/ui/Badge';
-import AuditLogList from '../../components/ui/AuditLogList';
 import {
-  Activity, Archive, Bell, CalendarDays, Check, ClipboardCheck, Download,
+  Activity, Archive, CalendarDays, Check, ClipboardCheck, Download,
   FileText, Package, Plus, ShieldCheck, Siren, Trash2, X,
 } from 'lucide-react';
 
@@ -18,8 +17,6 @@ const TABS = [
   { id: 'inventory', label: 'Property', icon: Package },
   { id: 'relief', label: 'Disaster response', icon: Siren },
   { id: 'documents', label: 'Documents', icon: FileText },
-  { id: 'notifications', label: 'Notifications', icon: Bell },
-  { id: 'audit', label: 'Audit trail', icon: ShieldCheck },
   { id: 'backup', label: 'Backup', icon: Archive },
 ];
 
@@ -63,6 +60,7 @@ export default function OperationsCenter() {
   const tabs = TABS.filter(({ id }) => canEdit || !['inventory', 'backup'].includes(id));
   const [tab, setTab] = useState('approvals');
   const [form, setForm] = useState(INITIAL_FORM);
+  const [isFormOpen, setIsFormOpen] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [saving, setSaving] = useState(false);
@@ -75,12 +73,10 @@ export default function OperationsCenter() {
   const incidents = useSupabaseTable('disaster_incidents', profile?.barangay_id, { orderBy: 'incident_date' });
   const distributions = useSupabaseTable('relief_distributions', profile?.barangay_id, { orderBy: 'distributed_on' });
   const documents = useSupabaseTable('official_documents', profile?.barangay_id, { orderBy: 'document_date' });
-  const notifications = useSupabaseTable('notifications', profile?.barangay_id, { filter: { user_id: user?.id } });
-  const audit = useSupabaseTable('audit_logs', profile?.barangay_id);
 
   const queryError = [
     approvals.error, activities.error, programs.error, milestones.error, inventory.error,
-    incidents.error, distributions.error, documents.error, notifications.error, audit.error,
+    incidents.error, distributions.error, documents.error,
   ].find(Boolean);
 
   const setField = (event) => {
@@ -89,6 +85,10 @@ export default function OperationsCenter() {
   };
 
   const resetForm = () => setForm(INITIAL_FORM);
+  const closeForm = () => {
+    resetForm();
+    setIsFormOpen(false);
+  };
 
   const createRecord = async (event) => {
     event.preventDefault();
@@ -165,6 +165,7 @@ export default function OperationsCenter() {
     else {
       setNotice('Record saved.');
       resetForm();
+      setIsFormOpen(false);
     }
   };
 
@@ -178,13 +179,6 @@ export default function OperationsCenter() {
       approvals.refetch();
       notifications.refetch();
     }
-  };
-
-  const markRead = async (row) => {
-    const { error: updateError } = await supabase.from('notifications')
-      .update({ read_at: new Date().toISOString() }).eq('id', row.id).eq('user_id', user.id);
-    if (updateError) setError(updateError.message);
-    else notifications.refetch();
   };
 
   const updateRecord = async (api, row, changes) => {
@@ -232,9 +226,10 @@ export default function OperationsCenter() {
   };
 
   const renderForm = () => {
-    if (['notifications', 'audit', 'backup'].includes(tab)) return null;
-    if (!canEdit && tab !== 'approvals') return null;
     if (tab === 'projects' && !programs.rows.length) return <p className="text-sm text-slate-500">Add a Barangay program before creating milestones.</p>;
+    if (!isFormOpen) return null;
+    if (tab === 'backup') return null;
+    if (!canEdit && tab !== 'approvals') return null;
 
     const text = (name, label, type = 'text', props = {}) => <TextField key={name} name={name} label={label} type={type} value={form[name]} onChange={setField} {...props} />;
     const select = (name, label, options) => <SelectField key={name} name={name} label={label} value={form[name]} onChange={setField} options={options} />;
@@ -253,7 +248,7 @@ export default function OperationsCenter() {
 
     return (
       <form onSubmit={createRecord} className="card space-y-4">
-        <div className="flex items-center justify-between gap-3"><h2 className="font-bold text-civic-navy flex items-center gap-2"><Plus className="h-4 w-4 text-civic-emerald" />Add a record</h2><button type="button" title="Clear form" onClick={resetForm} className="p-2 rounded-md text-slate-500 hover:bg-slate-100"><X className="h-4 w-4" /></button></div>
+        <div className="flex items-center justify-between gap-3"><h2 className="font-bold text-civic-navy">New record</h2><button type="button" onClick={closeForm} className="text-sm font-semibold text-slate-500 hover:text-slate-800">Cancel</button></div>
         {fields}
         <div className="flex justify-end"><button className="btn-emerald" disabled={saving}><Plus className="h-4 w-4" />{saving ? 'Saving…' : 'Save record'}</button></div>
       </form>
@@ -287,10 +282,6 @@ export default function OperationsCenter() {
 
     if (tab === 'documents') return renderRows(documents.rows, (row) => <div><div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold text-slate-800">{row.title}</h3><Badge status={row.document_type} />{row.is_public && <Badge status="published" />}</div><p className="text-sm text-slate-500">{row.document_date || 'Undated'}{row.summary ? ` · ${row.summary}` : ''}</p>{row.document_url && <a className="mt-2 inline-flex text-sm font-semibold text-civic-emerald hover:underline" href={row.document_url} target="_blank" rel="noreferrer">Open document</a>}{canEdit && <button className="btn-secondary ml-2 mt-2 py-1.5 text-xs" onClick={() => updateRecord(documents, row, { is_public: !row.is_public })}>{row.is_public ? 'Make private' : 'Publish'}</button>}</div>, documents);
 
-    if (tab === 'notifications') return renderRows(notifications.rows, (row) => <div className="flex flex-wrap justify-between gap-3"><div><h3 className={`font-semibold ${row.read_at ? 'text-slate-600' : 'text-civic-navy'}`}>{row.title}</h3><p className="mt-1 text-sm text-slate-600">{row.message}</p><p className="mt-1 text-xs text-slate-400">{new Date(row.created_at).toLocaleString()}</p></div>{!row.read_at && <button className="btn-secondary py-1.5 text-xs" onClick={() => markRead(row)}><Check className="h-3.5 w-3.5" />Mark read</button>}</div>, notifications, false);
-
-    if (tab === 'audit') return <AuditLogList rows={audit.rows} loading={audit.loading} emptyMessage="No barangay audit events yet." />;
-
     return <div className="card space-y-3"><h2 className="text-lg font-bold text-civic-navy">Tenant backup</h2><p className="text-sm text-slate-600">Export a JSON snapshot of this barangay’s financial data, projects, operations, approvals, and audit history.</p><button onClick={exportBackup} className="btn-emerald"><Download className="h-4 w-4" />Download JSON backup</button><p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">Store exports securely. Recovery must be performed by an authorized database administrator; this client cannot safely restore rows using the public API key.</p></div>;
   };
 
@@ -299,7 +290,8 @@ export default function OperationsCenter() {
       <header><h1 className="flex items-center gap-3 text-3xl font-bold text-civic-navy"><ShieldCheck className="h-8 w-8 text-civic-emerald" />Operations & Accountability</h1><p className="mt-1 text-sm text-slate-600">Approvals, project delivery, public activities, property, preparedness, records, and audit history.</p></header>
       <ErrorBanner message={error || queryError} />
       {notice && <div role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{notice}</div>}
-      <nav aria-label="Operations sections" className="overflow-x-auto border-b border-slate-200"><div className="flex min-w-max gap-1">{tabs.map(({ id, label, icon: Icon }) => <button key={id} onClick={() => { setTab(id); resetForm(); setError(''); }} className={`inline-flex items-center gap-2 border-b-2 px-3 py-3 text-sm font-semibold ${tab === id ? 'border-civic-emerald text-civic-navy' : 'border-transparent text-slate-500 hover:text-slate-800'}`}><Icon className="h-4 w-4" />{label}{id === 'notifications' && notifications.rows.some((row) => !row.read_at) && <span className="h-2 w-2 rounded-full bg-rose-500" />}</button>)}</div></nav>
+      <nav aria-label="Operations sections" className="overflow-x-auto border-b border-slate-200"><div className="flex min-w-max gap-1">{tabs.map(({ id, label, icon: Icon }) => <button key={id} onClick={() => { setTab(id); closeForm(); setError(''); }} className={`inline-flex items-center gap-2 border-b-2 px-3 py-3 text-sm font-semibold ${tab === id ? 'border-civic-emerald text-civic-navy' : 'border-transparent text-slate-500 hover:text-slate-800'}`}><Icon className="h-4 w-4" />{label}{id === 'notifications' && notifications.rows.some((row) => !row.read_at) && <span className="h-2 w-2 rounded-full bg-rose-500" />}</button>)}</div></nav>
+      {!isFormOpen && tab !== 'backup' && (canEdit || tab === 'approvals') && !(tab === 'projects' && !programs.rows.length) && <button type="button" onClick={() => setIsFormOpen(true)} className="btn-emerald"><Plus className="h-4 w-4" />Add a record</button>}
       {renderForm()}
       {renderContent()}
     </div>
