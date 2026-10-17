@@ -64,21 +64,19 @@ function MetricCard({ to, label, value, detail, icon: Icon, tone, progress }) {
   return (
     <Link
       to={to}
-      className="group rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-civic-emerald/40 hover:shadow-card-hover focus-visible:outline-offset-4"
+      className="group min-w-0 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-civic-emerald/40 hover:shadow-card-hover focus-visible:outline-offset-4"
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
-            {label}
-          </p>
-          <p className="mt-3 break-words text-2xl font-bold tracking-tight text-civic-navy sm:text-[1.7rem]">
-            {value}
-          </p>
-        </div>
+        <p className="min-w-0 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
+          {label}
+        </p>
         <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${tone}`}>
           <Icon className="h-5 w-5" />
         </span>
       </div>
+      <p className="mt-1 whitespace-nowrap text-xl font-bold tracking-tight text-civic-navy xl:text-base 2xl:text-lg">
+        {value}
+      </p>
       {progress !== undefined && (
         <div
           className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-100"
@@ -108,6 +106,10 @@ export default function Dashboard() {
     "budget_allocations",
     profile?.barangay_id,
   );
+  const { rows: funds, error: e7 } = useSupabaseTable(
+    "fund_sources",
+    profile?.barangay_id,
+  );
   const { rows: expenses, error: e2 } = useSupabaseTable(
     "expenses",
     profile?.barangay_id,
@@ -132,6 +134,7 @@ export default function Dashboard() {
   );
 
   const totalBudget = sumAmounts(allocations);
+  const totalFunds = sumAmounts(funds);
   const totalSpent = sumActiveAmounts(expenses);
   const ongoingPrograms = programs.filter((p) => p.status === "ongoing").length;
   const newFeedback = feedback.filter((f) => f.status === "new").length;
@@ -210,7 +213,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <ErrorBanner message={e1 || e2 || e3 || e4 || e5 || e6} />
+      <ErrorBanner message={e1 || e2 || e3 || e4 || e5 || e6 || e7} />
 
       <section aria-label="Barangay overview">
         <div className="mb-3 flex items-end justify-between gap-3">
@@ -224,7 +227,15 @@ export default function Dashboard() {
             Live records
           </span>
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <MetricCard
+            to="funds"
+            label="Funds sourced"
+            value={formatCurrency(totalFunds)}
+            detail={`${funds.length} recorded sources`}
+            icon={Landmark}
+            tone="bg-violet-50 text-violet-700"
+          />
           <MetricCard
             to="budget"
             label="Total allocated"

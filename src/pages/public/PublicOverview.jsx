@@ -15,6 +15,7 @@ const formatCurrency = (value) => new Intl.NumberFormat('en-PH', {
 export default function PublicOverview() {
   const { slug } = useParams();
   const { barangay, loading: bLoading, error: bError } = usePublicBarangay(slug);
+  const { rows: funds, error: e12 } = useSupabaseTable('fund_sources', barangay?.id);
   const { rows: allocations, error: e1 } = useSupabaseTable('budget_allocations', barangay?.id);
   const { rows: expenses, error: e2 } = useSupabaseTable('expenses', barangay?.id);
   const { rows: programs, error: e3 } = useSupabaseTable('programs', barangay?.id);
@@ -31,6 +32,7 @@ export default function PublicOverview() {
   if (bError || !barangay) return <ErrorBanner message={bError || 'Barangay not found.'} />;
 
   const totalBudget = sumAmounts(allocations);
+  const totalFunds = sumAmounts(funds);
   const totalSpent = sumActiveAmounts(expenses);
   const ongoingPrograms = programs.filter((p) => p.status === 'ongoing').length;
   const totalSkFunds = sumAmounts(skFunds);
@@ -83,12 +85,12 @@ export default function PublicOverview() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-4">
-          <div className="rounded-xl border border-slate-200 p-4"><div className="flex items-center gap-3 mb-3"><div className="w-10 h-10 rounded-full bg-civic-navy/10 flex items-center justify-center overflow-hidden">{barangay.logo_url ? <img src={barangay.logo_url} alt="Barangay logo" className="w-full h-full object-cover" /> : <SystemLogo className="w-full h-full object-cover" />}</div><h3 className="font-bold text-civic-navy">Barangay Government</h3></div><div className="grid grid-cols-3 gap-2 text-xs"><div><p className="text-slate-400">Budget</p><p className="font-bold text-civic-navy">{formatCurrency(totalBudget)}</p></div><div><p className="text-slate-400">Expenses</p><p className="font-bold text-civic-navy">{formatCurrency(totalSpent)}</p></div><div><p className="text-slate-400">Programs</p><p className="font-bold text-civic-navy">{programs.length}</p></div></div></div>
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4"><div className="flex items-center gap-3 mb-3"><div className="w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden">{barangay.sk_logo_url ? <img src={barangay.sk_logo_url} alt="SK logo" className="w-full h-full object-cover" /> : <Users className="w-5 h-5 text-emerald-700" />}</div><h3 className="font-bold text-emerald-900">Sangguniang Kabataan (SK)</h3></div><div className="grid grid-cols-3 gap-2 text-xs"><div><p className="text-emerald-700/70">Funds</p><p className="font-bold text-emerald-900">{formatCurrency(totalSkFunds)}</p></div><div><p className="text-emerald-700/70">Budget</p><p className="font-bold text-emerald-900">{formatCurrency(totalSkBudget)}</p></div><div><p className="text-emerald-700/70">Expenses</p><p className="font-bold text-emerald-900">{formatCurrency(totalSkExpenses)}</p></div></div></div>
+          <div className="rounded-xl border border-slate-200 p-4"><div className="flex items-center gap-3 mb-3"><div className="w-10 h-10 rounded-full bg-civic-navy/10 flex items-center justify-center overflow-hidden">{barangay.logo_url ? <img src={barangay.logo_url} alt="Barangay logo" className="w-full h-full object-cover" /> : <SystemLogo className="w-full h-full object-cover" />}</div><h3 className="font-bold text-civic-navy">Barangay Government</h3></div><div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs"><div><p className="text-slate-400">Funds sourced</p><p className="font-bold text-civic-navy">{formatCurrency(totalFunds)}</p></div><div><p className="text-slate-400">Budget</p><p className="font-bold text-civic-navy">{formatCurrency(totalBudget)}</p></div><div><p className="text-slate-400">Expenses</p><p className="font-bold text-civic-navy">{formatCurrency(totalSpent)}</p></div><div><p className="text-slate-400">Programs</p><p className="font-bold text-civic-navy">{programs.length}</p></div></div></div>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4"><div className="flex items-center gap-3 mb-3"><div className="w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden">{barangay.sk_logo_url ? <img src={barangay.sk_logo_url} alt="SK logo" className="w-full h-full object-cover" /> : <Users className="w-5 h-5 text-emerald-700" />}</div><h3 className="font-bold text-emerald-900">Sangguniang Kabataan (SK)</h3></div><div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs"><div><p className="text-emerald-700/70">Funds sourced</p><p className="font-bold text-emerald-900">{formatCurrency(totalSkFunds)}</p></div><div><p className="text-emerald-700/70">Budget</p><p className="font-bold text-emerald-900">{formatCurrency(totalSkBudget)}</p></div><div><p className="text-emerald-700/70">Expenses</p><p className="font-bold text-emerald-900">{formatCurrency(totalSkExpenses)}</p></div></div></div>
         </div>
       </div>
 
-      <ErrorBanner message={e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9 || e10 || e11} />
+      <ErrorBanner message={e12 || e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9 || e10 || e11} />
 
       {/* Financial Summary */}
       <section className="space-y-4">
@@ -104,16 +106,22 @@ export default function PublicOverview() {
               <Building2 className="w-5 h-5 text-civic-navy" />
               <h3 className="font-bold text-civic-navy">Barangay Government</h3>
             </div>
-            <div className="grid sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 2xl:grid-cols-4 gap-4">
+              <div className="space-y-1">
+                <span className="text-xs font-semibold text-slate-600">Funds sourced</span>
+                <p className="whitespace-nowrap text-base font-extrabold text-civic-navy tabular-nums">
+                  {formatCurrency(totalFunds)}
+                </p>
+              </div>
               <div className="space-y-1">
                 <span className="text-xs font-semibold text-slate-600">Budget allocated</span>
-                <p className="text-xl font-extrabold text-civic-navy tabular-nums">
+                <p className="whitespace-nowrap text-base font-extrabold text-civic-navy tabular-nums">
                   {formatCurrency(totalBudget)}
                 </p>
               </div>
               <div className="space-y-1">
                 <span className="text-xs font-semibold text-slate-600">Expenses recorded</span>
-                <p className="text-xl font-extrabold text-civic-navy tabular-nums">
+                <p className="whitespace-nowrap text-base font-extrabold text-civic-navy tabular-nums">
                   {formatCurrency(totalSpent)}
                 </p>
               </div>
@@ -129,22 +137,22 @@ export default function PublicOverview() {
               <Users className="w-5 h-5 text-emerald-700" />
               <h3 className="font-bold text-emerald-900">Sangguniang Kabataan (SK)</h3>
             </div>
-            <div className="grid sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 2xl:grid-cols-3 gap-4">
               <div className="space-y-1">
                 <span className="text-xs font-semibold text-emerald-800">Funds sourced</span>
-                <p className="text-xl font-extrabold text-emerald-900 tabular-nums">
+                <p className="whitespace-nowrap text-base font-extrabold text-emerald-900 tabular-nums">
                   {formatCurrency(totalSkFunds)}
                 </p>
               </div>
               <div className="space-y-1">
                 <span className="text-xs font-semibold text-emerald-800">Budget allocated</span>
-                <p className="text-xl font-extrabold text-emerald-900 tabular-nums">
+                <p className="whitespace-nowrap text-base font-extrabold text-emerald-900 tabular-nums">
                   {formatCurrency(totalSkBudget)}
                 </p>
               </div>
               <div className="space-y-1">
                 <span className="text-xs font-semibold text-emerald-800">Expenses recorded</span>
-                <p className="text-xl font-extrabold text-emerald-900 tabular-nums">
+                <p className="whitespace-nowrap text-base font-extrabold text-emerald-900 tabular-nums">
                   {formatCurrency(totalSkExpenses)}
                 </p>
               </div>
