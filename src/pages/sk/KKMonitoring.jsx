@@ -5,6 +5,7 @@ import { validateRequired, validateName, runValidators } from '../../lib/validat
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import Badge from '../../components/ui/Badge';
+import { supabase } from '../../lib/supabaseClient';
 import { isSkEditor } from '../../utils/roles';
 
 const STATUSES = ['registered', 'active', 'completed', 'dropped'];
@@ -21,6 +22,8 @@ export default function KKMonitoring() {
   const [editingId, setEditingId] = useState(null);
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [loadingDocumentId, setLoadingDocumentId] = useState(null);
+  const [documentPreview, setDocumentPreview] = useState(null);
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterReview, setFilterReview] = useState('pending_review');
 
@@ -59,13 +62,45 @@ export default function KKMonitoring() {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Remove this KK member record?')) return;
+    const row = rows.find((item) => item.id === id);
     const result = await deleteRow(id);
-    if (result.error) setSubmitError(result.error);
+    if (result.error) {
+      setSubmitError(result.error);
+      return;
+    }
+    if (row?.id_document_path) {
+      const { error: storageError } = await supabase.storage
+        .from('kk-id-documents')
+        .remove([row.id_document_path]);
+      if (storageError) {
+        setSubmitError(`The KK record was removed, but its uploaded ID could not be deleted: ${storageError.message}`);
+      }
+    }
   };
 
   const handleReview = async (row, profileStatus) => {
     const result = await updateRow(row.id, { profile_status: profileStatus });
     if (result.error) setSubmitError(result.error);
+  };
+
+  const handleViewId = async (row) => {
+    setSubmitError('');
+    setLoadingDocumentId(row.id);
+    try {
+      const { data, error: storageError } = await supabase.storage
+        .from('kk-id-documents')
+        .createSignedUrl(row.id_document_path, 60);
+      if (storageError) setSubmitError(storageError.message);
+      else setDocumentPreview({
+        url: data.signedUrl,
+        isPdf: row.id_document_path.toLowerCase().endsWith('.pdf'),
+        name: row.kk_name,
+      });
+    } catch (previewError) {
+      setSubmitError(previewError.message || 'Unable to open the uploaded ID document.');
+    } finally {
+      setLoadingDocumentId(null);
+    }
   };
 
   const filtered = rows.filter((row) => (
@@ -77,7 +112,7 @@ export default function KKMonitoring() {
     <div className="space-y-6 max-w-4xl">
       <div>
         <h1 className="text-2xl font-semibold">KK Monitoring</h1>
-        <p className="text-civic-slate text-sm mt-1">Track Katipunan ng Kabataan (ages 15–30) participation across SK programs.</p>
+        <p className="text-civic-slate text-sm mt-1">Review public KK profiles and their uploaded proof of identity, then manage verification and program participation for youth ages 15–30.</p>
       </div>
 
       <ErrorBanner message={error} />
@@ -127,13 +162,13 @@ export default function KKMonitoring() {
       <ErrorBanner message={submitError} />
 
       <div className="card p-0 overflow-x-auto">
-        <table className="w-full min-w-[1050px] text-sm">
+        <table className="w-full min-w-[1150px] text-sm">
           <thead className="bg-civic-navy/5 text-civic-slate text-left">
-            <tr><th className="px-4 py-2">Name / Age</th><th className="px-4 py-2">Sex</th><th className="px-4 py-2">Purok</th><th className="px-4 py-2">Education</th><th className="px-4 py-2">Employment</th><th className="px-4 py-2">Classification</th><th className="px-4 py-2">Review</th><th className="px-4 py-2">Participation</th><th className="px-4 py-2">Actions</th></tr>
+            <tr><th className="px-4 py-2">Name / Age</th><th className="px-4 py-2">Sex</th><th className="px-4 py-2">Purok</th><th className="px-4 py-2">Education</th><th className="px-4 py-2">Employment</th><th className="px-4 py-2">Classification</th><th className="px-4 py-2">ID proof</th><th className="px-4 py-2">Review</th><th className="px-4 py-2">Participation</th><th className="px-4 py-2">Actions</th></tr>
           </thead>
           <tbody>
-            {loading && <tr><td colSpan={9} className="px-4 py-6 text-center text-civic-slate">Loading…</td></tr>}
-            {!loading && filtered.length === 0 && <tr><td colSpan={9} className="px-4 py-6 text-center text-civic-slate">No KK profiles match this filter.</td></tr>}
+            {loading && <tr><td colSpan={10} className="px-4 py-6 text-center text-civic-slate">Loading…</td></tr>}
+            {!loading && filtered.length === 0 && <tr><td colSpan={10} className="px-4 py-6 text-center text-civic-slate">No KK profiles match this filter.</td></tr>}
             {filtered.map((row) => (
               <tr key={row.id} className="border-t border-civic-navy/5">
                 <td className="px-4 py-2 font-medium">{row.kk_name}<span className="block text-xs font-normal text-civic-slate">Age {row.age}{row.contact_number ? ` · ${row.contact_number}` : ''}</span></td>
@@ -142,6 +177,18 @@ export default function KKMonitoring() {
                 <td className="px-4 py-2">{row.education_level?.replaceAll('_', ' ') || '—'}</td>
                 <td className="px-4 py-2">{row.employment_status?.replaceAll('_', ' ') || '—'}</td>
                 <td className="px-4 py-2">{row.youth_classification?.replaceAll('_', ' ') || '—'}</td>
+                <td className="px-4 py-2">
+                  {row.id_document_path ? (
+                    <button
+                      type="button"
+                      onClick={() => handleViewId(row)}
+                      disabled={loadingDocumentId === row.id}
+                      className="text-civic-navy hover:underline text-xs disabled:opacity-50"
+                    >
+                      {loadingDocumentId === row.id ? 'Loading…' : 'View ID'}
+                    </button>
+                  ) : '—'}
+                </td>
                 <td className="px-4 py-2"><span className={`text-xs font-medium capitalize ${row.profile_status === 'verified' ? 'text-emerald-700' : row.profile_status === 'rejected' ? 'text-rose-700' : 'text-amber-700'}`}>{row.profile_status?.replaceAll('_', ' ') || 'verified'}</span></td>
                 <td className="px-4 py-2"><Badge status={row.participation_status} /></td>
                 <td className="px-4 py-2 whitespace-nowrap">
@@ -159,6 +206,23 @@ export default function KKMonitoring() {
           </tbody>
         </table>
       </div>
+
+      {documentPreview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4" role="dialog" aria-modal="true" aria-label={`ID document for ${documentPreview.name}`}>
+          <div className="w-full max-w-4xl rounded-xl bg-white p-4 shadow-2xl">
+            <div className="mb-3 flex items-center justify-between gap-4">
+              <h2 className="font-semibold text-civic-navy">ID document — {documentPreview.name}</h2>
+              <button type="button" onClick={() => setDocumentPreview(null)} className="btn-secondary">Close</button>
+            </div>
+            {documentPreview.isPdf ? (
+              <iframe title={`ID document for ${documentPreview.name}`} src={documentPreview.url} className="h-[75vh] w-full rounded border border-slate-200" />
+            ) : (
+              <img src={documentPreview.url} alt={`Uploaded ID document for ${documentPreview.name}`} className="mx-auto max-h-[75vh] max-w-full rounded object-contain" />
+            )}
+            <p className="mt-2 text-xs text-slate-500">This private preview link expires after one minute.</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

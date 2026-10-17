@@ -25,6 +25,7 @@ export default function PublicLayout() {
         { to: '', label: 'Barangay Overview', icon: LayoutDashboard, end: true },
         { to: 'budget', label: 'Barangay Budget & Expenses', icon: PieChart },
         { to: 'programs', label: 'Barangay Programs & Projects', icon: FolderKanban },
+        { to: 'sk/profiling', label: 'KK Profiling', icon: ClipboardList },
         { to: 'officials', label: 'Elected Officials', icon: Users },
         { to: 'feedback', label: 'Send Feedback', icon: MessageSquarePlus },
       ];

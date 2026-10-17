@@ -100,6 +100,41 @@ returns boolean language sql stable as $$
   );
 $$;
 
+create or replace function public.can_access_kk_id_documents(target_barangay text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+      from profiles
+     where id = auth.uid()
+       and barangay_id::text = target_barangay
+       and role in ('sk_chairperson', 'sk_treasurer', 'sk_kagawad')
+       and is_active
+  );
+$$;
+revoke all on function public.can_access_kk_id_documents(text) from public;
+grant execute on function public.can_access_kk_id_documents(text) to anon, authenticated;
+
+create or replace function public.can_upload_kk_id_documents(target_barangay text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+      from public.barangays
+     where id::text = target_barangay
+  );
+$$;
+revoke all on function public.can_upload_kk_id_documents(text) from public;
+grant execute on function public.can_upload_kk_id_documents(text) to anon, authenticated;
+
 -- Helper: any active official belonging to a given barangay
 create or replace function belongs_to_barangay(uid uuid, bgy uuid)
 returns boolean language sql stable as $$
@@ -290,10 +325,12 @@ create table kk_monitoring (
   profile_status text not null default 'pending_review' check (profile_status in ('pending_review', 'verified', 'rejected')),
   consent_given boolean not null default false,
   guardian_consent boolean not null default false,
+  id_document_path text,
   notes text,
   created_by uuid references profiles(id),
   created_at timestamptz default now()
 );
+grant insert on table kk_monitoring to anon, authenticated;
 
 -- ------------------------------------------------------------
 -- COMMUNITY FEEDBACK (public can submit without an account)
@@ -470,8 +507,8 @@ create policy "sk editors update sk_expenses" on sk_expenses for update using (i
 create policy "sk editors delete sk_expenses" on sk_expenses for delete using (is_sk_editor(auth.uid()) and belongs_to_barangay(auth.uid(), barangay_id));
 
 -- kk_monitoring (internal, not public)
-create policy "sk officials read kk" on kk_monitoring for select using (belongs_to_barangay(auth.uid(), barangay_id));
-create policy "sk officials write kk" on kk_monitoring for insert with check (belongs_to_barangay(auth.uid(), barangay_id));
+create policy "sk officials read kk" on kk_monitoring for select using (public.can_access_kk_id_documents(barangay_id::text));
+create policy "sk officials write kk" on kk_monitoring for insert with check (public.can_access_kk_id_documents(barangay_id::text));
 create policy "sk editors update kk" on kk_monitoring for update using (is_sk_editor(auth.uid()) and belongs_to_barangay(auth.uid(), barangay_id));
 create policy "sk editors delete kk" on kk_monitoring for delete using (is_sk_editor(auth.uid()) and belongs_to_barangay(auth.uid(), barangay_id));
 create policy "public submit kk profiling" on kk_monitoring for insert with check (
@@ -481,6 +518,8 @@ create policy "public submit kk profiling" on kk_monitoring for insert with chec
   and sk_program_id is null
   and notes is null
   and age between 15 and 30
+  and id_document_path is not null
+  and id_document_path ~ ('^' || barangay_id::text || '/[0-9a-fA-F-]{36}\.(jpg|png|webp|pdf)$')
   and consent_given
   and (age >= 18 or guardian_consent)
   and sex in ('female', 'male', 'prefer_not_to_say')

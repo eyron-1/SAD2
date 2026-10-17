@@ -17,10 +17,9 @@ gets its own public URL like `/b/san-isidro`.
 2. Open **SQL Editor**, paste the contents of `supabase/schema.sql`, and run it.
    This creates every table, the multi-tenant Row Level Security policies, and
    the role-permission helper functions.
-3. Open **Storage** and create three buckets, all set to **public**:
-   - `feedback-photos`
-   - `receipts`
-   - `barangay-logos`
+3. In the SQL Editor, run `supabase/storage.sql`. This creates the storage
+   buckets and access policies. The KK ID-document bucket is private and can
+   only be viewed by active SK officials in the matching barangay.
 4. Open **Project Settings → API** and copy the **Project URL** and **anon public key**.
 
 ## 2. Configure the app
@@ -47,6 +46,13 @@ statements.
 To link milestones to SK programs, run `supabase/migration_sk_program_milestones.sql`
 after the operations migration. Existing barangay milestones remain linked and
 unchanged.
+
+For public KK profiling and ID-document uploads, first run
+`supabase/migration_kk_public_profiling.sql` if it has not already been applied,
+then run `supabase/migration_kk_id_documents.sql`. This adds the required ID
+proof field, validates submissions, and creates a private, barangay-scoped
+storage bucket. Existing KK records remain intact; their ID proof is shown as
+not on file for records created before this change.
 
 To separate authenticated SK and Barangay access, then run
 `supabase/migration_sk_data_isolation.sql`. Apply it after the SK milestone

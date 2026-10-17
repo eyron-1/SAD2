@@ -6,7 +6,8 @@ alter table kk_monitoring
   add column if not exists youth_classification text,
   add column if not exists profile_status text not null default 'verified',
   add column if not exists consent_given boolean not null default false,
-  add column if not exists guardian_consent boolean not null default false;
+  add column if not exists guardian_consent boolean not null default false,
+  add column if not exists id_document_path text;
 
 alter table kk_monitoring
   alter column profile_status set default 'pending_review';
@@ -31,6 +32,8 @@ create policy "public submit kk profiling" on kk_monitoring
     and sk_program_id is null
     and notes is null
     and age between 15 and 30
+    and id_document_path is not null
+    and id_document_path ~ ('^' || barangay_id::text || '/[0-9a-fA-F-]{36}\.(jpg|png|webp|pdf)$')
     and consent_given
     and (age >= 18 or guardian_consent)
     and sex in ('female', 'male', 'prefer_not_to_say')

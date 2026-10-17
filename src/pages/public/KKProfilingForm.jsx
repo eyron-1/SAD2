@@ -6,6 +6,25 @@ import { friendlySupabaseError, validateMobile, validateRequired, validateName, 
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 
+const MAX_ID_DOCUMENT_BYTES = 5 * 1024 * 1024;
+const ID_DOCUMENT_EXTENSIONS = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'application/pdf': 'pdf',
+};
+
+const submissionErrorMessage = (error, action) => {
+  if (
+    error?.code === '42501'
+    || error?.message?.includes('row-level security')
+    || error?.message?.includes('permission denied')
+  ) {
+    return `${action} is blocked by the database permissions. Ask the administrator to run supabase/migration_kk_id_documents.sql in the Supabase SQL Editor, then try again.`;
+  }
+  return friendlySupabaseError(error);
+};
+
 const INITIAL_FORM = {
   kk_name: '',
   age: '',
@@ -23,6 +42,7 @@ export default function KKProfilingForm() {
   const { slug } = useParams();
   const { barangay, loading, error } = usePublicBarangay(slug);
   const [form, setForm] = useState(INITIAL_FORM);
+  const [idDocument, setIdDocument] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -44,38 +64,77 @@ export default function KKProfilingForm() {
     contact_number: (value) => validateMobile(value, { required: false }),
   };
 
+  const handleIdDocumentChange = (event) => {
+    const file = event.target.files?.[0] || null;
+    setIdDocument(file);
+    setFieldErrors((current) => ({ ...current, id_document: '' }));
+    setSubmitError('');
+
+    if (file && !Object.hasOwn(ID_DOCUMENT_EXTENSIONS, file.type)) {
+      setFieldErrors((current) => ({ ...current, id_document: 'Upload an ID as a JPG, PNG, WEBP, or PDF file.' }));
+    } else if (file && file.size > MAX_ID_DOCUMENT_BYTES) {
+      setFieldErrors((current) => ({ ...current, id_document: 'The ID file must be 5MB or smaller.' }));
+    }
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
     const { errors, isValid } = runValidators(form, validators);
     if (!form.consent_given) errors.consent_given = 'Consent is required to submit this profile.';
     if (isMinor && !form.guardian_consent) errors.guardian_consent = 'Parent or guardian consent is required for ages 15 to 17.';
+    if (!idDocument) errors.id_document = 'Upload a valid ID document to submit your profile.';
+    else if (!Object.hasOwn(ID_DOCUMENT_EXTENSIONS, idDocument.type)) errors.id_document = 'Upload an ID as a JPG, PNG, WEBP, or PDF file.';
+    else if (idDocument.size > MAX_ID_DOCUMENT_BYTES) errors.id_document = 'The ID file must be 5MB or smaller.';
     setFieldErrors(errors);
     if (!isValid || Object.keys(errors).length > 0 || !barangay) return;
 
     setSubmitting(true);
     setSubmitError('');
-    const { error: insertError } = await supabase.from('kk_monitoring').insert([{
-      barangay_id: barangay.id,
-      kk_name: form.kk_name.trim(),
-      age,
-      sex: form.sex,
-      purok: form.purok.trim() || null,
-      contact_number: form.contact_number.trim() || null,
-      education_level: form.education_level,
-      employment_status: form.employment_status,
-      youth_classification: form.youth_classification,
-      participation_status: 'registered',
-      profile_status: 'pending_review',
-      consent_given: true,
-      guardian_consent: isMinor,
-      created_by: null,
-      sk_program_id: null,
-      notes: null,
-    }]);
-    setSubmitting(false);
+    const idDocumentPath = `${barangay.id}/${crypto.randomUUID()}.${ID_DOCUMENT_EXTENSIONS[idDocument.type]}`;
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from('kk-id-documents')
+        .upload(idDocumentPath, idDocument, { contentType: idDocument.type });
+      if (uploadError) {
+        setSubmitError(submissionErrorMessage(uploadError, 'ID upload'));
+        return;
+      }
 
-    if (insertError) setSubmitError(friendlySupabaseError(insertError));
-    else setSubmitted(true);
+      const { error: insertError } = await supabase.from('kk_monitoring').insert([{
+        barangay_id: barangay.id,
+        kk_name: form.kk_name.trim(),
+        age,
+        sex: form.sex,
+        purok: form.purok.trim() || null,
+        contact_number: form.contact_number.trim() || null,
+        education_level: form.education_level,
+        employment_status: form.employment_status,
+        youth_classification: form.youth_classification,
+        participation_status: 'registered',
+        profile_status: 'pending_review',
+        consent_given: true,
+        guardian_consent: isMinor,
+        id_document_path: idDocumentPath,
+        created_by: null,
+        sk_program_id: null,
+        notes: null,
+      }]);
+
+      if (insertError) {
+        const { error: cleanupError } = await supabase.storage.from('kk-id-documents').remove([idDocumentPath]);
+        setSubmitError(
+          cleanupError
+            ? `${submissionErrorMessage(insertError, 'KK profile submission')} The uploaded ID could not be removed automatically; please contact the SK office.`
+            : submissionErrorMessage(insertError, 'KK profile submission'),
+        );
+      } else {
+        setSubmitted(true);
+      }
+    } catch (error) {
+      setSubmitError(friendlySupabaseError(error));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) return <p className="text-slate-500 text-center py-12">Loading profiling form…</p>;
@@ -137,10 +196,24 @@ export default function KKProfilingForm() {
           </FormField>
         </div>
 
+        <div>
+          <label htmlFor="kk-id-document" className="label">Upload proof of identity / age</label>
+          <input
+            id="kk-id-document"
+            type="file"
+            accept=".jpg,.jpeg,.png,.webp,.pdf,image/jpeg,image/png,image/webp,application/pdf"
+            onChange={handleIdDocumentChange}
+            className={`input-field ${fieldErrors.id_document ? 'input-error' : ''}`}
+            aria-describedby="kk-id-document-help"
+          />
+          <p id="kk-id-document-help" className="mt-1 text-xs text-slate-500">JPG, PNG, WEBP, or PDF; maximum 5MB. Your ID is private and can only be viewed by the SK team for verification.</p>
+          {fieldErrors.id_document && <p className="error-text">{fieldErrors.id_document}</p>}
+        </div>
+
         <div className="space-y-3 border-t border-slate-200 pt-4">
           <label className="flex items-start gap-3 text-sm text-slate-700">
             <input type="checkbox" className="mt-1 accent-emerald-700" checked={form.consent_given} onChange={(event) => setForm({ ...form, consent_given: event.target.checked })} />
-            <span>I consent to the SK collecting and using this information for KK profiling, verification, and youth-program planning. I understand that only authorized SK officials can access this profile.</span>
+            <span>I consent to the SK collecting and using this information and uploaded ID for KK profiling, age verification, and youth-program planning. I understand that only authorized SK officials can access these records.</span>
           </label>
           {fieldErrors.consent_given && <p className="error-text">{fieldErrors.consent_given}</p>}
           {isMinor && (
