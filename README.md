@@ -24,9 +24,19 @@ gets its own public URL like `/b/san-isidro`.
 
 ## 2. Configure the app
 
+Create a `.env` file in the project root with your Supabase project URL and anon
+key:
+
+```dotenv
+VITE_SUPABASE_URL=your-supabase-project-url
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
+# Optional: enable the browser-based AI assistant
+VITE_GROQ_API_KEY=your-groq-api-key
+```
+
+Then install dependencies and start the app:
+
 ```bash
-cp .env.example .env
-# paste your Supabase URL and anon key into .env
 npm install
 npm run dev
 ```
@@ -136,47 +146,81 @@ React Router's client-side routes work on refresh.
 
 ```
 .
-├── .env.example              — Environment variables template
+├── .agents/                  — Project agent skills
+├── .firebaserc               — Firebase project selection
+├── .gitignore
+├── firebase.json             — Firebase Hosting configuration
+├── index.html                — Vite HTML entry point
 ├── jsconfig.json             — Path aliases configuration (@/* -> src/*)
-├── vite.config.js            — Vite configuration with '@' alias
-├── tailwind.config.js        — Tailwind theme (civic colors, fonts)
-├── firebase.json             — Firebase hosting configuration
+├── package.json              — Scripts and dependencies
+├── postcss.config.js         — PostCSS configuration
+├── package-lock.json
+├── public/
+│   ├── favicon.png
+│   └── logsystem.png
+├── README.md
+├── skills-lock.json
 ├── supabase/
-│   ├── schema.sql            — Full database schema + RLS policies + triggers
+│   ├── schema.sql
+│   ├── storage.sql
+│   ├── migration_auto_slug.sql
+│   ├── migration_expense_program_links.sql
+│   ├── migration_financial_integrity.sql
+│   ├── migration_financial_workflow.sql
+│   ├── migration_kk_id_documents.sql
+│   ├── migration_kk_public_profiling.sql
+│   ├── migration_operations_audit.sql
+│   ├── migration_program_allocation_integrity.sql
+│   ├── migration_program_date_status.sql
+│   ├── migration_program_expense_budget_cap.sql
+│   ├── migration_program_security.sql
+│   ├── migration_signup_barangay_editors.sql
+│   ├── migration_signup_sk_editor.sql
+│   ├── migration_sk_data_isolation.sql
+│   ├── migration_sk_program_milestones.sql
+│   ├── migration_sk_workflow.sql
 │   └── functions/
-│       └── ai-assistant/     — Supabase Edge Function (Groq Llama 3.3 70B)
+│       └── ai-assistant/
+│           └── index.ts
+├── tailwind.config.js        — Tailwind theme and configuration
+├── vite.config.js            — Vite configuration
 └── src/
-    ├── main.jsx              — React DOM root mount
-    ├── App.jsx               — Central router (public, auth, official, sk routes)
-    ├── index.css             — Global styling & Tailwind custom component classes
-    ├── context/
-    │   └── AuthContext.jsx   — Authentication & user profile state provider
-    ├── lib/
-    │   ├── supabaseClient.js — Supabase client initialization
-    │   ├── validation.js     — Form regex validators & error messaging
-    │   ├── useSupabaseTable.js — Reusable CRUD hook for Supabase tables
-    │   └── usePublicBarangay.js — Hook to fetch barangay by URL slug (/b/:slug)
-    ├── utils/
-    │   └── roles.js          — Role definitions & permission helper functions
+    ├── App.jsx
+    ├── main.jsx
+    ├── index.css
     ├── components/
-    │   ├── index.js
     │   ├── ai/
-    │   │   └── FloatingAIChat.jsx — Floating widget for quick AI queries
+    │   │   └── FloatingAIChat.jsx
     │   ├── layout/
-    │   │   ├── index.js      — Barrel export for layouts
-    │   │   ├── PublicLayout.jsx  — Layout for public barangay portal
-    │   │   ├── OfficialLayout.jsx — Sidebar layout for barangay officials
-    │   │   └── ProtectedRoute.jsx — Route guard checking session & role
+    │   │   ├── OfficialLayout.jsx
+    │   │   ├── ProtectedRoute.jsx
+    │   │   └── PublicLayout.jsx
     │   └── ui/
-    │       ├── index.js      — Barrel export for common UI elements
-    │       ├── FormField.jsx — Standardized input/textarea field with error label
-    │       ├── ErrorBanner.jsx — Alert box for error messages
-    │       └── Badge.jsx     — Status & category pill badges
-    └── pages/
-        ├── auth/             — Sign in and register (Login.jsx, Signup.jsx)
-        ├── public/           — Citizen-facing portal without login (Landing, Budget, Programs, Officials, Feedback)
-        ├── official/         — Barangay Council portal (Dashboard, Budget, Expenses, Funds, Programs, Feedback, Officials, Reports, AI, Settings)
-        └── sk/               — Sangguniang Kabataan portal (SKDashboard, SKBudget, SKPrograms, KKMonitoring)
+    │       ├── AuditLogList.jsx
+    │       ├── Badge.jsx
+    │       ├── ErrorBanner.jsx
+    │       ├── FormField.jsx
+    │       ├── ImageLightbox.jsx
+    │       └── SystemLogo.jsx
+    ├── context/
+    │   └── AuthContext.jsx
+    ├── lib/
+    │   ├── financial.js
+    │   ├── philippineLocations.js
+    │   ├── programStatus.js
+    │   ├── programStatus.test.js
+    │   ├── supabaseClient.js
+    │   ├── usePublicBarangay.js
+    │   ├── useSupabaseTable.js
+    │   ├── validation.js
+    │   └── validation.test.js
+    ├── pages/
+    │   ├── auth/
+    │   ├── official/
+    │   ├── public/
+    │   └── sk/
+    └── utils/
+        └── roles.js
 ```
 
 ### The pattern every module follows
