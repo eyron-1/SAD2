@@ -51,6 +51,7 @@ const EMPTY = {
   description: "",
   date_incurred: "",
   budget_allocation_id: "",
+  program_id: "",
 };
 const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
 
@@ -65,6 +66,7 @@ export default function ExpenseManagement() {
     "budget_allocations",
     profile?.barangay_id,
   );
+  const { rows: programs } = useSupabaseTable("programs", profile?.barangay_id);
 
   const [form, setForm] = useState(EMPTY);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -93,11 +95,25 @@ export default function ExpenseManagement() {
     );
     return Number(allocation.amount || 0) - committed;
   };
+  const getProgramAvailableAmount = (program) => {
+    const committed = sumActiveAmounts(
+      rows.filter(
+        (row) => row.program_id === program.id && row.id !== editingId,
+      ),
+    );
+    return Number(program.budget_amount || 0) - committed;
+  };
   const selectedAllocation = allocations.find(
     (allocation) => allocation.id === form.budget_allocation_id,
   );
+  const selectedProgram = programs.find(
+    (program) => program.id === form.program_id,
+  );
   const availableAmount = selectedAllocation
     ? getAvailableAmount(selectedAllocation)
+    : 0;
+  const availableProgramAmount = selectedProgram
+    ? getProgramAvailableAmount(selectedProgram)
     : 0;
 
   const openModal = (row = null) => {
@@ -108,6 +124,7 @@ export default function ExpenseManagement() {
         description: row.description || "",
         date_incurred: row.date_incurred || "",
         budget_allocation_id: row.budget_allocation_id || "",
+        program_id: row.program_id || "",
       });
       setEditingId(row.id);
     } else {
@@ -185,6 +202,9 @@ export default function ExpenseManagement() {
     if (selectedAllocation && numericAmount > availableAmount) {
       errors.amount = `Amount exceeds the remaining allocation balance of ₱${Math.max(availableAmount, 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`;
     }
+    if (selectedProgram && numericAmount > availableProgramAmount) {
+      errors.amount = `Amount exceeds the remaining project budget of ₱${Math.max(availableProgramAmount, 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`;
+    }
     setFieldErrors(errors);
     if (!isValid || Object.keys(errors).length > 0) return;
 
@@ -207,6 +227,7 @@ export default function ExpenseManagement() {
       date_incurred: form.date_incurred,
       amount: numericAmount,
       budget_allocation_id: form.budget_allocation_id,
+      program_id: form.program_id || null,
       ...(upload.url ? { receipt_url: upload.url } : {}),
     };
 
@@ -237,6 +258,10 @@ export default function ExpenseManagement() {
     const matchesSearch =
       r.category?.toLowerCase().includes(search.toLowerCase()) ||
       r.description?.toLowerCase().includes(search.toLowerCase()) ||
+      programs
+        .find((program) => program.id === r.program_id)
+        ?.title?.toLowerCase()
+        .includes(search.toLowerCase()) ||
       r.date_incurred?.includes(search);
     const matchesCategory =
       categoryFilter === "all" || r.category === categoryFilter;
@@ -441,6 +466,47 @@ export default function ExpenseManagement() {
               </div>
 
               <FormField
+                as="select"
+                label="Linked Project / Program"
+                value={form.program_id}
+                onChange={(e) => {
+                  const program = programs.find(
+                    (item) => item.id === e.target.value,
+                  );
+                  const allocation = allocations.find(
+                    (item) => item.id === program?.budget_allocation_id,
+                  );
+                  setForm({
+                    ...form,
+                    program_id: e.target.value,
+                    ...(allocation
+                      ? {
+                          budget_allocation_id: allocation.id,
+                          category: allocation.category,
+                        }
+                      : {}),
+                  });
+                }}
+              >
+                <option value="">Not linked to a project / program</option>
+                {programs.map((program) => (
+                  <option key={program.id} value={program.id}>
+                    {program.title}
+                    {program.status ? ` · ${program.status}` : ""}
+                  </option>
+                ))}
+              </FormField>
+              {selectedProgram && (
+                <div className="text-xs font-semibold px-3 py-2 rounded-lg border bg-emerald-50 text-emerald-800 border-emerald-200">
+                  Remaining project budget for {selectedProgram.title}: ₱
+                  {Math.max(availableProgramAmount, 0).toLocaleString("en-PH", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </div>
+              )}
+
+              <FormField
                 as="textarea"
                 rows={3}
                 label="Expense Description / Payee"
@@ -513,7 +579,7 @@ export default function ExpenseManagement() {
                     Incurred
                   </div>
                 </th>
-                <th className="px-6 py-3.5">Category & Linked Allocation</th>
+                <th className="px-6 py-3.5">Category & Linked Program / Allocation</th>
                 <th className="px-6 py-3.5 text-right">
                   <div className="flex items-center justify-end gap-1.5">
                     Amount
@@ -550,6 +616,9 @@ export default function ExpenseManagement() {
                 const linked = allocations.find(
                   (a) => a.id === row.budget_allocation_id,
                 );
+                const linkedProgram = programs.find(
+                  (program) => program.id === row.program_id,
+                );
                 return (
                   <tr
                     key={row.id}
@@ -565,6 +634,11 @@ export default function ExpenseManagement() {
                       {linked && (
                         <span className="block text-[11px] text-slate-500 font-medium">
                           Linked: {linked.fiscal_year} · {linked.category}
+                        </span>
+                      )}
+                      {linkedProgram && (
+                        <span className="block text-[11px] text-civic-emerald font-medium">
+                          Program: {linkedProgram.title}
                         </span>
                       )}
                     </td>

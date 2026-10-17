@@ -60,6 +60,14 @@ migration. It keeps SK figures available through the anonymous public portal,
 but prevents logged-in Barangay accounts from reading SK financial and audit
 records. Barangay operations and SK operations have separate pages.
 
+To link barangay and SK expenses to projects/programs, run
+`supabase/migration_expense_program_links.sql`. Existing expenses remain
+unlinked and can be linked when edited; new expenses can select a program while
+recording the expense. Then run
+`supabase/migration_program_expense_budget_cap.sql` to ensure expenses linked to
+a program cannot exceed that program's budget, even when its category allocation
+has a higher balance.
+
 The Operations page exports a tenant-scoped JSON data snapshot. Store it in an
 access-controlled location. Restore must be performed by a Supabase
 administrator through a controlled database recovery process, not by replaying

@@ -196,6 +196,7 @@ create table expenses (
   id uuid primary key default uuid_generate_v4(),
   barangay_id uuid references barangays(id) on delete cascade not null,
   budget_allocation_id uuid references budget_allocations(id),
+  program_id uuid,
   category text not null,
   amount numeric(14,2) not null check (amount >= 0),
   description text,
@@ -224,6 +225,7 @@ create table programs (
   beneficiary_category text default 'General Residents',
   created_by uuid references profiles(id),
   created_at timestamptz default now(),
+  constraint programs_id_barangay_unique unique (id, barangay_id),
   constraint programs_budget_amount_check check (budget_amount >= 0 and budget_amount <= 999999999999.99),
   constraint programs_status_check check (status in ('planned', 'ongoing', 'completed', 'cancelled')),
   constraint programs_date_range_check check (end_date is null or start_date is null or end_date >= start_date),
@@ -279,6 +281,7 @@ create table sk_programs (
   status text default 'planned',
   created_by uuid references profiles(id),
   created_at timestamptz default now(),
+  constraint sk_programs_id_barangay_unique unique (id, barangay_id),
   constraint sk_programs_budget_amount_check check (budget_amount >= 0 and budget_amount <= 999999999999.99),
   constraint sk_programs_status_check check (status in ('planned', 'ongoing', 'completed', 'cancelled')),
   constraint sk_programs_date_range_check check (end_date is null or start_date is null or end_date >= start_date),
@@ -296,6 +299,7 @@ create table sk_expenses (
   id uuid primary key default uuid_generate_v4(),
   barangay_id uuid references barangays(id) on delete cascade not null,
   sk_budget_id uuid references sk_budget(id),
+  sk_program_id uuid,
   category text not null,
   amount numeric(14,2) not null check (amount >= 0),
   description text,
@@ -305,6 +309,175 @@ create table sk_expenses (
   created_by uuid references profiles(id),
   created_at timestamptz default now()
 );
+
+alter table expenses
+  add constraint expenses_program_same_barangay
+  foreign key (program_id, barangay_id)
+  references programs (id, barangay_id);
+
+alter table sk_expenses
+  add constraint sk_expenses_program_same_barangay
+  foreign key (sk_program_id, barangay_id)
+  references sk_programs (id, barangay_id);
+
+create index expenses_program_barangay_idx
+  on expenses (program_id, barangay_id);
+create index sk_expenses_program_barangay_idx
+  on sk_expenses (sk_program_id, barangay_id);
+
+create or replace function validate_program_expense_budget()
+returns trigger
+language plpgsql
+security invoker
+as $$
+declare
+  program_budget numeric(14,2);
+  committed_expenses numeric(14,2);
+begin
+  if tg_op = 'UPDATE'
+     and new.program_id is not distinct from old.program_id
+     and new.amount = old.amount then
+    return new;
+  end if;
+
+  if new.program_id is null or coalesce(new.status, 'recorded') = 'voided' then
+    return new;
+  end if;
+
+  select coalesce(budget_amount, 0)
+    into program_budget
+    from programs
+   where id = new.program_id
+     and barangay_id = new.barangay_id
+   for update;
+
+  if not found then
+    raise exception 'Expense must reference a project in the same barangay';
+  end if;
+
+  select coalesce(sum(amount), 0)
+    into committed_expenses
+    from expenses
+   where program_id = new.program_id
+     and barangay_id = new.barangay_id
+     and id <> new.id
+     and coalesce(status, 'recorded') <> 'voided';
+
+  if committed_expenses + new.amount > program_budget then
+    raise exception 'Expense exceeds the selected project budget';
+  end if;
+
+  return new;
+end;
+$$;
+
+create or replace function validate_sk_program_expense_budget()
+returns trigger
+language plpgsql
+security invoker
+as $$
+declare
+  program_budget numeric(14,2);
+  committed_expenses numeric(14,2);
+begin
+  if tg_op = 'UPDATE'
+     and new.sk_program_id is not distinct from old.sk_program_id
+     and new.amount = old.amount then
+    return new;
+  end if;
+
+  if new.sk_program_id is null or coalesce(new.status, 'recorded') = 'voided' then
+    return new;
+  end if;
+
+  select coalesce(budget_amount, 0)
+    into program_budget
+    from sk_programs
+   where id = new.sk_program_id
+     and barangay_id = new.barangay_id
+   for update;
+
+  if not found then
+    raise exception 'SK expense must reference a project in the same barangay';
+  end if;
+
+  select coalesce(sum(amount), 0)
+    into committed_expenses
+    from sk_expenses
+   where sk_program_id = new.sk_program_id
+     and barangay_id = new.barangay_id
+     and id <> new.id
+     and coalesce(status, 'recorded') <> 'voided';
+
+  if committed_expenses + new.amount > program_budget then
+    raise exception 'SK expense exceeds the selected project budget';
+  end if;
+
+  return new;
+end;
+$$;
+
+create or replace function prevent_program_budget_below_expenses()
+returns trigger
+language plpgsql
+security invoker
+as $$
+declare
+  committed_expenses numeric(14,2);
+begin
+  select coalesce(sum(amount), 0)
+    into committed_expenses
+    from expenses
+   where program_id = old.id
+     and barangay_id = old.barangay_id
+     and coalesce(status, 'recorded') <> 'voided';
+
+  if committed_expenses > coalesce(new.budget_amount, 0) then
+    raise exception 'Project budget cannot be lower than its recorded expenses';
+  end if;
+
+  return new;
+end;
+$$;
+
+create or replace function prevent_sk_program_budget_below_expenses()
+returns trigger
+language plpgsql
+security invoker
+as $$
+declare
+  committed_expenses numeric(14,2);
+begin
+  select coalesce(sum(amount), 0)
+    into committed_expenses
+    from sk_expenses
+   where sk_program_id = old.id
+     and barangay_id = old.barangay_id
+     and coalesce(status, 'recorded') <> 'voided';
+
+  if committed_expenses > coalesce(new.budget_amount, 0) then
+    raise exception 'SK project budget cannot be lower than its recorded expenses';
+  end if;
+
+  return new;
+end;
+$$;
+
+create trigger validate_program_expense_budget
+before insert or update of program_id, amount on expenses
+for each row execute function validate_program_expense_budget();
+
+create trigger validate_sk_program_expense_budget
+before insert or update of sk_program_id, amount on sk_expenses
+for each row execute function validate_sk_program_expense_budget();
+
+create trigger prevent_program_budget_below_expenses
+before update of budget_amount on programs
+for each row execute function prevent_program_budget_below_expenses();
+
+create trigger prevent_sk_program_budget_below_expenses
+before update of budget_amount on sk_programs
+for each row execute function prevent_sk_program_budget_below_expenses();
 
 -- ------------------------------------------------------------
 -- KATIPUNAN NG KABATAAN (KK) MONITORING

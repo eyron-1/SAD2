@@ -57,9 +57,11 @@ export default function PublicBudget() {
   const { barangay, loading: bLoading } = usePublicBarangay(slug);
   const { rows: allocations, loading: l1, error: e1 } = useSupabaseTable('budget_allocations', barangay?.id);
   const { rows: expenses, loading: l2, error: e2 } = useSupabaseTable('expenses', barangay?.id, { orderBy: 'date_incurred' });
+  const { rows: programs } = useSupabaseTable('programs', barangay?.id);
   const { rows: skAllocations, loading: l3, error: e3 } = useSupabaseTable('sk_budget', barangay?.id);
   const { rows: skFunds, loading: l4, error: e4 } = useSupabaseTable('sk_fund_sources', barangay?.id);
   const { rows: skExpenses, loading: l5, error: e5 } = useSupabaseTable('sk_expenses', barangay?.id, { orderBy: 'date_incurred' });
+  const { rows: skPrograms } = useSupabaseTable('sk_programs', barangay?.id);
 
   // Navigation & Filtering state
   const [activeTab, setActiveTab] = useState('all'); // 'all' | 'barangay' | 'sk'
@@ -99,10 +101,11 @@ export default function PublicBudget() {
       const matchSearch =
         !searchTerm ||
         item.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.description?.toLowerCase().includes(searchTerm.toLowerCase());
+        item.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        programs.find((program) => program.id === item.program_id)?.title?.toLowerCase().includes(searchTerm.toLowerCase());
       return matchYear && matchSearch;
     });
-  }, [expenses, selectedYear, searchTerm]);
+  }, [expenses, programs, selectedYear, searchTerm]);
 
   const filteredSkFunds = useMemo(() => {
     return skFunds.filter((item) => {
@@ -131,10 +134,11 @@ export default function PublicBudget() {
       const matchSearch =
         !searchTerm ||
         item.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.description?.toLowerCase().includes(searchTerm.toLowerCase());
+        item.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        skPrograms.find((program) => program.id === item.sk_program_id)?.title?.toLowerCase().includes(searchTerm.toLowerCase());
       return matchYear && matchSearch;
     });
-  }, [skExpenses, selectedYear, searchTerm]);
+  }, [skExpenses, skPrograms, selectedYear, searchTerm]);
 
   // Financial calculations
   const totalBarangayBudget = useMemo(() => sumAmounts(filteredBarangayAllocations), [filteredBarangayAllocations]);
@@ -630,6 +634,7 @@ export default function PublicBudget() {
                   <tr>
                     <th className="px-5 py-3.5">Date Incurred</th>
                     <th className="px-5 py-3.5">Category</th>
+                    <th className="px-5 py-3.5">Project / Program</th>
                     <th className="px-5 py-3.5">Description</th>
                     <th className="px-5 py-3.5 text-right">Amount</th>
                     <th className="px-5 py-3.5">Status</th>
@@ -639,14 +644,14 @@ export default function PublicBudget() {
                 <tbody className="divide-y divide-slate-100">
                   {l2 && (
                     <tr>
-                      <td colSpan={6} className="px-5 py-8 text-center text-slate-400">
+                      <td colSpan={7} className="px-5 py-8 text-center text-slate-400">
                         Loading expenses…
                       </td>
                     </tr>
                   )}
                   {!l2 && filteredBarangayExpenses.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="px-5 py-10 text-center">
+                      <td colSpan={7} className="px-5 py-10 text-center">
                         <div className="max-w-xs mx-auto text-slate-400 space-y-1">
                           <Receipt className="w-8 h-8 mx-auto text-slate-300 mb-2" />
                           <p className="font-semibold text-slate-600 text-sm">No expenses found</p>
@@ -661,6 +666,9 @@ export default function PublicBudget() {
                         {formatDate(row.date_incurred)}
                       </td>
                       <td className="px-5 py-3.5 font-medium text-civic-navy">{row.category}</td>
+                      <td className="px-5 py-3.5 text-xs text-slate-600">
+                        {programs.find((program) => program.id === row.program_id)?.title || '—'}
+                      </td>
                       <td className="px-5 py-3.5 text-slate-600 text-xs max-w-xs truncate">
                         {row.description || '—'}
                       </td>
@@ -690,7 +698,7 @@ export default function PublicBudget() {
                 {filteredBarangayExpenses.length > 0 && (
                   <tfoot className="bg-slate-50/70 border-t border-slate-200 font-semibold text-xs text-slate-700">
                     <tr>
-                      <td colSpan={3} className="px-5 py-3 text-right">
+                      <td colSpan={4} className="px-5 py-3 text-right">
                         Total Recorded Expenses:
                       </td>
                       <td className="px-5 py-3 text-right text-sm font-bold text-rose-700">
@@ -836,6 +844,7 @@ export default function PublicBudget() {
                   <tr>
                     <th className="px-5 py-3.5">Date Incurred</th>
                     <th className="px-5 py-3.5">Category</th>
+                    <th className="px-5 py-3.5">SK Project / Program</th>
                     <th className="px-5 py-3.5">Description</th>
                     <th className="px-5 py-3.5 text-right">Amount</th>
                     <th className="px-5 py-3.5">Status</th>
@@ -844,14 +853,14 @@ export default function PublicBudget() {
                 <tbody className="divide-y divide-emerald-50">
                   {l5 && (
                     <tr>
-                      <td colSpan={5} className="px-5 py-8 text-center text-slate-400">
+                      <td colSpan={6} className="px-5 py-8 text-center text-slate-400">
                         Loading SK expenses…
                       </td>
                     </tr>
                   )}
                   {!l5 && filteredSkExpenses.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-5 py-10 text-center">
+                      <td colSpan={6} className="px-5 py-10 text-center">
                         <div className="max-w-xs mx-auto text-slate-400 space-y-1">
                           <Receipt className="w-8 h-8 mx-auto text-emerald-300 mb-2" />
                           <p className="font-semibold text-slate-600 text-sm">No SK expenses found</p>
@@ -866,6 +875,9 @@ export default function PublicBudget() {
                         {formatDate(row.date_incurred)}
                       </td>
                       <td className="px-5 py-3.5 font-medium text-emerald-950">{row.category}</td>
+                      <td className="px-5 py-3.5 text-xs text-slate-600">
+                        {skPrograms.find((program) => program.id === row.sk_program_id)?.title || '—'}
+                      </td>
                       <td className="px-5 py-3.5 text-slate-600 text-xs max-w-xs truncate">
                         {row.description || '—'}
                       </td>
@@ -881,7 +893,7 @@ export default function PublicBudget() {
                 {filteredSkExpenses.length > 0 && (
                   <tfoot className="bg-emerald-50/40 border-t border-emerald-100 font-semibold text-xs text-slate-700">
                     <tr>
-                      <td colSpan={3} className="px-5 py-3 text-right">
+                      <td colSpan={4} className="px-5 py-3 text-right">
                         Total SK Expenses:
                       </td>
                       <td className="px-5 py-3 text-right text-sm font-bold text-rose-700">
