@@ -1,6 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { supabase } from './supabaseClient';
 import { friendlySupabaseError } from './validation';
+import { getDateBasedProgramStatus, getPhilippineDateString } from './programStatus';
+
+const DATE_TRACKED_PROGRAM_TABLES = new Set(['programs', 'sk_programs']);
 
 // Scopes every query to the current barangay_id automatically, and
 // gives every CRUD page the exact same loading/error/refetch shape.
@@ -8,6 +11,18 @@ export function useSupabaseTable(table, barangayId, { orderBy = 'created_at', as
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [today, setToday] = useState(() => getPhilippineDateString());
+
+  useEffect(() => {
+    if (!DATE_TRACKED_PROGRAM_TABLES.has(table)) return undefined;
+
+    const timer = setInterval(() => {
+      const currentDate = getPhilippineDateString();
+      setToday((previousDate) => previousDate === currentDate ? previousDate : currentDate);
+    }, 60_000);
+
+    return () => clearInterval(timer);
+  }, [table]);
 
   const refetch = useCallback(async () => {
     if (!barangayId) {
@@ -70,5 +85,14 @@ export function useSupabaseTable(table, barangayId, { orderBy = 'created_at', as
     return {};
   };
 
-  return { rows, loading, error, refetch, insertRow, updateRow, deleteRow };
+  const visibleRows = useMemo(() => {
+    if (!DATE_TRACKED_PROGRAM_TABLES.has(table)) return rows;
+
+    return rows.map((row) => ({
+      ...row,
+      status: getDateBasedProgramStatus(row, today),
+    }));
+  }, [rows, table, today]);
+
+  return { rows: visibleRows, loading, error, refetch, insertRow, updateRow, deleteRow };
 }
