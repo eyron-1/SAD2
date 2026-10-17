@@ -71,22 +71,16 @@ export default function PublicOverview() {
       </div>
 
       <div className="card border-slate-200 space-y-4">
-        <div><p className="text-xs font-bold uppercase tracking-wider text-civic-emerald">Public Transparency Overview</p><h2 className="text-xl font-bold text-civic-navy mt-1">Barangay and SK financial disclosure</h2><p className="text-sm text-slate-500 mt-1">Residents can compare the funds received, budgets allocated, expenses recorded, and programs published by both offices.</p></div>
+        <div><p className="text-xs font-bold uppercase tracking-wider text-civic-emerald">Public Transparency Overview</p><h2 className="text-xl font-bold text-civic-navy mt-1">Budget status</h2><p className="text-sm text-slate-500 mt-1">A quick check on barangay spending against its recorded allocation.</p></div>
 
         <div className={`rounded-xl border p-4 ${publicStatus.tone === 'rose' ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em]">Budget Snapshot</p>
               <h3 className="text-base font-bold mt-1">{publicStatus.title}</h3>
             </div>
             <div className="text-2xl">{publicStatus.tone === 'rose' ? '⚠️' : '✅'}</div>
           </div>
           <p className="text-sm mt-2 leading-relaxed">{publicStatus.message}</p>
-        </div>
-
-        <div className="grid md:grid-cols-2 gap-4">
-          <div className="rounded-xl border border-slate-200 p-4"><div className="flex items-center gap-3 mb-3"><div className="w-10 h-10 rounded-full bg-civic-navy/10 flex items-center justify-center overflow-hidden">{barangay.logo_url ? <img src={barangay.logo_url} alt="Barangay logo" className="w-full h-full object-cover" /> : <SystemLogo className="w-full h-full object-cover" />}</div><h3 className="font-bold text-civic-navy">Barangay Government</h3></div><div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs"><div><p className="text-slate-400">Funds sourced</p><p className="font-bold text-civic-navy">{formatCurrency(totalFunds)}</p></div><div><p className="text-slate-400">Budget</p><p className="font-bold text-civic-navy">{formatCurrency(totalBudget)}</p></div><div><p className="text-slate-400">Expenses</p><p className="font-bold text-civic-navy">{formatCurrency(totalSpent)}</p></div><div><p className="text-slate-400">Programs</p><p className="font-bold text-civic-navy">{programs.length}</p></div></div></div>
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50/40 p-4"><div className="flex items-center gap-3 mb-3"><div className="w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden">{barangay.sk_logo_url ? <img src={barangay.sk_logo_url} alt="SK logo" className="w-full h-full object-cover" /> : <Users className="w-5 h-5 text-emerald-700" />}</div><h3 className="font-bold text-emerald-900">Sangguniang Kabataan (SK)</h3></div><div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs"><div><p className="text-emerald-700/70">Funds sourced</p><p className="font-bold text-emerald-900">{formatCurrency(totalSkFunds)}</p></div><div><p className="text-emerald-700/70">Budget</p><p className="font-bold text-emerald-900">{formatCurrency(totalSkBudget)}</p></div><div><p className="text-emerald-700/70">Expenses</p><p className="font-bold text-emerald-900">{formatCurrency(totalSkExpenses)}</p></div></div></div>
         </div>
       </div>
 
