@@ -38,7 +38,9 @@ export default function Signup() {
   });
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
+  const [submitMessage, setSubmitMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [registerForHandover, setRegisterForHandover] = useState(false);
 
   const selfRegisterableRoles = tenantMode === 'new'
     ? Object.values(ROLES)
@@ -46,6 +48,7 @@ export default function Signup() {
 
   const changeTenantMode = (mode) => {
     setTenantMode(mode);
+    setRegisterForHandover(false);
     if (mode === 'existing' && !EXISTING_BARANGAY_SELF_REGISTERABLE_ROLES.includes(form.role)) {
       setForm((prev) => ({ ...prev, role: ROLES.SK_KAGAWAD }));
     }
@@ -95,6 +98,7 @@ export default function Signup() {
 
     setSubmitting(true);
     setSubmitError('');
+    setSubmitMessage('');
 
     if (!selfRegisterableRoles.includes(form.role)) {
       setSubmitError('This role must be assigned by an existing barangay or SK editor. Choose a member role, or set up a new barangay for the first official account.');
@@ -104,6 +108,7 @@ export default function Signup() {
 
     try {
       let barangayId = form.barangay_id;
+      let pendingHandover = false;
 
       if (tenantMode === 'existing') {
         const limit = ROLE_SEAT_LIMITS[form.role] || 1;
@@ -120,11 +125,15 @@ export default function Signup() {
           return;
         }
         if (existingProfiles && existingProfiles.length >= limit) {
-          setSubmitError(
-            `Official Seat Limit Reached: This barangay already has ${existingProfiles.length}/${limit} active ${roleLabel(form.role)}(s). An official turnover/handover must be logged to free up this seat.`
-          );
-          setSubmitting(false);
-          return;
+          if (form.role === ROLES.CAPTAIN && registerForHandover) {
+            pendingHandover = true;
+          } else {
+            setSubmitError(
+              `Official Seat Limit Reached: This barangay already has ${existingProfiles.length}/${limit} active ${roleLabel(form.role)}(s). An official turnover/handover must be logged to free up this seat.`
+            );
+            setSubmitting(false);
+            return;
+          }
         }
       }
 
@@ -173,7 +182,7 @@ export default function Signup() {
       full_name: form.full_name,
       role: form.role,
       contact_number: form.contact_number || null,
-      is_active: true,
+      is_active: !pendingHandover,
     }]);
 
       setSubmitting(false);
@@ -186,7 +195,16 @@ export default function Signup() {
           setSubmitError(friendlySupabaseError(profileErr));
         }
       } else {
-        navigate('/dashboard');
+        if (pendingHandover) {
+          const { error: signOutError } = await supabase.auth.signOut();
+          if (signOutError) {
+            setSubmitError(`Your incoming Captain account was created, but sign-out failed: ${friendlySupabaseError(signOutError)} Sign out manually; the account must remain inactive until a current editor completes the handover.`);
+          } else {
+            setSubmitMessage('Your account is registered as an incoming Captain. It will remain inactive until a current barangay editor records the handover and selects your account. You can sign in after the handover is complete.');
+          }
+        } else {
+          navigate('/dashboard');
+        }
       }
     } catch (err) {
       setSubmitting(false);
@@ -257,6 +275,12 @@ export default function Signup() {
             </div>
 
             <div className="space-y-7">
+              {submitMessage && (
+                <div role="status" className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-6 text-emerald-950">
+                  <CheckCircle2 className="mt-1 h-5 w-5 shrink-0 text-civic-leaf" />
+                  <p>{submitMessage}</p>
+                </div>
+              )}
               <fieldset className="space-y-4">
                 <legend className="mb-3 flex items-center gap-2 text-sm font-bold text-civic-navy">
                   <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-civic-navy/5 text-xs">1</span>
@@ -275,9 +299,28 @@ export default function Signup() {
                   <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-civic-navy/5 text-xs">2</span>
                   Your position
                 </legend>
-                <FormField as="select" label="Role / position" value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} error={fieldErrors.role}>
+                <FormField as="select" label="Role / position" value={form.role} onChange={(e) => {
+                  setForm({ ...form, role: e.target.value });
+                  if (e.target.value !== ROLES.CAPTAIN) setRegisterForHandover(false);
+                }} error={fieldErrors.role}>
                   {selfRegisterableRoles.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
                 </FormField>
+                {tenantMode === 'existing' && form.role === ROLES.CAPTAIN && (
+                  <label className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+                    <input
+                      type="checkbox"
+                      checked={registerForHandover}
+                      onChange={(e) => setRegisterForHandover(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-amber-400 text-civic-leaf focus:ring-civic-leaf"
+                    />
+                    <span>
+                      <span className="block font-semibold">Register as incoming Captain</span>
+                      <span className="mt-1 block text-xs leading-5 text-amber-900">
+                        If the Captain seat is occupied, your account will stay inactive until a current barangay editor records the handover.
+                      </span>
+                    </span>
+                  </label>
+                )}
                 {tenantMode === 'existing' && (
                   <p className="-mt-2 text-xs leading-5 text-slate-500">
                     Barangay Captain, Secretary, Treasurer, SK Chairperson, and SK Treasurer can register when their seat is still available.

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { isSkRole, isBarangayEditor, isSkEditor, roleLabel } from '../../utils/roles';
+import { isSkRole, isBarangayEditor, isSkEditor, roleLabel, ROLES } from '../../utils/roles';
 import FloatingAIChat from '../ai/FloatingAIChat';
 import ErrorBanner from '../ui/ErrorBanner';
 import SystemLogo from '../ui/SystemLogo';
@@ -49,6 +49,7 @@ const SK_NAV = [
   { to: '/sk/programs', label: 'SK Programs', icon: FolderKanban },
   { to: '/sk/operations', label: 'SK Operations & Audit', icon: ShieldCheck },
   { to: '/sk/feedback', label: 'SK Community Feedback', icon: MessageSquare },
+  { to: '/sk/officials', label: 'SK Officials & Handover', icon: Users },
   { to: '/sk/kk-monitoring', label: 'KK Youth Monitoring', icon: Users },
   { to: '/sk/ai-assistant', label: 'AI Assistant', icon: Bot },
   { to: '/sk/settings', label: 'SK Settings', icon: Settings },
@@ -110,7 +111,12 @@ export default function OfficialLayout() {
               <span className="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
               <p className="text-xs text-slate-300 truncate font-medium">{roleLabel(profile?.role)}</p>
             </div>
-            {!canEdit && (
+            {!canEdit && profile?.role === ROLES.STAFF && (
+              <span className="mt-1 inline-flex items-center gap-1 rounded border border-civic-emerald/20 bg-civic-emerald/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-300">
+                <ShieldCheck className="h-3 w-3" /> Handover Editor
+              </span>
+            )}
+            {!canEdit && profile?.role !== ROLES.STAFF && (
               <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded border border-amber-400/20 mt-1">
                 <ShieldAlert className="w-3 h-3" /> View Only
               </span>

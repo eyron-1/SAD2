@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import { validateRequired, validateName, runValidators } from '../../lib/validation';
@@ -29,6 +29,22 @@ export default function KKMonitoring() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterReview, setFilterReview] = useState('all');
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    if (!formOpen) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') resetForm();
+    };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [formOpen]);
 
   const validators = {
     kk_name: (v) => validateName(v, 'KK member name'),
@@ -315,39 +331,58 @@ export default function KKMonitoring() {
         )}
       </section>
 
-      <ErrorBanner message={submitError} />
+      {!formOpen && <ErrorBanner message={submitError} />}
 
       {canEdit && formOpen && (
-        <form onSubmit={handleSubmit} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
-            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800"><Plus className="h-5 w-5" /></span>
-            <div>
-              <h2 className="font-semibold text-civic-navy">{editingId ? 'Edit KK member' : 'Register KK member'}</h2>
-              <p className="mt-0.5 text-xs text-slate-500">Add a member manually or update an existing profile.</p>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-3 backdrop-blur-sm sm:p-6"
+          onClick={resetForm}
+          role="presentation"
+        >
+          <form
+            onSubmit={handleSubmit}
+            onClick={(event) => event.stopPropagation()}
+            className="max-h-[calc(100dvh-1.5rem)] w-full max-w-2xl overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl sm:max-h-[calc(100dvh-3rem)]"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="kk-member-form-title"
+          >
+            <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-800"><Plus className="h-5 w-5" /></span>
+                <div>
+                  <h2 id="kk-member-form-title" className="font-semibold text-civic-navy">{editingId ? 'Edit KK member' : 'Register KK member'}</h2>
+                  <p className="mt-0.5 text-xs text-slate-500">Add a member manually or update an existing profile.</p>
+                </div>
+              </div>
+              <button type="button" onClick={resetForm} aria-label="Close form" className="rounded-lg p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700">
+                <X className="h-5 w-5" />
+              </button>
             </div>
-          </div>
-          <div className="space-y-4 p-5 sm:p-6">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <FormField label="Full Name" value={form.kk_name} onChange={(e) => setForm({ ...form, kk_name: e.target.value })} error={fieldErrors.kk_name} />
-              <FormField label="Age" type="number" min="15" max="30" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} error={fieldErrors.age} />
-              <FormField label="Purok / Zone" value={form.purok} onChange={(e) => setForm({ ...form, purok: e.target.value })} />
+            <div className="space-y-4 p-5 sm:p-6">
+              <ErrorBanner message={submitError} />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <FormField label="Full Name" autoFocus value={form.kk_name} onChange={(e) => setForm({ ...form, kk_name: e.target.value })} error={fieldErrors.kk_name} />
+                <FormField label="Age" type="number" min="15" max="30" value={form.age} onChange={(e) => setForm({ ...form, age: e.target.value })} error={fieldErrors.age} />
+                <FormField label="Purok / Zone" value={form.purok} onChange={(e) => setForm({ ...form, purok: e.target.value })} />
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <FormField as="select" label="Linked SK Program (optional)" value={form.sk_program_id} onChange={(e) => setForm({ ...form, sk_program_id: e.target.value })}>
+                  <option value="">— none —</option>
+                  {skPrograms.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
+                </FormField>
+                <FormField as="select" label="Participation Status" value={form.participation_status} onChange={(e) => setForm({ ...form, participation_status: e.target.value })}>
+                  {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                </FormField>
+              </div>
+              <FormField as="textarea" rows={2} label="Notes (optional)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+              <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
+                <button type="button" onClick={resetForm} className="btn-secondary">Cancel</button>
+                <button type="submit" disabled={submitting} className="btn-emerald">{submitting ? 'Saving…' : editingId ? 'Save changes' : 'Add KK member'}</button>
+              </div>
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <FormField as="select" label="Linked SK Program (optional)" value={form.sk_program_id} onChange={(e) => setForm({ ...form, sk_program_id: e.target.value })}>
-                <option value="">— none —</option>
-                {skPrograms.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
-              </FormField>
-              <FormField as="select" label="Participation Status" value={form.participation_status} onChange={(e) => setForm({ ...form, participation_status: e.target.value })}>
-                {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-              </FormField>
-            </div>
-            <FormField as="textarea" rows={2} label="Notes (optional)" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
-            <div className="flex flex-wrap gap-2">
-              <button type="submit" disabled={submitting} className="btn-emerald">{submitting ? 'Saving…' : editingId ? 'Save changes' : 'Add KK member'}</button>
-              <button type="button" onClick={resetForm} className="btn-secondary">Cancel</button>
-            </div>
-          </div>
-        </form>
+          </form>
+        </div>
       )}
 
       {documentPreview && (

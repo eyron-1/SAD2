@@ -82,6 +82,20 @@ To allow self-registration for an unoccupied Barangay Captain, Secretary, or
 Treasurer seat in an existing barangay, run
 `supabase/migration_signup_barangay_editors.sql`.
 
+To enable complete officials handovers on an existing database, run
+`supabase/migration_officials_handover.sql` after the base schema and profile
+security migrations, including `supabase/migration_signup_barangay_editors.sql`.
+Re-run the updated handover migration when deploying later handover changes.
+This lets active editors view inactive accounts in their own barangay and
+applies roster changes and handover history as one validated transaction.
+Barangay Staff can record and end Barangay official terms; active SK Chairpersons
+and Treasurers can manage SK handovers. The handover page separates Barangay and
+SK seats and history. To register a new incoming Captain while the current
+Captain still occupies the seat, sign up under **Join existing**, select
+**Barangay Captain**, and choose **Register as incoming Captain**. The account
+remains inactive until an authorized Barangay editor or Staff member records the
+handover and selects it.
+
 The Operations page exports a tenant-scoped JSON data snapshot. Store it in an
 access-controlled location. Restore must be performed by a Supabase
 administrator through a controlled database recovery process, not by replaying
@@ -170,6 +184,7 @@ React Router's client-side routes work on refresh.
 │   ├── migration_kk_id_documents.sql
 │   ├── migration_kk_public_profiling.sql
 │   ├── migration_operations_audit.sql
+│   ├── migration_officials_handover.sql
 │   ├── migration_program_allocation_integrity.sql
 │   ├── migration_program_date_status.sql
 │   ├── migration_program_expense_budget_cap.sql

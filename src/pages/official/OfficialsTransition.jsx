@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import { supabase } from '../../lib/supabaseClient';
-import { validateRequired, runValidators, friendlySupabaseError } from '../../lib/validation';
-import { isBarangayEditor, roleLabel, ROLES, ROLE_SEAT_LIMITS } from '../../utils/roles';
+import { validateRequired, validateDateRange, runValidators, friendlySupabaseError } from '../../lib/validation';
+import { getPhilippineDateString } from '../../lib/programStatus';
+import { isBarangayEditor, isSkEditor, isSkRole, roleLabel, ROLES, ROLE_SEAT_LIMITS } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import {
@@ -23,12 +24,24 @@ import {
 } from 'lucide-react';
 
 const EMPTY = { position_role: ROLES.CAPTAIN, outgoing_official_id: '', incoming_official_id: '', term_start: '', term_end: '', notes: '' };
+const BARANGAY_ROLES = [ROLES.CAPTAIN, ROLES.SECRETARY, ROLES.TREASURER, ROLES.KAGAWAD, ROLES.STAFF];
+const SK_OFFICIAL_ROLES = [ROLES.SK_CHAIRPERSON, ROLES.SK_TREASURER, ROLES.SK_KAGAWAD];
+const SEAT_DETAILS = {
+  [ROLES.CAPTAIN]: { label: 'Captain', limit: 1 },
+  [ROLES.KAGAWAD]: { label: 'Kagawads', limit: 7 },
+  [ROLES.SECRETARY]: { label: 'Secretary', limit: 1 },
+  [ROLES.TREASURER]: { label: 'Treasurer', limit: 1 },
+  [ROLES.STAFF]: { label: 'Staff', limit: 1 },
+  [ROLES.SK_CHAIRPERSON]: { label: 'SK Chairperson', limit: 1 },
+  [ROLES.SK_TREASURER]: { label: 'SK Treasurer', limit: 1 },
+  [ROLES.SK_KAGAWAD]: { label: 'SK Kagawad', limit: 7 },
+};
 
 export default function OfficialsTransition() {
   const { profile } = useAuth();
-  const canEdit = isBarangayEditor(profile?.role);
-  const { rows: officials, loading: officialsLoading, refetch: refetchOfficials } = useSupabaseTable('profiles', profile?.barangay_id, { select: '*' });
-  const { rows: transitions, loading, error, insertRow } = useSupabaseTable('officials_transitions', profile?.barangay_id);
+  const [scope, setScope] = useState(() => isSkRole(profile?.role) ? 'sk' : 'barangay');
+  const { rows: officials, loading: officialsLoading, error: officialsError, refetch: refetchOfficials } = useSupabaseTable('profiles', profile?.barangay_id, { select: '*' });
+  const { rows: transitions, loading, error, refetch: refetchTransitions } = useSupabaseTable('officials_transitions', profile?.barangay_id);
 
   const [form, setForm] = useState(EMPTY);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -36,15 +49,28 @@ export default function OfficialsTransition() {
   const [submitting, setSubmitting] = useState(false);
   const [deactivating, setDeactivating] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const scopeRoles = scope === 'sk' ? SK_OFFICIAL_ROLES : BARANGAY_ROLES;
+  const canEdit = scope === 'sk'
+    ? isSkEditor(profile?.role)
+    : isBarangayEditor(profile?.role) || profile?.role === ROLES.STAFF;
+
+  useEffect(() => {
+    if (isSkRole(profile?.role)) setScope('sk');
+  }, [profile?.role]);
 
   const validators = {
     position_role: (v) => validateRequired(v, 'Position role'),
     incoming_official_id: (v) => validateRequired(v, 'Incoming official account'),
     term_start: (v) => validateRequired(v, 'Term start date'),
+    term_end: () => validateDateRange(form.term_start, form.term_end),
   };
 
   const openModal = () => {
-    setForm({ ...EMPTY, term_start: new Date().toISOString().split('T')[0] });
+    setForm({
+      ...EMPTY,
+      position_role: scopeRoles[0],
+      term_start: getPhilippineDateString(),
+    });
     setFieldErrors({});
     setSubmitError('');
     setModalOpen(true);
@@ -65,77 +91,64 @@ export default function OfficialsTransition() {
     setSubmitting(true);
     setSubmitError('');
 
-    const positionTitle = roleLabel(form.position_role);
+    try {
+      const { error: handoverError } = await supabase.rpc('complete_officials_handover', {
+        p_barangay_id: profile.barangay_id,
+        p_position_role: form.position_role,
+        p_outgoing_official_id: form.outgoing_official_id || null,
+        p_incoming_official_id: form.incoming_official_id,
+        p_term_start: form.term_start,
+        p_term_end: form.term_end || null,
+        p_notes: form.notes.trim() || null,
+      });
 
-    // 1. Log transition record
-    const payload = {
-      position_title: positionTitle,
-      outgoing_official_id: form.outgoing_official_id || null,
-      incoming_official_id: form.incoming_official_id,
-      term_start: form.term_start,
-      term_end: form.term_end || null,
-      notes: form.notes || null,
-      created_by: profile.id,
-    };
+      if (handoverError) {
+        setSubmitError(friendlySupabaseError(handoverError));
+        return;
+      }
 
-    const result = await insertRow(payload);
-
-    if (result.error) {
-      setSubmitError(result.error);
+      await Promise.all([refetchOfficials(), refetchTransitions()]);
+      closeModal();
+    } catch (handoverError) {
+      setSubmitError(friendlySupabaseError(handoverError));
+    } finally {
       setSubmitting(false);
-      return;
     }
-
-    // 2. Deactivate outgoing official (if specified)
-    if (form.outgoing_official_id) {
-      await supabase
-        .from('profiles')
-        .update({ is_active: false, term_end: form.term_start })
-        .eq('id', form.outgoing_official_id);
-    }
-
-    // 3. Activate incoming official and set their role & term_start
-    if (form.incoming_official_id) {
-      await supabase
-        .from('profiles')
-        .update({
-          is_active: true,
-          role: form.position_role,
-          position_title: positionTitle,
-          term_start: form.term_start,
-          term_end: form.term_end || null,
-        })
-        .eq('id', form.incoming_official_id);
-    }
-
-    refetchOfficials();
-    setSubmitting(false);
-    closeModal();
   };
 
   const handleDeactivate = async (id, name) => {
     if (!window.confirm(`End term for ${name}? Marking them inactive will free up their seat quota for a new official turnover.`)) return;
     setDeactivating(id);
-    const { error: dErr } = await supabase.from('profiles').update({ is_active: false, term_end: new Date().toISOString().split('T')[0] }).eq('id', id);
-    setDeactivating(null);
-    if (dErr) setSubmitError(friendlySupabaseError(dErr));
-    else refetchOfficials();
+    try {
+      const { error: dErr } = await supabase.rpc('end_official_term', {
+        p_barangay_id: profile.barangay_id,
+        p_official_id: id,
+        p_term_end: getPhilippineDateString(),
+      });
+      if (dErr) setSubmitError(friendlySupabaseError(dErr));
+      else refetchOfficials();
+    } catch (deactivationError) {
+      setSubmitError(friendlySupabaseError(deactivationError));
+    } finally {
+      setDeactivating(null);
+    }
   };
 
-  const activeOfficials = officials.filter((o) => o.is_active !== false);
+  const scopedOfficials = officials.filter((o) => scopeRoles.includes(o.role));
+  const activeOfficials = scopedOfficials.filter((o) => o.is_active !== false);
+  const scopedTransitions = transitions.filter((transition) => (
+    transition.position_title?.startsWith('SK ') === (scope === 'sk')
+  ));
 
-  // Quota breakdown calculations
   const getSeatCount = (r) => activeOfficials.filter((o) => o.role === r).length;
   const getOfficialName = (id) => officials.find((official) => official.id === id)?.full_name || 'Not specified';
-  const filledSeatCount = [
-    ROLES.CAPTAIN,
-    ROLES.KAGAWAD,
-    ROLES.SK_CHAIRPERSON,
-    ROLES.SK_KAGAWAD,
-    ROLES.SECRETARY,
-    ROLES.TREASURER,
-    ROLES.STAFF,
-  ].filter((role) => getSeatCount(role) > 0).length;
+  const filledSeatCount = scopeRoles.filter((role) => getSeatCount(role) > 0).length;
+  const setScopeView = (nextScope) => {
+    setScope(nextScope);
+    setForm({ ...EMPTY, position_role: nextScope === 'sk' ? SK_OFFICIAL_ROLES[0] : BARANGAY_ROLES[0] });
+    setModalOpen(false);
+    setSubmitError('');
+  };
 
   return (
     <div className="max-w-6xl space-y-8">
@@ -148,9 +161,11 @@ export default function OfficialsTransition() {
               <ShieldCheck className="h-3.5 w-3.5" />
               Council administration
             </span>
-            <h1 className="text-3xl font-bold text-white sm:text-4xl">Officials & handover</h1>
+            <h1 className="text-3xl font-bold text-white sm:text-4xl">{scope === 'sk' ? 'SK officials & handover' : 'Barangay officials & handover'}</h1>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-200 sm:text-base">
-              Keep the current roster up to date and maintain a transparent record of every term transition.
+              {scope === 'sk'
+                ? 'Manage the SK roster separately and keep its term transitions on record.'
+                : 'Manage Barangay Council seats separately and keep their term transitions on record.'}
             </p>
           </div>
           {canEdit && (
@@ -163,6 +178,33 @@ export default function OfficialsTransition() {
       </section>
 
       <ErrorBanner message={error} />
+      <ErrorBanner message={officialsError} />
+
+      <div className="inline-flex rounded-xl bg-slate-100 p-1" role="tablist" aria-label="Officials handover type">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={scope === 'barangay'}
+          onClick={() => setScopeView('barangay')}
+          className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${scope === 'barangay' ? 'bg-white text-civic-navy shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+        >
+          Barangay officials
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={scope === 'sk'}
+          onClick={() => setScopeView('sk')}
+          className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${scope === 'sk' ? 'bg-white text-civic-navy shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+        >
+          SK officials
+        </button>
+      </div>
+      <p className="text-xs leading-5 text-slate-500">
+        {scope === 'sk'
+          ? 'SK handovers are managed by active SK Chairpersons and SK Treasurers.'
+          : 'Barangay handovers can be managed by active Barangay editors and Barangay Staff.'}
+      </p>
 
       <section aria-label="Official seat capacity">
         <div className="mb-4 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
@@ -170,18 +212,11 @@ export default function OfficialsTransition() {
             <h2 className="text-xl font-bold text-civic-navy">Seat capacity</h2>
             <p className="mt-1 text-sm text-slate-500">Current seats filled against the permitted limit.</p>
           </div>
-          <span className="text-xs font-medium text-slate-500">{filledSeatCount} of 7 position types represented</span>
+          <span className="text-xs font-medium text-slate-500">{filledSeatCount} of {scopeRoles.length} position types represented</span>
         </div>
-        <div className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 sm:grid-cols-4 xl:grid-cols-7">
-        {[
-          { role: ROLES.CAPTAIN, label: 'Captain', limit: 1 },
-          { role: ROLES.KAGAWAD, label: 'Kagawads', limit: 7 },
-          { role: ROLES.SK_CHAIRPERSON, label: 'SK Chairman', limit: 1 },
-          { role: ROLES.SK_KAGAWAD, label: 'SK Kagawad', limit: 7 },
-          { role: ROLES.SECRETARY, label: 'Secretary', limit: 1 },
-          { role: ROLES.TREASURER, label: 'Treasurer', limit: 1 },
-          { role: ROLES.STAFF, label: 'Staff', limit: 1 },
-        ].map((item) => {
+        <div className={`grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 ${scope === 'sk' ? 'sm:grid-cols-3' : 'sm:grid-cols-3 xl:grid-cols-5'}`}>
+        {scopeRoles.map((role) => {
+          const item = { role, ...SEAT_DETAILS[role] };
           const current = getSeatCount(item.role);
           const isFull = current >= item.limit;
           return (
@@ -291,10 +326,10 @@ export default function OfficialsTransition() {
                 as="select"
                 label="Position seat"
                 value={form.position_role}
-                onChange={(e) => setForm({ ...form, position_role: e.target.value })}
+                onChange={(e) => setForm({ ...form, position_role: e.target.value, outgoing_official_id: '' })}
                 error={fieldErrors.position_role}
               >
-                {Object.values(ROLES).map((r) => (
+                {scopeRoles.map((r) => (
                   <option key={r} value={r}>
                     {roleLabel(r)} (Max {ROLE_SEAT_LIMITS[r] || 1} seat)
                   </option>
@@ -309,7 +344,7 @@ export default function OfficialsTransition() {
                   onChange={(e) => setForm({ ...form, outgoing_official_id: e.target.value })}
                 >
                   <option value="">None / new seat</option>
-                  {activeOfficials.map((o) => (
+                  {activeOfficials.filter((o) => o.role === form.position_role).map((o) => (
                     <option key={o.id} value={o.id}>{o.full_name} ({roleLabel(o.role)})</option>
                   ))}
                 </FormField>
@@ -322,10 +357,12 @@ export default function OfficialsTransition() {
                   error={fieldErrors.incoming_official_id}
                 >
                   <option value="">Select registered account</option>
-                  {officials.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.full_name} {o.is_active === false ? '(Inactive)' : `(${roleLabel(o.role)})`}
-                    </option>
+                  {scopedOfficials.map((o) => (
+                    o.id !== form.outgoing_official_id && (
+                      <option key={o.id} value={o.id}>
+                        {o.full_name} ({roleLabel(o.role)}) {o.is_active === false ? '(Inactive)' : ''}
+                      </option>
+                    )
                   ))}
                 </FormField>
               </div>
@@ -343,6 +380,7 @@ export default function OfficialsTransition() {
                   label="Term end date (optional)"
                   value={form.term_end}
                   onChange={(e) => setForm({ ...form, term_end: e.target.value })}
+                  error={fieldErrors.term_end}
                 />
               </div>
 
@@ -376,12 +414,12 @@ export default function OfficialsTransition() {
             </h2>
             <p className="mt-1 text-sm text-slate-500">A chronological audit trail of leadership and term changes.</p>
           </div>
-          <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{transitions.length} {transitions.length === 1 ? 'record' : 'records'}</span>
+          <span className="w-fit rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{scopedTransitions.length} {scopedTransitions.length === 1 ? 'record' : 'records'}</span>
         </div>
 
         <div className="space-y-3">
           {loading && <p className="rounded-xl border border-civic-navy/10 bg-white py-8 text-center text-sm text-slate-500">Loading handover history…</p>}
-          {!loading && transitions.length === 0 && (
+          {!loading && scopedTransitions.length === 0 && (
             <div className="rounded-xl border border-dashed border-slate-300 bg-white/70 px-5 py-10 text-center">
               <History className="mx-auto h-8 w-8 text-slate-300" />
               <p className="mt-3 font-semibold text-slate-700">No handovers recorded</p>
@@ -389,7 +427,7 @@ export default function OfficialsTransition() {
             </div>
           )}
 
-          {transitions.map((t) => (
+          {scopedTransitions.map((t) => (
             <article key={t.id} className="relative overflow-hidden rounded-xl border border-civic-navy/10 bg-white p-4 shadow-sm sm:p-5">
               <div className="absolute inset-y-0 left-0 w-1 bg-civic-leaf" />
               <div className="flex flex-col gap-4 pl-2 sm:flex-row sm:items-start sm:justify-between">
