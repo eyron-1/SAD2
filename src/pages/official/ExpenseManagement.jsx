@@ -15,7 +15,11 @@ import FormField from "../../components/ui/FormField";
 import ErrorBanner from "../../components/ui/ErrorBanner";
 import Badge from "../../components/ui/Badge";
 import ImageLightbox from "../../components/ui/ImageLightbox";
-import { sumAmounts, sumActiveAmounts } from "../../lib/financial";
+import {
+  BARANGAY_FINANCIAL_CATEGORIES,
+  sumAmounts,
+  sumActiveAmounts,
+} from "../../lib/financial";
 import {
   Receipt,
   Plus,
@@ -33,18 +37,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-const CATEGORIES = [
-  "Infrastructure",
-  "Health Services",
-  "Peace & Order",
-  "Education",
-  "Social Services",
-  "Administration",
-  "Disaster Preparedness",
-  "Honoraria",
-  "Utilities",
-  "Other",
-];
+const CATEGORIES = BARANGAY_FINANCIAL_CATEGORIES;
 const EMPTY = {
   category: CATEGORIES[0],
   amount: "",
@@ -85,6 +78,7 @@ export default function ExpenseManagement() {
     category: (v) => validateRequired(v, "Category"),
     amount: (v) => validateCurrency(v, "Amount"),
     date_incurred: (v) => validateRequired(v, "Date incurred"),
+    budget_allocation_id: (v) => validateRequired(v, "Budget allocation"),
   };
 
   const getAvailableAmount = (allocation) => {
@@ -271,6 +265,12 @@ export default function ExpenseManagement() {
   const totalSpent = sumActiveAmounts(rows);
   const totalAllocated = sumAmounts(allocations);
   const remainingBudget = totalAllocated - totalSpent;
+  const categoryOptions = [
+    ...new Set([
+      ...CATEGORIES,
+      ...rows.map((row) => row.category).filter(Boolean),
+    ]),
+  ];
 
   return (
     <div className="space-y-6 max-w-6xl">
@@ -359,7 +359,7 @@ export default function ExpenseManagement() {
             className="input-field text-xs font-semibold text-slate-700 sm:w-48"
           >
             <option value="all">All Categories ({rows.length})</option>
-            {CATEGORIES.map((c) => (
+            {categoryOptions.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
@@ -397,7 +397,14 @@ export default function ExpenseManagement() {
                   error={fieldErrors.category}
                 >
                   <option value="">Select a category</option>
-                  {CATEGORIES.map((c) => (
+                  {[
+                    ...new Set([
+                      ...CATEGORIES,
+                      ...(form.category && !CATEGORIES.includes(form.category)
+                        ? [form.category]
+                        : []),
+                    ]),
+                  ].map((c) => (
                     <option key={c} value={c}>
                       {c}
                     </option>
@@ -437,7 +444,7 @@ export default function ExpenseManagement() {
                 />
                 <FormField
                   as="select"
-                  label="Linked Budget Allocation"
+                  label="Linked Budget Allocation (Required)"
                   value={form.budget_allocation_id}
                   onChange={(e) => {
                     const allocation = allocations.find(
@@ -451,7 +458,7 @@ export default function ExpenseManagement() {
                   }}
                   error={fieldErrors.budget_allocation_id}
                 >
-                  <option value="">Select an allocation (optional)</option>
+                  <option value="">Select a budget allocation</option>
                   {allocations.map((a) => (
                     <option key={a.id} value={a.id}>
                       {a.fiscal_year} · {a.category} · ₱
@@ -510,7 +517,7 @@ export default function ExpenseManagement() {
                 as="textarea"
                 rows={3}
                 label="Expense Description / Payee"
-                placeholder="Details of item purchased, vendor, or official voucher number..."
+                placeholder="Specific item or bill (e.g., electricity, internet, office supplies)..."
                 value={form.description}
                 onChange={(e) =>
                   setForm({ ...form, description: e.target.value })

@@ -11,7 +11,11 @@ import {
   parseCurrencyValue,
 } from "../../lib/validation";
 import { isBarangayEditor } from "../../utils/roles";
-import { sumAmounts, sumActiveAmounts } from "../../lib/financial";
+import {
+  BARANGAY_FINANCIAL_CATEGORIES,
+  sumAmounts,
+  sumActiveAmounts,
+} from "../../lib/financial";
 import FormField from "../../components/ui/FormField";
 import ErrorBanner from "../../components/ui/ErrorBanner";
 import {
@@ -29,16 +33,7 @@ import {
   Wallet,
 } from "lucide-react";
 
-const CATEGORIES = [
-  "Infrastructure",
-  "Health Services",
-  "Peace & Order",
-  "Education",
-  "Social Services",
-  "Administration",
-  "Disaster Preparedness",
-  "Other",
-];
+const CATEGORIES = BARANGAY_FINANCIAL_CATEGORIES;
 const EMPTY = {
   fiscal_year: "",
   category: CATEGORIES[0],
@@ -163,6 +158,12 @@ export default function BudgetManagement() {
   const totalSpent = sumActiveAmounts(expenses);
   const unallocatedFund = totalSourced - totalAllocated;
   const remainingBudget = totalAllocated - totalSpent;
+  const categoryOptions = [
+    ...new Set([
+      ...CATEGORIES,
+      ...rows.map((row) => row.category).filter(Boolean),
+    ]),
+  ];
 
   const budgetStatus =
     remainingBudget < 0
@@ -349,7 +350,7 @@ export default function BudgetManagement() {
             className="input-field text-xs font-semibold text-slate-700 sm:w-44"
           >
             <option value="all">All Categories</option>
-            {CATEGORIES.map((c) => (
+            {categoryOptions.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
@@ -397,7 +398,14 @@ export default function BudgetManagement() {
                   }
                   error={fieldErrors.category}
                 >
-                  {CATEGORIES.map((c) => (
+                  {[
+                    ...new Set([
+                      ...CATEGORIES,
+                      ...(form.category && !CATEGORIES.includes(form.category)
+                        ? [form.category]
+                        : []),
+                    ]),
+                  ].map((c) => (
                     <option key={c} value={c}>
                       {c}
                     </option>

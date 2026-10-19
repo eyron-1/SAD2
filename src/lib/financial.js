@@ -1,3 +1,16 @@
+export const BARANGAY_FINANCIAL_CATEGORIES = [
+  'Infrastructure',
+  'Health Services',
+  'Peace & Order',
+  'Education',
+  'Social Services',
+  'Administration',
+  'Disaster Preparedness',
+  'Honoraria',
+  'Utilities & Operations',
+  'Other',
+];
+
 export const isActiveFinancialRecord = (row) => row?.status !== 'voided';
 
 export const activeRows = (rows = []) => rows.filter(isActiveFinancialRecord);
