@@ -20,7 +20,7 @@ const SYSTEM_PROMPTS: Record<string, string> = {
     'for submission to the Sangguniang Barangay or DILG audit.',
 };
 
-const GROQ_MODEL = 'llama-3.3-70b-versatile';
+const GROQ_MODEL = 'openai/gpt-oss-120b';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 serve(async (req) => {
@@ -31,7 +31,7 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const { mode, messages, context, apiKey: clientApiKey } = await req.json();
+    const { mode, messages, context } = await req.json();
     console.log('Request received for Groq AI. mode:', mode, 'messages count:', messages?.length);
 
     if (!mode || !SYSTEM_PROMPTS[mode]) {
@@ -41,11 +41,11 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'messages array is required.' }), { status: 400, headers: corsHeaders });
     }
 
-    const apiKey = clientApiKey || Deno.env.get('GROQ_API_KEY') || Deno.env.get('GROCK_API_KEY');
+    const apiKey = Deno.env.get('GROQ_API_KEY');
     if (!apiKey) {
       return new Response(
-        JSON.stringify({ error: 'GROQ_API_KEY is missing on the server. Please enter your Groq API Key in the UI settings.' }),
-        { status: 500, headers: corsHeaders }
+        JSON.stringify({ error: 'The shared AI service is not configured. Ask your app administrator to set the GROQ_API_KEY Supabase function secret.' }),
+        { status: 503, headers: { ...corsHeaders, 'content-type': 'application/json' } }
       );
     }
 

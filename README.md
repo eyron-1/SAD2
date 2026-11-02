@@ -30,8 +30,6 @@ key:
 ```dotenv
 VITE_SUPABASE_URL=your-supabase-project-url
 VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
-# Optional: enable the browser-based AI assistant
-VITE_GROQ_API_KEY=your-groq-api-key
 ```
 
 Then install dependencies and start the app:
@@ -128,18 +126,23 @@ directly.
 ## 4. AI Assistant (optional but recommended)
 
 The AI Assistant (report drafting, inquiries, budget forecasting,
-accomplishment reports) is powered by Groq (Llama 3.3 70B Versatile). It can run either:
-1. Via the Supabase Edge Function (`supabase/functions/ai-assistant`) using a server-side `GROQ_API_KEY`.
-2. Directly from the browser using a free Groq API key entered in the in-app AI Assistant page or in `.env` (`VITE_GROQ_API_KEY`).
+accomplishment reports) is powered by Groq (GPT-OSS 120B) through a
+Supabase Edge Function. Configure the Groq key once as a Supabase function
+secret; it is never stored in the browser, so signed-in users can use the AI
+from different devices without entering their own key on each one.
 
-To deploy the Edge Function:
+To deploy and configure the shared AI service:
 ```bash
 npm install -g supabase
 supabase login
 supabase link --project-ref YOUR_PROJECT_REF
-supabase functions deploy ai-assistant
 supabase secrets set GROQ_API_KEY=gsk_your_groq_api_key_here
+supabase functions deploy ai-assistant
 ```
+
+Alternatively, add `GROQ_API_KEY` under your Supabase project's Edge Function
+secrets, then deploy the `ai-assistant` function. Do not put this key in the
+frontend `.env` file or share it with app users.
 
 ## 5. Deploy to Firebase Hosting
 

@@ -13,15 +13,12 @@ import {
   ArrowRight,
   ArrowUpRight,
   BarChart3,
-  Bell,
   Bot,
-  CalendarDays,
   FolderKanban,
   Landmark,
   MessageSquare,
   PieChart,
   Receipt,
-  ShieldCheck,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -122,17 +119,6 @@ export default function Dashboard() {
     "feedback",
     profile?.barangay_id,
   );
-  const { rows: notifications, error: e5 } = useSupabaseTable(
-    "notifications",
-    profile?.barangay_id,
-    { filter: { user_id: profile?.id } },
-  );
-  const { rows: activities, error: e6 } = useSupabaseTable(
-    "activity_calendar",
-    profile?.barangay_id,
-    { orderBy: "starts_at", ascending: true },
-  );
-
   const totalBudget = sumAmounts(allocations);
   const totalFunds = sumAmounts(funds);
   const totalSpent = sumActiveAmounts(expenses);
@@ -149,10 +135,6 @@ export default function Dashboard() {
   const yearForecast = forecastAnnualSpend(yearSpend, currentDate.getMonth() + 1);
   const forecastOverBudget = yearBudget > 0 && yearForecast > yearBudget;
   const highUtilization = yearBudget > 0 && yearSpend / yearBudget >= 0.85;
-  const unreadCount = notifications.filter((row) => !row.read_at).length;
-  const upcomingActivities = activities
-    .filter((row) => new Date(row.starts_at) >= currentDate)
-    .slice(0, 3);
   const spendPercentage =
     totalBudget > 0
       ? Math.min(100, Math.round((totalSpent / totalBudget) * 100))
@@ -213,7 +195,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <ErrorBanner message={e1 || e2 || e3 || e4 || e5 || e6 || e7} />
+      <ErrorBanner message={e1 || e2 || e3 || e4 || e7} />
 
       <section aria-label="Barangay overview">
         <div className="mb-3 flex items-end justify-between gap-3">
@@ -272,7 +254,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-5">
+      <section>
         <div
           className={`rounded-2xl border bg-white p-5 shadow-sm lg:col-span-3 sm:p-6 ${
             forecastOverBudget || highUtilization
@@ -352,58 +334,6 @@ export default function Dashboard() {
           )}
         </div>
 
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm lg:col-span-2 sm:p-6">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">
-                Calendar
-              </p>
-              <h2 className="mt-1 flex items-center gap-2 text-lg font-bold text-civic-navy">
-                <CalendarDays className="h-5 w-5 text-civic-emerald" />
-                Upcoming activities
-              </h2>
-            </div>
-            <Link
-              to="operations"
-              className="rounded-lg p-2 text-slate-400 transition hover:bg-emerald-50 hover:text-civic-emerald"
-              aria-label="Open operations"
-            >
-              <ArrowUpRight className="h-5 w-5" />
-            </Link>
-          </div>
-          <div className="mt-4 divide-y divide-slate-100">
-            {upcomingActivities.map((activity) => (
-              <div key={activity.id} className="flex gap-3 py-3 first:pt-0">
-                <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-civic-emerald" />
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-slate-800">
-                    {activity.title}
-                  </p>
-                  <p className="mt-0.5 text-xs text-slate-500">
-                    {new Date(activity.starts_at).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            ))}
-            {upcomingActivities.length === 0 && (
-              <p className="py-4 text-sm text-slate-500">
-                No upcoming activities scheduled.
-              </p>
-            )}
-          </div>
-          <Link
-            to="operations"
-            className="mt-2 flex items-center justify-between rounded-xl bg-slate-50 px-3.5 py-3 text-sm transition hover:bg-emerald-50"
-          >
-            <span className="flex items-center gap-2 font-medium text-slate-600">
-              <Bell className="h-4 w-4 text-civic-emerald" />
-              Notifications
-            </span>
-            <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-civic-navy shadow-sm">
-              {unreadCount} unread
-            </span>
-          </Link>
-        </div>
       </section>
 
       <section>
@@ -434,23 +364,6 @@ export default function Dashboard() {
               <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-slate-400 transition group-hover:text-civic-emerald" />
             </Link>
           ))}
-          <Link
-            to="operations"
-            className="group flex min-w-0 items-start gap-3 rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-civic-emerald/40 hover:shadow-card-hover"
-          >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
-              <ShieldCheck className="h-5 w-5" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-sm font-semibold text-slate-800">
-                Operations & audit
-              </span>
-              <span className="mt-1 block text-xs leading-relaxed text-slate-500">
-                Review activity logs and scheduled operations.
-              </span>
-            </span>
-            <ArrowUpRight className="mt-0.5 h-4 w-4 shrink-0 text-slate-400 transition group-hover:text-civic-emerald" />
-          </Link>
         </div>
       </section>
     </div>

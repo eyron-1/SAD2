@@ -36,7 +36,6 @@ const BARANGAY_NAV = [
   { to: '/dashboard/feedback', label: 'Community Feedback', icon: MessageSquare },
   { to: '/dashboard/officials', label: 'Officials & Handover', icon: Users },
   { to: '/dashboard/reports', label: 'Reports & Analytics', icon: BarChart3 },
-  { to: '/dashboard/operations', label: 'Operations & Audit', icon: ShieldCheck },
   { to: '/dashboard/ai-assistant', label: 'AI Assistant', icon: Bot },
   { to: '/dashboard/settings', label: 'Barangay Settings', icon: Settings },
 ];
@@ -47,7 +46,6 @@ const SK_NAV = [
   { to: '/sk/expenses', label: 'SK Expenses', icon: Receipt },
   { to: '/sk/funds', label: 'SK Fund Sourcing', icon: Landmark },
   { to: '/sk/programs', label: 'SK Programs', icon: FolderKanban },
-  { to: '/sk/operations', label: 'SK Operations & Audit', icon: ShieldCheck },
   { to: '/sk/feedback', label: 'SK Community Feedback', icon: MessageSquare },
   { to: '/sk/officials', label: 'SK Officials & Handover', icon: Users },
   { to: '/sk/kk-monitoring', label: 'KK Youth Monitoring', icon: Users },

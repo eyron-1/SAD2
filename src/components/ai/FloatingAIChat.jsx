@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
+import { createAIContext } from '../../lib/aiContext';
+import { requestAIAssistant } from '../../lib/aiAssistant';
 import { Bot, X, Send, Database } from 'lucide-react';
 
 const MODES = [
@@ -10,10 +12,8 @@ const MODES = [
   { id: 'accomplishment_report', label: 'Accomplishment', placeholder: 'Write an accomplishment report for completed projects…' },
 ];
 
-const FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-assistant`;
-
 export default function FloatingAIChat() {
-  const { profile, session } = useAuth();
+  const { profile } = useAuth();
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState('report_draft');
   const [input, setInput] = useState('');
@@ -42,76 +42,20 @@ export default function FloatingAIChat() {
     setError('');
 
     const context = includeData
-      ? { budget_allocations: allocations.slice(0, 50), expenses: expenses.slice(0, 50), programs: programs.slice(0, 50) }
+      ? createAIContext({ allocations, expenses, programs })
       : null;
 
-    let aiText = '';
-
-    // Primary: Call Supabase Edge function (Groq enabled)
     try {
-      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      const token = session?.access_token || anonKey;
-      const groqKey = localStorage.getItem('groq_api_key');
-
-      const res = await fetch(FUNCTION_URL, {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-          apikey: anonKey,
-          authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ mode, messages: newMessages, context, apiKey: groqKey || undefined }),
+      const aiText = await requestAIAssistant({
+        mode,
+        messages: newMessages,
+        context,
       });
-
-      const raw = await res.text();
-      let data;
-      try { data = JSON.parse(raw); } catch (_) { data = { error: raw }; }
-
-      if (res.ok && data?.text) {
-        aiText = data.text;
-      }
-    } catch (_) {}
-
-    // Fallback: Direct Groq API Client Fetch
-    if (!aiText) {
-      try {
-        const apiKeyToUse = localStorage.getItem('groq_api_key') || import.meta.env.VITE_GROQ_API_KEY;
-        if (!apiKeyToUse) {
-          throw new Error('Groq API Key needed. Open AI Assistant page in sidebar to set your free key.');
-        }
-
-        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            'authorization': `Bearer ${apiKeyToUse}`,
-          },
-          body: JSON.stringify({
-            model: 'llama-3.3-70b-versatile',
-            messages: [
-              { role: 'system', content: `You are a Philippine Barangay AI Assistant (${activeMode.label}). Context: ${JSON.stringify(context || {}).slice(0, 4000)}` },
-              ...newMessages.map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content })),
-            ],
-            temperature: 0.5,
-            max_tokens: 1200,
-          }),
-        });
-
-        const resData = await res.json();
-        if (res.ok && resData.choices?.[0]?.message?.content) {
-          aiText = resData.choices[0].message.content;
-        } else {
-          throw new Error(resData.error?.message || 'Groq request failed');
-        }
-      } catch (err) {
-        setError(err.message);
-      }
-    }
-
-    setSending(false);
-
-    if (aiText) {
       setMessages([...newMessages, { role: 'assistant', content: aiText }]);
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setSending(false);
     }
   };
 
@@ -135,7 +79,7 @@ export default function FloatingAIChat() {
               </div>
               <div>
                 <h3 className="font-bold text-xs text-white">Groq AI Assistant</h3>
-                <p className="text-[10px] text-slate-400">Llama 3.3 70B Model</p>
+                <p className="text-[10px] text-slate-400">GPT-OSS 120B Model</p>
               </div>
             </div>
             <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-white p-1">

@@ -8,7 +8,6 @@ import {
   ArrowRight,
   ArrowUpRight,
   Bot,
-  CalendarDays,
   FolderKanban,
   Landmark,
   MessageSquare,
@@ -74,13 +73,6 @@ const quickActions = [
     description: "Update the SK logo and profile details.",
     icon: Settings,
     tone: "bg-slate-100 text-slate-700",
-  },
-  {
-    to: "operations",
-    label: "Operations & audit",
-    description: "Review SK activity and operations records.",
-    icon: CalendarDays,
-    tone: "bg-indigo-50 text-indigo-700",
   },
 ];
 
