@@ -1,13 +1,15 @@
 import { Link, NavLink, Outlet, useLocation, useParams } from 'react-router-dom';
 import { usePublicBarangay } from '../../lib/usePublicBarangay';
 import SystemLogo from '../ui/SystemLogo';
-import { ArrowLeft, Building2, LayoutDashboard, PieChart, FolderKanban, Users, MessageSquarePlus, LogIn, ShieldCheck, ClipboardList } from 'lucide-react';
+import PublicAIAssistant from '../ai/PublicAIAssistant';
+import { ArrowLeft, Bot, Building2, LayoutDashboard, PieChart, FolderKanban, Users, MessageSquarePlus, LogIn, ShieldCheck, ClipboardList } from 'lucide-react';
 
 export default function PublicLayout() {
   const { slug } = useParams();
   const location = useLocation();
   const { barangay } = usePublicBarangay(slug);
   const isSkPortal = location.pathname.includes(`/b/${slug}/sk`);
+  const isAskAIPage = location.pathname.endsWith('/ask-ai');
 
   const logoUrl = isSkPortal ? barangay?.sk_logo_url : barangay?.logo_url;
   const portalName = isSkPortal ? `${barangay?.name || 'Barangay'} SK` : barangay?.name || 'Barangay Portal';
@@ -18,8 +20,9 @@ export default function PublicLayout() {
         { to: 'budget', label: 'SK Budget & Expenses', icon: PieChart },
         { to: 'programs', label: 'SK Youth Programs', icon: FolderKanban },
         { to: 'profiling', label: 'KK Profiling', icon: ClipboardList },
-        { to: 'feedback', label: 'Send SK Feedback', icon: MessageSquarePlus },
         { to: '', label: 'Open Barangay Portal', icon: Building2, base: 'barangay' },
+        { to: 'feedback', label: 'Send SK Feedback', icon: MessageSquarePlus },
+        { to: 'ask-ai', label: 'Ask AI', icon: Bot },
       ]
     : [
         { to: '', label: 'Barangay Overview', icon: LayoutDashboard, end: true },
@@ -28,6 +31,7 @@ export default function PublicLayout() {
         { to: 'sk/profiling', label: 'KK Profiling', icon: ClipboardList },
         { to: 'officials', label: 'Elected Officials', icon: Users },
         { to: 'feedback', label: 'Send Feedback', icon: MessageSquarePlus },
+        { to: 'ask-ai', label: 'Ask AI', icon: Bot },
       ];
 
   return (
@@ -112,6 +116,7 @@ export default function PublicLayout() {
           <p className="text-slate-400">Data directly verified and published by official barangay administrators.</p>
         </div>
       </footer>
+      {!isAskAIPage && <PublicAIAssistant barangay={barangay} />}
     </div>
   );
 }
