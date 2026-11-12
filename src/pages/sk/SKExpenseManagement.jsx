@@ -7,7 +7,7 @@ import { isSkEditor } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import ImageLightbox from '../../components/ui/ImageLightbox';
-import { sumActiveAmounts } from '../../lib/financial';
+import { sumAmounts, sumActiveAmounts } from '../../lib/financial';
 import { Receipt, Plus, Pencil, Trash2, Upload, FileText, X, Eye, ShieldCheck } from 'lucide-react';
 
 const CATEGORIES = ['Youth Development', 'Sports & Recreation', 'Education & Training', 'Environment', 'Health Awareness', 'Livelihood', 'Other'];
@@ -19,6 +19,7 @@ export default function SKExpenseManagement() {
   const canEdit = isSkEditor(profile?.role);
   const { rows, loading, error, insertRow, updateRow, deleteRow } = useSupabaseTable('sk_expenses', profile?.barangay_id, { orderBy: 'date_incurred' });
   const { rows: allocations } = useSupabaseTable('sk_budget', profile?.barangay_id);
+  const { rows: funds } = useSupabaseTable('sk_fund_sources', profile?.barangay_id);
   const { rows: programs } = useSupabaseTable('sk_programs', profile?.barangay_id);
   const [form, setForm] = useState(EMPTY);
   const [editingId, setEditingId] = useState(null);
@@ -76,10 +77,26 @@ export default function SKExpenseManagement() {
       category: (value) => validateRequired(value, 'Category'),
       amount: (value) => validateCurrency(value, 'Amount'),
       date_incurred: (value) => validateRequired(value, 'Date incurred'),
+      sk_budget_id: (value) => validateRequired(value, 'SK budget allocation'),
     });
 
     // Validate that expense amount does not exceed the linked allocation's remaining balance
     const numericAmount = parseCurrencyValue(form.amount);
+    if (!selectedAllocation) {
+      errors.sk_budget_id = 'Select a valid funded SK budget allocation.';
+    } else {
+      const yearFunds = sumAmounts(funds.filter((fund) => fund.fiscal_year === selectedAllocation.fiscal_year));
+      const yearAllocations = sumAmounts(allocations.filter((allocation) => allocation.fiscal_year === selectedAllocation.fiscal_year));
+      if (yearFunds <= 0 || yearAllocations > yearFunds) {
+        errors.sk_budget_id = 'This SK allocation is not fully backed by sourced funds. Record or correct the fund source first.';
+      }
+      if (form.category !== selectedAllocation.category) {
+        errors.category = 'Expense category must match the selected SK budget allocation.';
+      }
+    }
+    if (numericAmount <= 0) {
+      errors.amount = 'Expense amount must be greater than zero.';
+    }
     if (selectedAllocation && numericAmount > availableAmount) {
       errors.amount = `Amount exceeds the remaining allocation balance of ₱${Math.max(availableAmount, 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`;
     }
@@ -169,11 +186,11 @@ export default function SKExpenseManagement() {
             <FormField type="text" inputMode="decimal" label="Amount (₱)" placeholder="e.g. 2,500.00" value={form.amount} onChange={(event) => setForm({ ...form, amount: formatCurrencyInput(event.target.value) })} onBlur={(event) => setForm({ ...form, amount: finalizeCurrencyInput(event.target.value) })} error={fieldErrors.amount} />
             <FormField type="date" label="Date Incurred" value={form.date_incurred} onChange={(event) => setForm({ ...form, date_incurred: event.target.value })} error={fieldErrors.date_incurred} />
           </div>
-          <FormField as="select" label="SK Budget Allocation" value={form.sk_budget_id} onChange={(event) => {
+          <FormField as="select" label="SK Budget Allocation (Required)" value={form.sk_budget_id} onChange={(event) => {
             const allocation = allocations.find(a => a.id === event.target.value);
             setForm({ ...form, sk_budget_id: event.target.value, ...(allocation ? { category: allocation.category } : {}) });
           }} error={fieldErrors.sk_budget_id}>
-            <option value="">Select an allocation (optional)</option>
+            <option value="">Select an SK budget allocation</option>
             {allocations.map((allocation) => <option key={allocation.id} value={allocation.id}>{allocation.fiscal_year} · {allocation.category} · ₱{Number(allocation.amount).toLocaleString()} (₱{getAvailableAmount(allocation).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} remaining)</option>)}
           </FormField>
           <FormField as="select" label="Linked SK Project / Program" value={form.sk_program_id} onChange={(event) => {

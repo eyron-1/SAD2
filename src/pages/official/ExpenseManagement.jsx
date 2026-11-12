@@ -59,6 +59,10 @@ export default function ExpenseManagement() {
     "budget_allocations",
     profile?.barangay_id,
   );
+  const { rows: funds } = useSupabaseTable(
+    "fund_sources",
+    profile?.barangay_id,
+  );
   const { rows: programs } = useSupabaseTable("programs", profile?.barangay_id);
 
   const [form, setForm] = useState(EMPTY);
@@ -193,6 +197,28 @@ export default function ExpenseManagement() {
     e.preventDefault();
     const { errors, isValid } = runValidators(form, validators);
     const numericAmount = parseCurrencyValue(form.amount);
+    if (!selectedAllocation) {
+      errors.budget_allocation_id = "Select a valid funded budget allocation.";
+    } else {
+      const yearFunds = sumAmounts(
+        funds.filter((fund) => fund.fiscal_year === selectedAllocation.fiscal_year),
+      );
+      const yearAllocations = sumAmounts(
+        allocations.filter(
+          (allocation) => allocation.fiscal_year === selectedAllocation.fiscal_year,
+        ),
+      );
+      if (yearFunds <= 0 || yearAllocations > yearFunds) {
+        errors.budget_allocation_id =
+          "This allocation is not fully backed by sourced funds. Record or correct the fund source first.";
+      }
+      if (form.category !== selectedAllocation.category) {
+        errors.category = "Expense category must match the selected budget allocation.";
+      }
+    }
+    if (numericAmount <= 0) {
+      errors.amount = "Expense amount must be greater than zero.";
+    }
     if (selectedAllocation && numericAmount > availableAmount) {
       errors.amount = `Amount exceeds the remaining allocation balance of ₱${Math.max(availableAmount, 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`;
     }

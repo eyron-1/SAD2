@@ -88,6 +88,13 @@ recording the expense. Then run
 a program cannot exceed that program's budget, even when its category allocation
 has a higher balance.
 
+To enforce the full fund-to-allocation-to-expense workflow, run
+`supabase/migration_fund_allocation_expense_guards.sql` after the financial
+integrity and workflow migrations. Allocations must be covered by fund sources
+for their fiscal year, fund amounts cannot be reduced below existing
+allocations, and expenses must match a funded allocation's category and
+remaining balance. These checks apply to both Barangay and SK records.
+
 To allow self-registration for an unoccupied Barangay Captain, Secretary, or
 Treasurer seat in an existing barangay, run
 `supabase/migration_signup_barangay_editors.sql`.
@@ -195,6 +202,7 @@ React Router's client-side routes work on refresh.
 │   ├── migration_auto_slug.sql
 │   ├── migration_audit_history.sql
 │   ├── migration_expense_program_links.sql
+│   ├── migration_fund_allocation_expense_guards.sql
 │   ├── migration_financial_integrity.sql
 │   ├── migration_financial_workflow.sql
 │   ├── migration_kk_id_documents.sql

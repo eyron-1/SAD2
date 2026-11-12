@@ -77,6 +77,18 @@ export default function BudgetManagement() {
     amount: (v) => validateCurrency(v, "Amount"),
   };
 
+  const getAvailableFunding = (fiscalYear) => {
+    const sourced = sumAmounts(
+      funds.filter((fund) => fund.fiscal_year === fiscalYear),
+    );
+    const allocated = sumAmounts(
+      rows.filter(
+        (row) => row.fiscal_year === fiscalYear && row.id !== editingId,
+      ),
+    );
+    return sourced - allocated;
+  };
+
   const openModal = (row = null) => {
     if (row) {
       setForm({
@@ -104,13 +116,21 @@ export default function BudgetManagement() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { errors, isValid } = runValidators(form, validators);
+    const { errors } = runValidators(form, validators);
+    const numericAmount = parseCurrencyValue(form.amount);
+    const availableFunding = getAvailableFunding(form.fiscal_year);
+    if (numericAmount <= 0) {
+      errors.amount = "Allocation amount must be greater than zero.";
+    } else if (availableFunding <= 0) {
+      errors.amount = `No funds are available for fiscal year ${form.fiscal_year}. Add a fund source before allocating.`;
+    } else if (numericAmount > availableFunding) {
+      errors.amount = `Allocation exceeds the available funds for ${form.fiscal_year} by ${formatCurrency(numericAmount - availableFunding)}.`;
+    }
     setFieldErrors(errors);
-    if (!isValid) return;
+    if (Object.keys(errors).length > 0) return;
 
     setSubmitting(true);
     setSubmitError("");
-    const numericAmount = parseCurrencyValue(form.amount);
     const payload = { ...form, amount: numericAmount, created_by: profile.id };
 
     const result = editingId
@@ -433,6 +453,10 @@ export default function BudgetManagement() {
                 }
                 error={fieldErrors.amount}
               />
+              <p className="text-xs text-slate-500">
+                Available to allocate for {form.fiscal_year || "this fiscal year"}:{" "}
+                {formatCurrency(Math.max(getAvailableFunding(form.fiscal_year), 0))}
+              </p>
 
               <FormField
                 as="textarea"
