@@ -77,18 +77,12 @@ create policy "read scoped public program milestones" on public.program_mileston
 
 drop policy if exists "members read audit logs" on public.audit_logs;
 drop policy if exists "read scoped audit logs" on public.audit_logs;
+alter table public.audit_logs
+  add column if not exists scope text not null default 'barangay';
 create policy "read scoped audit logs" on public.audit_logs for select
   using (
     belongs_to_barangay(auth.uid(), barangay_id)
-    and (
-      (
-        entity_table in ('sk_fund_sources', 'sk_budget', 'sk_expenses', 'sk_programs', 'kk_monitoring')
-        or (
-          entity_table = 'program_milestones'
-          and coalesce(after_data->>'sk_program_id', before_data->>'sk_program_id') is not null
-        )
-      ) = public.is_sk_member_for_barangay(barangay_id)
-    )
+    and ((scope = 'sk') = public.is_sk_member_for_barangay(barangay_id))
   );
 
 commit;

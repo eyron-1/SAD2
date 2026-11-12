@@ -149,6 +149,7 @@ const OfficialsTransition = lazy(
 const ReportsAnalytics = lazy(
   () => import("./pages/official/ReportsAnalytics"),
 );
+const AuditHistory = lazy(() => import("./pages/official/AuditHistory"));
 const AIAssistant = lazy(() => import("./pages/official/AIAssistant"));
 const BarangaySettings = lazy(
   () => import("./pages/official/BarangaySettings"),
@@ -229,6 +230,7 @@ export default function App() {
               <Route path="feedback" element={<FeedbackManagement />} />
               <Route path="officials" element={<OfficialsTransition />} />
               <Route path="reports" element={<ReportsAnalytics />} />
+              <Route path="audit-history" element={<AuditHistory />} />
               <Route path="ai-assistant" element={<AIAssistant />} />
               <Route path="settings" element={<BarangaySettings />} />
             </Route>
@@ -249,6 +251,7 @@ export default function App() {
               <Route path="expenses" element={<SKExpenseManagement />} />
               <Route path="feedback" element={<SKFeedback />} />
               <Route path="officials" element={<OfficialsTransition />} />
+              <Route path="audit-history" element={<AuditHistory />} />
               <Route path="kk-monitoring" element={<KKMonitoring />} />
               <Route path="ai-assistant" element={<AIAssistant />} />
               <Route path="settings" element={<BarangaySettings />} />

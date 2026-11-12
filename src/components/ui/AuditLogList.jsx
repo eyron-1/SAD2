@@ -14,12 +14,20 @@ const ACTION_STYLES = {
 };
 
 const TABLE_LABELS = {
+  barangays: 'Barangay settings',
+  budget_allocations: 'Barangay budget',
+  expenses: 'Barangay expenses',
+  feedback: 'Community feedback',
+  fund_sources: 'Barangay funding sources',
+  officials_transitions: 'Officials handover',
+  profiles: 'Official profiles',
+  programs: 'Barangay programs',
+  program_milestones: 'Project milestones',
   activity_calendar: 'Calendar activities',
   approval_requests: 'Approval requests',
   disaster_incidents: 'Disaster incidents',
   inventory_items: 'Property items',
   official_documents: 'Official documents',
-  program_milestones: 'Project milestones',
   relief_distributions: 'Relief distributions',
   sk_budget: 'SK budget',
   sk_expenses: 'SK expenses',
@@ -73,6 +81,7 @@ export default function AuditLogList({ rows, loading = false, emptyMessage = 'No
         row.action,
         row.entity_table,
         row.record_id,
+        row.actor_name,
         row.actor_role,
         JSON.stringify(row.before_data || {}),
         JSON.stringify(row.after_data || {}),
@@ -135,7 +144,10 @@ export default function AuditLogList({ rows, loading = false, emptyMessage = 'No
                 {new Date(row.created_at).toLocaleString()}
               </time>
             </div>
-            <p className="text-xs text-slate-500">{row.actor_role ? formatLabel(row.actor_role) : 'Official'}</p>
+            <p className="text-xs text-slate-500">
+              {row.actor_name || 'Official'}
+              {row.actor_role ? ` · ${formatLabel(row.actor_role)}` : ''}
+            </p>
             <details className="group rounded-lg border border-slate-200 bg-slate-50">
               <summary className="cursor-pointer list-none px-3 py-2.5 text-sm font-semibold text-civic-navy after:float-right after:content-['+'] group-open:after:content-['−']">
                 View changes

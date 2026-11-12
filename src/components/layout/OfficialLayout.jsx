@@ -15,6 +15,7 @@ import {
   MessageSquare,
   Users,
   BarChart3,
+  History,
   Bot,
   Settings,
   LogOut,
@@ -36,6 +37,7 @@ const BARANGAY_NAV = [
   { to: '/dashboard/feedback', label: 'Community Feedback', icon: MessageSquare },
   { to: '/dashboard/officials', label: 'Officials & Handover', icon: Users },
   { to: '/dashboard/reports', label: 'Reports & Analytics', icon: BarChart3 },
+  { to: '/dashboard/audit-history', label: 'Audit History', icon: History },
   { to: '/dashboard/ai-assistant', label: 'AI Assistant', icon: Bot },
   { to: '/dashboard/settings', label: 'Barangay Settings', icon: Settings },
 ];
@@ -48,6 +50,7 @@ const SK_NAV = [
   { to: '/sk/programs', label: 'SK Programs', icon: FolderKanban },
   { to: '/sk/feedback', label: 'SK Community Feedback', icon: MessageSquare },
   { to: '/sk/officials', label: 'SK Officials & Handover', icon: Users },
+  { to: '/sk/audit-history', label: 'Audit History', icon: History },
   { to: '/sk/kk-monitoring', label: 'KK Youth Monitoring', icon: Users },
   { to: '/sk/ai-assistant', label: 'AI Assistant', icon: Bot },
   { to: '/sk/settings', label: 'SK Settings', icon: Settings },

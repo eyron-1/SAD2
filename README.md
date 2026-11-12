@@ -20,7 +20,9 @@ gets its own public URL like `/b/san-isidro`.
 3. In the SQL Editor, run `supabase/storage.sql`. This creates the storage
    buckets and access policies. The KK ID-document bucket is private and can
    only be viewed by active SK officials in the matching barangay.
-4. Open **Project Settings → API** and copy the **Project URL** and **anon public key**.
+4. Run `supabase/migration_audit_history.sql` in the SQL Editor to enable the
+   barangay- and SK-scoped audit history.
+5. Open **Project Settings → API** and copy the **Project URL** and **anon public key**.
 
 ## 2. Configure the app
 
@@ -50,6 +52,16 @@ inventory, disaster response, document, audit, and receipt-verification tables
 and policies without dropping or recreating existing data. Do not rerun
 `schema.sql` against an existing database; it contains destructive drop
 statements.
+
+To enable the audit history page, run `supabase/migration_audit_history.sql`
+after the base schema and profile/security migrations, including
+`supabase/migration_sk_data_isolation.sql` when SK isolation is enabled. If SK
+milestones are installed, run the audit migration after their migration too.
+It records authenticated changes from that point forward and does not
+reconstruct earlier changes.
+Audit entries are append-only for app users and separated between Barangay and
+SK portals. Feedback content, contact details, receipt links, and KK personal
+profile details are deliberately excluded from recorded snapshots.
 
 To link milestones to SK programs, run `supabase/migration_sk_program_milestones.sql`
 after the operations migration. Existing barangay milestones remain linked and
@@ -181,6 +193,7 @@ React Router's client-side routes work on refresh.
 │   ├── schema.sql
 │   ├── storage.sql
 │   ├── migration_auto_slug.sql
+│   ├── migration_audit_history.sql
 │   ├── migration_expense_program_links.sql
 │   ├── migration_financial_integrity.sql
 │   ├── migration_financial_workflow.sql
