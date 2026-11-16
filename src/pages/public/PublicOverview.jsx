@@ -3,6 +3,7 @@ import { usePublicBarangay } from '../../lib/usePublicBarangay';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import SystemLogo from '../../components/ui/SystemLogo';
+import PublicMetricCard from '../../components/public/PublicMetricCard';
 import { sumAmounts, sumActiveAmounts } from '../../lib/financial';
 import { Building2, PieChart, FolderKanban, MessageSquare, Users, ShieldCheck, ArrowRight, CalendarDays, FileText, Siren, Package } from 'lucide-react';
 
@@ -28,7 +29,7 @@ export default function PublicOverview() {
   const { rows: incidents, error: e10 } = useSupabaseTable('disaster_incidents', barangay?.id, { orderBy: 'incident_date' });
   const { rows: distributions, error: e11 } = useSupabaseTable('relief_distributions', barangay?.id, { orderBy: 'distributed_on' });
 
-  if (bLoading) return <p className="text-slate-400 text-center py-12">Loading barangay profile…</p>;
+  if (bLoading) return <p role="status" className="rounded-2xl border border-slate-200 bg-white px-4 py-12 text-center text-sm font-medium text-slate-500">Loading barangay profile…</p>;
   if (bError || !barangay) return <ErrorBanner message={bError || 'Barangay not found.'} />;
 
   const totalBudget = sumAmounts(allocations);
@@ -39,50 +40,98 @@ export default function PublicOverview() {
   const totalSkBudget = sumAmounts(skAllocations);
   const totalSkExpenses = sumActiveAmounts(skExpenses);
   const remainingBudget = totalBudget - totalSpent;
-  const publicStatus = remainingBudget < 0
+  const spendPercentage = totalBudget > 0
+    ? Math.min(100, Math.round((totalSpent / totalBudget) * 100))
+    : 0;
+  const publicStatus = totalBudget <= 0
     ? {
+        tone: 'slate',
+        title: 'No allocation published',
+        message: 'A spending status will be available when a barangay budget allocation is published.',
+      }
+    : remainingBudget < 0
+      ? {
         tone: 'rose',
         title: 'Budget watch',
         message: `Barangay spending is above the current recorded allocation by ${formatCurrency(Math.abs(remainingBudget))}.`,
       }
-    : {
+      : {
         tone: 'emerald',
         title: 'On track',
         message: `Barangay spending remains below the total recorded allocation by ${formatCurrency(remainingBudget)}.`,
       };
+  const statusTone = {
+    rose: 'border-rose-200 bg-rose-50 text-rose-800',
+    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    slate: 'border-slate-200 bg-slate-50 text-slate-700',
+  }[publicStatus.tone];
 
   return (
-    <div className="space-y-8">
-      {/* Hero Header */}
-      <div className="card bg-civic-navy text-white p-6 sm:p-8 rounded-xl flex flex-col sm:flex-row items-center gap-6">
-        <div className="space-y-2 text-center sm:text-left flex-1">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-white/10 text-white border border-white/15">
-            <ShieldCheck className="w-3.5 h-3.5" /> Barangay Government Transparency Portal
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight">{barangay.name}</h1>
-          <p className="text-civic-cream/80 text-sm">
-            {[barangay.municipality, barangay.province].filter(Boolean).join(', ')} · Official Open Data Portal
-          </p>
-        </div>
-        <div className="flex items-center gap-3 shrink-0" aria-label="Barangay and SK logos">
-          <div className="text-center"><div className="w-14 h-14 rounded-full bg-white/10 border border-white/20 p-1 overflow-hidden flex items-center justify-center">{barangay.logo_url ? <img src={barangay.logo_url} alt="Barangay logo" className="w-full h-full object-cover rounded-full" /> : <SystemLogo className="w-full h-full object-cover rounded-full" />}</div><span className="text-[10px] text-slate-300 mt-1 block">Barangay</span></div>
-          <div className="text-center"><div className="w-14 h-14 rounded-full bg-emerald-400/10 border border-emerald-300/40 p-1 overflow-hidden flex items-center justify-center">{barangay.sk_logo_url ? <img src={barangay.sk_logo_url} alt="SK logo" className="w-full h-full object-cover rounded-full" /> : <Users className="w-7 h-7 text-emerald-300" />}</div><span className="text-[10px] text-emerald-200 mt-1 block">SK</span></div>
-        </div>
-      </div>
-
-      <div className="card border-slate-200 space-y-4">
-        <div><p className="text-xs font-bold uppercase tracking-wider text-civic-emerald">Public Transparency Overview</p><h2 className="text-xl font-bold text-civic-navy mt-1">Budget status</h2><p className="text-sm text-slate-500 mt-1">A quick check on barangay spending against its recorded allocation.</p></div>
-
-        <div className={`rounded-xl border p-4 ${publicStatus.tone === 'rose' ? 'bg-rose-50 border-rose-200 text-rose-800' : 'bg-emerald-50 border-emerald-200 text-emerald-800'}`}>
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h3 className="text-base font-bold mt-1">{publicStatus.title}</h3>
+    <div className="space-y-7 sm:space-y-9">
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-civic-navy via-[#153a59] to-civic-slate p-6 text-white shadow-lg sm:p-9">
+        <div className="pointer-events-none absolute -right-14 -top-20 h-64 w-64 rounded-full border-[36px] border-white/5" />
+        <div className="pointer-events-none absolute -bottom-24 right-24 h-52 w-52 rounded-full bg-civic-emerald/20 blur-3xl" />
+        <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-center gap-4 sm:gap-5">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-white/20 bg-white/10 p-1 sm:h-20 sm:w-20">
+              {barangay.logo_url ? <img src={barangay.logo_url} alt={`${barangay.name} logo`} className="h-full w-full rounded-xl object-cover" /> : <SystemLogo className="h-full w-full rounded-xl object-cover" />}
             </div>
-            <div className="text-2xl">{publicStatus.tone === 'rose' ? '⚠️' : '✅'}</div>
+            <div className="min-w-0 space-y-2">
+              <div className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-blue-100">
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" /> Public transparency dashboard
+              </div>
+              <h1 className="text-2xl font-bold leading-tight tracking-tight text-white sm:text-3xl">{barangay.name}</h1>
+              <p className="text-sm leading-relaxed text-blue-100/80">
+                {[barangay.municipality, barangay.province].filter(Boolean).join(', ') || 'Official open data portal'}
+              </p>
+            </div>
           </div>
-          <p className="text-sm mt-2 leading-relaxed">{publicStatus.message}</p>
+          <div className="flex flex-col gap-2 sm:min-w-48">
+            <Link to={`/b/${slug}/budget`} className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-civic-navy shadow-sm transition hover:bg-blue-50 focus-visible:outline-white">
+              View budget & expenses <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link to={`/b/${slug}/sk`} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/15">
+              Visit SK portal <Users className="h-4 w-4" />
+            </Link>
+          </div>
         </div>
-      </div>
+      </section>
+
+      <section className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-civic-emerald">Budget transparency</p>
+            <h2 className="mt-1 text-xl font-bold text-civic-navy">Barangay budget status</h2>
+            <p className="mt-1 text-sm leading-relaxed text-slate-500">Spending compared with the total published barangay allocation.</p>
+          </div>
+          <Link to={`/b/${slug}/budget`} className="inline-flex items-center gap-1 text-sm font-semibold text-civic-emerald hover:text-emerald-800">
+            See records <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+
+        <div className={`mt-5 rounded-2xl border p-4 sm:p-5 ${statusTone}`}>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-base font-bold">{publicStatus.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed">{publicStatus.message}</p>
+            </div>
+            <span className="shrink-0 rounded-full bg-white/70 px-3 py-1 text-xs font-bold uppercase tracking-wide">
+              {publicStatus.tone === 'rose' ? 'Review' : publicStatus.tone === 'emerald' ? 'Within allocation' : 'Awaiting data'}
+            </span>
+          </div>
+          {totalBudget > 0 && (
+            <div className="mt-5">
+              <div className="mb-2 flex items-center justify-between gap-3 text-xs font-semibold">
+                <span>Allocation used</span>
+                <span>{spendPercentage}%</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-white/70" role="progressbar" aria-label="Budget allocation spent" aria-valuemin={0} aria-valuemax={100} aria-valuenow={spendPercentage}>
+                <div className={`h-full rounded-full ${publicStatus.tone === 'rose' ? 'bg-rose-600' : 'bg-emerald-600'}`} style={{ width: `${spendPercentage}%` }} />
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
 
       <ErrorBanner message={e12 || e1 || e2 || e3 || e4 || e5 || e6 || e7 || e8 || e9 || e10 || e11} />
 
@@ -156,34 +205,14 @@ export default function PublicOverview() {
       </section>
 
       {/* Public Metrics */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="card min-h-32 border-slate-200 bg-white space-y-2 hover:border-civic-emerald/50 hover:shadow-sm transition-all">
-          <span className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-start gap-1.5 leading-5">
-            <FolderKanban className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" /> Published Barangay Programs
-          </span>
-          <p className="text-2xl font-extrabold text-civic-navy tabular-nums">{programs.length}</p>
-          <p className="text-xs text-slate-500">{ongoingPrograms} currently ongoing</p>
-        </div>
-
-        <div className="card min-h-32 border-emerald-200 bg-emerald-50/40 space-y-2 hover:border-emerald-300 hover:shadow-sm transition-all">
-          <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider flex items-start gap-1.5 leading-5">
-            <Users className="w-4 h-4 text-emerald-700 shrink-0 mt-0.5" /> Published SK Programs
-          </span>
-          <p className="text-2xl font-extrabold text-emerald-900 tabular-nums">{skPrograms.length}</p>
-          <p className="text-xs text-emerald-800">Youth programs published by the SK</p>
-        </div>
-
-        <div className="card min-h-32 border-slate-200 bg-white space-y-2 hover:border-civic-emerald/50 hover:shadow-sm transition-all">
-          <span className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-start gap-1.5 leading-5">
-            <ShieldCheck className="w-4 h-4 text-civic-emerald shrink-0 mt-0.5" /> Public access
-          </span>
-          <p className="text-2xl font-extrabold text-civic-navy">Open to residents</p>
-          <p className="text-xs text-slate-500">No account required to browse</p>
-        </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <PublicMetricCard label="Barangay programs" value={programs.length} detail={`${ongoingPrograms} currently ongoing`} icon={FolderKanban} tone="blue" />
+        <PublicMetricCard label="SK programs" value={skPrograms.length} detail="Youth programs published by the SK" icon={Users} />
+        <PublicMetricCard label="Public access" value="Open to residents" detail="No account required to browse records" icon={ShieldCheck} tone="violet" />
       </div>
 
       <section className="space-y-4">
-        <div><p className="text-xs font-bold uppercase tracking-wider text-civic-emerald">Community updates</p><h2 className="mt-1 text-xl font-bold text-civic-navy">Activities, documents, and response updates</h2></div>
+        <div><p className="text-xs font-bold uppercase tracking-[0.14em] text-civic-emerald">Community updates</p><h2 className="mt-1 text-xl font-bold text-civic-navy">Activities, documents, and response updates</h2><p className="mt-1 text-sm text-slate-500">Recent information published for residents.</p></div>
         <div className="grid lg:grid-cols-2 gap-4">
           <div className="card space-y-3"><h3 className="flex items-center gap-2 font-bold text-civic-navy"><CalendarDays className="h-4 w-4 text-civic-emerald" />Upcoming activities</h3>{activities.filter((item) => new Date(item.starts_at) >= new Date()).slice(0, 5).map((item) => <div key={item.id} className="border-t border-slate-100 pt-2"><p className="text-sm font-semibold text-slate-800">{item.title}</p><p className="text-xs text-slate-500">{new Date(item.starts_at).toLocaleString()}{item.location ? ` · ${item.location}` : ''}</p></div>)}{activities.filter((item) => new Date(item.starts_at) >= new Date()).length === 0 && <p className="text-sm text-slate-500">No upcoming public activities posted.</p>}</div>
           <div className="card space-y-3"><h3 className="flex items-center gap-2 font-bold text-civic-navy"><FileText className="h-4 w-4 text-civic-emerald" />Public documents</h3>{documents.filter((item) => item.is_public).slice(0, 5).map((item) => <div key={item.id} className="border-t border-slate-100 pt-2"><p className="text-sm font-semibold text-slate-800">{item.title}</p><p className="text-xs text-slate-500">{item.document_type} · {item.document_date || 'Undated'}</p>{item.document_url && <a className="text-xs font-semibold text-civic-emerald hover:underline" href={item.document_url} target="_blank" rel="noreferrer">Open document</a>}</div>)}{documents.filter((item) => item.is_public).length === 0 && <p className="text-sm text-slate-500">No public documents posted.</p>}</div>

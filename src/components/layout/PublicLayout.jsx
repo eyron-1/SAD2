@@ -38,7 +38,12 @@ export default function PublicLayout() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 font-body">
-      {/* Top Banner Header */}
+      <a
+        href="#main-content"
+        className="sr-only z-50 rounded-lg bg-white px-4 py-2 font-semibold text-civic-navy focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+      >
+        Skip to content
+      </a>
       <header className="bg-civic-dark text-white border-b border-white/10 sticky top-0 z-40 shadow-lg shadow-slate-900/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3 min-w-0">
@@ -76,9 +81,8 @@ export default function PublicLayout() {
           </div>
         </div>
 
-        {/* Navigation Tabs */}
         <div className="bg-slate-950/30 border-t border-white/10">
-          <nav aria-label="Public portal navigation" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-1.5 overflow-x-auto text-xs py-2 [scrollbar-width:none]">
+          <nav aria-label="Public portal navigation" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-1.5 overflow-x-auto py-2 text-xs [scrollbar-width:none]">
             {nav.map((item) => {
               const Icon = item.icon;
               return (
@@ -94,7 +98,7 @@ export default function PublicLayout() {
                     }`
                   }
                 >
-                  <Icon className="w-3.5 h-3.5" />
+                  <Icon className="h-4 w-4 shrink-0" />
                   {item.label}
                 </NavLink>
               );
@@ -103,7 +107,7 @@ export default function PublicLayout() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-7xl mx-auto px-4 py-7 sm:px-6 sm:py-10 lg:px-8 w-full">
+      <main id="main-content" tabIndex="-1" className="flex-1 max-w-7xl mx-auto px-4 py-6 sm:px-6 sm:py-8 lg:px-8 w-full focus:outline-none">
         <div className="public-page-content">
           <Outlet />
         </div>
