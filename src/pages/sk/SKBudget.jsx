@@ -8,7 +8,7 @@ import ErrorBanner from '../../components/ui/ErrorBanner';
 import { sumAmounts, sumActiveAmounts } from '../../lib/financial';
 import { PieChart, Plus, Search, Filter, Edit3, Trash2, X, Receipt, Wallet } from 'lucide-react';
 
-const CATEGORIES = ['Youth Development', 'Sports & Recreation', 'Education & Training', 'Environment', 'Health Awareness', 'Livelihood', 'Leadership & Governance', 'Other'];
+const CATEGORIES = ['Youth Development', 'CBYDP (Comprehensive Barangay Youth Development Plan)', 'ABYIP (Annual Barangay Youth Investment Program)', 'Sports & Recreation', 'Education & Training', 'Environment', 'Health Awareness', 'Livelihood', 'Leadership & Governance', 'Other'];
 const EMPTY = { fiscal_year: '', category: CATEGORIES[0], amount: '', description: '' };
 
 export default function SKBudget() {

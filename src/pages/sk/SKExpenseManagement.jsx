@@ -10,7 +10,7 @@ import ImageLightbox from '../../components/ui/ImageLightbox';
 import { sumAmounts, sumActiveAmounts } from '../../lib/financial';
 import { Receipt, Plus, Pencil, Trash2, Upload, FileText, X, Eye, ShieldCheck } from 'lucide-react';
 
-const CATEGORIES = ['Youth Development', 'Sports & Recreation', 'Education & Training', 'Environment', 'Health Awareness', 'Livelihood', 'Other'];
+const CATEGORIES = ['Youth Development', 'CBYDP (Comprehensive Barangay Youth Development Plan)', 'ABYIP (Annual Barangay Youth Investment Program)', 'Sports & Recreation', 'Education & Training', 'Environment', 'Health Awareness', 'Livelihood', 'Other'];
 const EMPTY = { category: CATEGORIES[0], amount: '', description: '', date_incurred: '', sk_budget_id: '', sk_program_id: '' };
 const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
 

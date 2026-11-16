@@ -138,8 +138,47 @@
 }
 
 @media print {
-  body { background: #fff !important; }
-  aside, header, button { display: none !important; }
-  main { padding: 0 !important; overflow: visible !important; }
-  .card { box-shadow: none !important; break-inside: avoid; }
+  /* ── Reset page chrome ───────────────────────────────────── */
+  @page { margin: 1.8cm 1.5cm; }
+
+  body { background: #fff !important; color: #000 !important; font-size: 11pt; }
+
+  /* ── Hide all portal UI chrome ───────────────────────────── */
+  aside,
+  header,
+  .floating-ai-chat { display: none !important; }
+
+  /* ── Hide items tagged for screen-only ───────────────────── */
+  [data-print="no-print"] { display: none !important; }
+
+  /* ── Show items tagged for print-only ───────────────────── */
+  [data-print="show"] { display: block !important; }
+
+  /* ── Layout reset ─────────────────────────────────────────── */
+  .min-h-screen,
+  #root > div { min-height: unset !important; }
+
+  /* Undo the sidebar left-margin so the content fills the page */
+  .lg\:ml-72 { margin-left: 0 !important; }
+
+  main {
+    padding: 0 !important;
+    overflow: visible !important;
+    max-width: 100% !important;
+  }
+
+  /* ── Cards / charts ──────────────────────────────────────── */
+  .card {
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* ── Colour fixes for print ──────────────────────────────── */
+  .text-civic-navy { color: #0F2D4A !important; }
+
+  /* ── Recharts: keep SVG visible ──────────────────────────── */
+  .recharts-wrapper,
+  .recharts-surface { overflow: visible !important; }
 }

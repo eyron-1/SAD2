@@ -188,8 +188,20 @@ export default function ReportsAnalytics() {
   return (
     <div className="space-y-8 max-w-6xl">
 
-      {/* Page header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      {/* Print-only header — hidden on screen */}
+      <div data-print="show" className="hidden border-b-2 border-civic-navy pb-4 mb-2">
+        <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">
+          {profile?.barangays?.name || 'Barangay'} · Official Report
+        </p>
+        <h1 className="text-2xl font-bold text-civic-navy">Reports &amp; Financial Analytics</h1>
+        <p className="text-xs text-slate-500 mt-1">
+          Printed on {new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}
+          {fyFilter !== 'all' ? ` · Fiscal Year ${fyFilter}` : ' · All Fiscal Years'}
+        </p>
+      </div>
+
+      {/* Screen-only page header */}
+      <div data-print="no-print" className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-civic-navy flex items-center gap-3">
             <BarChart3 className="w-8 h-8 text-civic-emerald" />
@@ -340,7 +352,7 @@ export default function ReportsAnalytics() {
       </div>
 
       {/* Export panel */}
-      <div className="card space-y-5">
+      <div data-print="no-print" className="card space-y-5">
         <div className="flex items-start gap-3 border-b border-slate-100 pb-4">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-civic-navy/5">
             <FileSpreadsheet className="w-4 h-4 text-civic-navy" />
