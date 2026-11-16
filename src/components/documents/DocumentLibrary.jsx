@@ -32,8 +32,10 @@ export default function DocumentLibrary({
 }) {
   const [documents, setDocuments] = useState([]);
   const [requestedDocuments, setRequestedDocuments] = useState([]);
+  const [expenseReceipts, setExpenseReceipts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [expenseLoadError, setExpenseLoadError] = useState('');
   const [submitError, setSubmitError] = useState('');
   const [notice, setNotice] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -55,20 +57,37 @@ export default function DocumentLibrary({
 
     setLoading(true);
     setLoadError('');
-    const { data, error } = await supabase
-      .from('transparency_documents')
-      .select('*')
-      .eq('barangay_id', barangay.id)
-      .eq('scope', scope)
-      .order('created_at', { ascending: false });
+    setExpenseLoadError('');
+    const expenseTable = scope === 'sk' ? 'sk_expenses' : 'expenses';
+    const [documentsResult, expensesResult] = await Promise.all([
+      supabase
+        .from('transparency_documents')
+        .select('*')
+        .eq('barangay_id', barangay.id)
+        .eq('scope', scope)
+        .order('created_at', { ascending: false }),
+      isResidentPortal
+        ? supabase
+          .from(expenseTable)
+          .select('id, category, amount, description, date_incurred, receipt_url')
+          .eq('barangay_id', barangay.id)
+          .not('receipt_url', 'is', null)
+          .order('date_incurred', { ascending: false })
+        : Promise.resolve({ data: [], error: null }),
+    ]);
 
-    if (error) {
-      setLoadError(friendlySupabaseError(error));
+    if (documentsResult.error) {
+      setLoadError(friendlySupabaseError(documentsResult.error));
     } else {
-      setDocuments(data || []);
+      setDocuments(documentsResult.data || []);
+    }
+    if (expensesResult.error) {
+      setExpenseLoadError(friendlySupabaseError(expensesResult.error));
+    } else {
+      setExpenseReceipts(expensesResult.data || []);
     }
     setLoading(false);
-  }, [barangay?.id, scope]);
+  }, [barangay?.id, isResidentPortal, scope]);
 
   useEffect(() => {
     fetchDocuments();
@@ -183,22 +202,35 @@ export default function DocumentLibrary({
     setDeletingId('');
   };
 
-  const availableDocuments = documents.filter(
-    (document) => !requestedDocuments.some((requested) => requested.id === document.id),
+  const requestableItems = [
+    ...documents.map((document) => ({ ...document, requestId: `document-${document.id}`, requestType: 'document' })),
+    ...expenseReceipts
+      .filter((expense) => expense.receipt_url)
+      .map((expense) => ({
+        ...expense,
+        id: expense.id,
+        title: `${isSk ? 'SK ' : ''}Expense receipt — ${expense.category} · ${expense.date_incurred}`,
+        category: 'Expense receipt / proof',
+        requestId: `expense-${expense.id}`,
+        requestType: 'receipt',
+      })),
+  ];
+  const availableDocuments = requestableItems.filter(
+    (item) => !requestedDocuments.some((requested) => requested.requestId === item.requestId),
   );
 
   const handleRequestDocument = (event) => {
     event.preventDefault();
-    const document = availableDocuments.find((item) => item.id === selectedDocumentId);
-    if (!document) return;
+    const item = availableDocuments.find((entry) => entry.requestId === selectedDocumentId);
+    if (!item) return;
 
     setRequestedDocuments((current) => (
-      current.some((item) => item.id === document.id)
+      current.some((requested) => requested.requestId === item.requestId)
         ? current
-        : [document, ...current]
+        : [item, ...current]
     ));
     setSelectedDocumentId('');
-    setNotice(`Request sent. "${document.title}" is now available in Requested documents.`);
+    setNotice(`Request sent. "${item.title}" is now available in Requested documents.`);
   };
 
   if (!barangay?.id) {
@@ -225,6 +257,7 @@ export default function DocumentLibrary({
       </header>
 
       <ErrorBanner message={loadError} onRetry={loadError ? fetchDocuments : undefined} />
+      <ErrorBanner message={expenseLoadError} onRetry={expenseLoadError ? fetchDocuments : undefined} />
       <ErrorBanner message={submitError} />
       {notice && <p role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{notice}</p>}
 
@@ -301,8 +334,8 @@ export default function DocumentLibrary({
             <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">Loading available documents...</p>
           ) : availableDocuments.length === 0 ? (
             <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
-              {documents.length === 0
-                ? 'There are no documents available to request yet.'
+              {documents.length + expenseReceipts.filter((expense) => expense.receipt_url).length === 0
+                ? 'There are no documents or expense receipts available to request yet.'
                 : 'You have already requested all available documents.'}
             </p>
           ) : (
@@ -316,9 +349,9 @@ export default function DocumentLibrary({
                 className="input-field flex-1"
               >
                 <option value="">Choose a document...</option>
-                {availableDocuments.map((document) => (
-                  <option key={document.id} value={document.id}>
-                    {document.title} - {document.category}
+                {availableDocuments.map((item) => (
+                  <option key={item.requestId} value={item.requestId}>
+                    {item.title} - {item.category}
                   </option>
                 ))}
               </select>
@@ -401,15 +434,21 @@ export default function DocumentLibrary({
           </div>
           <ul className="divide-y divide-slate-100">
             {requestedDocuments.map((document) => {
-              const { data } = supabase.storage.from(DOCUMENT_BUCKET).getPublicUrl(document.file_path);
+              const fileUrl = document.requestType === 'receipt'
+                ? document.receipt_url
+                : supabase.storage.from(DOCUMENT_BUCKET).getPublicUrl(document.file_path).data.publicUrl;
               return (
-                <li key={document.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                <li key={document.requestId} className="flex flex-wrap items-center justify-between gap-3 py-3">
                   <div>
                     <p className="font-semibold text-slate-800">{document.title}</p>
-                    <p className="text-xs text-slate-500">{document.file_name}</p>
+                    <p className="text-xs text-slate-500">
+                      {document.requestType === 'receipt'
+                        ? `${document.category} · ₱${Number(document.amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${document.description ? ` · ${document.description}` : ''}`
+                        : document.file_name}
+                    </p>
                   </div>
                   <a
-                    href={data.publicUrl}
+                    href={fileUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="btn-primary py-2 text-xs"
