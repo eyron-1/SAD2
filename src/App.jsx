@@ -164,6 +164,7 @@ const SKExpenseManagement = lazy(
 );
 const SKFeedback = lazy(() => import("./pages/sk/SKFeedback"));
 const KKMonitoring = lazy(() => import("./pages/sk/KKMonitoring"));
+const SKReportsAnalytics = lazy(() => import("./pages/sk/SKReportsAnalytics"));
 
 export default function App() {
   return (
