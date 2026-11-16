@@ -2,7 +2,7 @@ import { Link, NavLink, Outlet, useLocation, useParams } from 'react-router-dom'
 import { usePublicBarangay } from '../../lib/usePublicBarangay';
 import SystemLogo from '../ui/SystemLogo';
 import PublicAIAssistant from '../ai/PublicAIAssistant';
-import { ArrowLeft, Bot, Building2, LayoutDashboard, PieChart, FolderKanban, Users, MessageSquarePlus, LogIn, ShieldCheck, ClipboardList } from 'lucide-react';
+import { ArrowLeft, Bot, Building2, LayoutDashboard, PieChart, FolderKanban, Users, MessageSquarePlus, LogIn, ShieldCheck, ClipboardList, FileText } from 'lucide-react';
 
 export default function PublicLayout() {
   const { slug } = useParams();
@@ -19,6 +19,7 @@ export default function PublicLayout() {
         { to: '', label: 'SK Overview', icon: LayoutDashboard, end: true },
         { to: 'budget', label: 'SK Budget & Expenses', icon: PieChart },
         { to: 'programs', label: 'SK Youth Programs', icon: FolderKanban },
+        { to: 'documents', label: 'Public Documents', icon: FileText },
         { to: 'profiling', label: 'KK Profiling', icon: ClipboardList },
         { to: '', label: 'Open Barangay Portal', icon: Building2, base: 'barangay' },
         { to: 'feedback', label: 'Send SK Feedback', icon: MessageSquarePlus },
@@ -28,6 +29,7 @@ export default function PublicLayout() {
         { to: '', label: 'Barangay Overview', icon: LayoutDashboard, end: true },
         { to: 'budget', label: 'Barangay Budget & Expenses', icon: PieChart },
         { to: 'programs', label: 'Barangay Programs & Projects', icon: FolderKanban },
+        { to: 'documents', label: 'Public Documents', icon: FileText },
         { to: 'sk/profiling', label: 'KK Profiling', icon: ClipboardList },
         { to: 'officials', label: 'Elected Officials', icon: Users },
         { to: 'feedback', label: 'Send Feedback', icon: MessageSquarePlus },

@@ -26,6 +26,7 @@ import {
   UserCheck,
   ArrowRight,
   ShieldCheck,
+  FileText,
 } from 'lucide-react';
 
 const BARANGAY_NAV = [
@@ -34,6 +35,7 @@ const BARANGAY_NAV = [
   { to: '/dashboard/expenses', label: 'Expenses', icon: Receipt },
   { to: '/dashboard/funds', label: 'Fund Sourcing', icon: Landmark },
   { to: '/dashboard/programs', label: 'Programs & Projects', icon: FolderKanban },
+  { to: '/dashboard/documents', label: 'Public Documents', icon: FileText },
   { to: '/dashboard/feedback', label: 'Community Feedback', icon: MessageSquare },
   { to: '/dashboard/officials', label: 'Officials & Handover', icon: Users },
   { to: '/dashboard/reports', label: 'Reports & Analytics', icon: BarChart3 },
@@ -48,6 +50,7 @@ const SK_NAV = [
   { to: '/sk/expenses', label: 'SK Expenses', icon: Receipt },
   { to: '/sk/funds', label: 'SK Fund Sourcing', icon: Landmark },
   { to: '/sk/programs', label: 'SK Programs', icon: FolderKanban },
+  { to: '/sk/documents', label: 'Public Documents', icon: FileText },
   { to: '/sk/feedback', label: 'SK Community Feedback', icon: MessageSquare },
   { to: '/sk/officials', label: 'SK Officials & Handover', icon: Users },
   { to: '/sk/audit-history', label: 'Audit History', icon: History },

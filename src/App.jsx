@@ -118,6 +118,7 @@ const PublicPrograms = lazy(() => import("./pages/public/PublicPrograms"));
 const PublicSKOverview = lazy(() => import("./pages/public/PublicSKOverview"));
 const PublicSKBudget = lazy(() => import("./pages/public/PublicSKBudget"));
 const PublicSKPrograms = lazy(() => import("./pages/public/PublicSKPrograms"));
+const PublicDocuments = lazy(() => import("./pages/public/PublicDocuments"));
 const KKProfilingForm = lazy(() => import("./pages/public/KKProfilingForm"));
 const PublicOfficials = lazy(() => import("./pages/public/PublicOfficials"));
 const FeedbackForm = lazy(() => import("./pages/public/FeedbackForm"));
@@ -154,6 +155,7 @@ const AIAssistant = lazy(() => import("./pages/official/AIAssistant"));
 const BarangaySettings = lazy(
   () => import("./pages/official/BarangaySettings"),
 );
+const OfficialDocuments = lazy(() => import("./pages/official/Documents"));
 
 const SKDashboard = lazy(() => import("./pages/sk/SKDashboard"));
 const SKBudget = lazy(() => import("./pages/sk/SKBudget"));
@@ -191,6 +193,10 @@ export default function App() {
               <Route index element={<PublicOverview />} />
               <Route path="budget" element={<PublicBudget />} />
               <Route path="programs" element={<PublicPrograms />} />
+              <Route
+                path="documents"
+                element={<PublicDocuments scope="barangay" />}
+              />
               <Route path="officials" element={<PublicOfficials />} />
               <Route
                 path="ask-ai"
@@ -201,6 +207,10 @@ export default function App() {
                 <Route index element={<PublicSKOverview />} />
                 <Route path="budget" element={<PublicSKBudget />} />
                 <Route path="programs" element={<PublicSKPrograms />} />
+                <Route
+                  path="documents"
+                  element={<PublicDocuments scope="sk" />}
+                />
                 <Route
                   path="ask-ai"
                   element={<PublicAIAssistantPage />}
@@ -228,6 +238,10 @@ export default function App() {
               <Route path="expenses" element={<ExpenseManagement />} />
               <Route path="funds" element={<FundSourcing />} />
               <Route path="programs" element={<ProgramManagement />} />
+              <Route
+                path="documents"
+                element={<OfficialDocuments scope="barangay" />}
+              />
               <Route path="feedback" element={<FeedbackManagement />} />
               <Route path="officials" element={<OfficialsTransition />} />
               <Route path="reports" element={<ReportsAnalytics />} />
@@ -248,6 +262,10 @@ export default function App() {
               <Route index element={<SKDashboard />} />
               <Route path="budget" element={<SKBudget />} />
               <Route path="programs" element={<SKPrograms />} />
+              <Route
+                path="documents"
+                element={<OfficialDocuments scope="sk" />}
+              />
               <Route path="funds" element={<SKFundSourcing />} />
               <Route path="expenses" element={<SKExpenseManagement />} />
               <Route path="feedback" element={<SKFeedback />} />

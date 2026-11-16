@@ -22,7 +22,9 @@ gets its own public URL like `/b/san-isidro`.
    only be viewed by active SK officials in the matching barangay.
 4. Run `supabase/migration_audit_history.sql` in the SQL Editor to enable the
    barangay- and SK-scoped audit history.
-5. Open **Project Settings → API** and copy the **Project URL** and **anon public key**.
+5. Run `supabase/migration_transparency_documents.sql` to enable public
+   document uploads and resident downloads.
+6. Open **Project Settings → API** and copy the **Project URL** and **anon public key**.
 
 ## 2. Configure the app
 
@@ -113,11 +115,19 @@ Captain still occupies the seat, sign up under **Join existing**, select
 remains inactive until an authorized Barangay editor or Staff member records the
 handover and selects it.
 
+To enable public disclosure document uploads on an existing database, run
+`supabase/migration_transparency_documents.sql` after the base schema and role
+security functions are installed. Barangay editors can publish Barangay
+documents and SK editors can publish SK documents. JPG, PNG, WEBP, PDF, XLS,
+XLSX, DOC, and DOCX files up to 20 MB are supported. Uploads are public
+immediately, so residents can request and download them without official
+approval. Do not upload confidential or improperly disclosed personal
+information.
+
 The Operations page exports a tenant-scoped JSON data snapshot. Store it in an
 access-controlled location. Restore must be performed by a Supabase
 administrator through a controlled database recovery process, not by replaying
-rows from the browser with the public API key. Official documents are linked
-by HTTPS URL; configure file storage separately if direct uploads are needed.
+rows from the browser with the public API key.
 
 Run the financial and validation regression tests with:
 
