@@ -9,14 +9,36 @@ import {
 import ErrorBanner from '../ui/ErrorBanner';
 import { Download, FileText, LockKeyholeOpen, ShieldCheck, Trash2, UploadCloud } from 'lucide-react';
 
-const CATEGORIES = [
-  'Budget and financial reports',
-  'Procurement and contracts',
-  'Programs and projects',
-  'Resolutions and ordinances',
-  'Meeting minutes',
-  'Other public records',
-];
+const DOCUMENT_CATEGORIES = {
+  barangay: [
+    'Annual Budget and Supplemental Budgets',
+    'Annual Investment Program (AIP)',
+    'Barangay Development Plan (BDP)',
+    'Annual Procurement Plan (APP)',
+    'Procurement and Bidding Documents',
+    'Financial Statements and Reports',
+    '20% Development Fund (20% DF)',
+    'Disaster Risk Reduction Fund (LDRRMF)',
+    'Gender and Development (GAD) Plan/Budget',
+    'Barangay Ordinances and Resolutions',
+    'Barangay Assembly Minutes and Reports',
+    'Programs, Projects, and Accomplishments',
+    'Other Barangay Public Records',
+  ],
+  sk: [
+    'SK Annual Budget and Supplemental Budgets',
+    'Annual Barangay Youth Investment Program (ABYIP)',
+    'Comprehensive Barangay Youth Development Plan (CBYDP)',
+    'SK Annual Accomplishment Report',
+    'SK Financial Statements and Reports',
+    'SK Procurement Plan and Records',
+    'SK Resolutions',
+    'SK Meeting Minutes',
+    'Katipunan ng Kabataan (KK) Assembly Records',
+    'SK Programs, Projects, and Completion Reports',
+    'Other SK Public Records',
+  ],
+};
 
 const formatFileSize = (size) => {
   if (size < 1024 * 1024) return `${Math.max(1, Math.round(size / 1024))} KB`;
@@ -30,8 +52,10 @@ export default function DocumentLibrary({
   uploadedBy,
   isResidentPortal = false,
 }) {
+  const isSk = scope === 'sk';
+  const categories = DOCUMENT_CATEGORIES[isSk ? 'sk' : 'barangay'];
+  const portalLabel = isSk ? 'SK' : 'Barangay';
   const [documents, setDocuments] = useState([]);
-  const [requestedDocuments, setRequestedDocuments] = useState([]);
   const [expenseReceipts, setExpenseReceipts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -41,12 +65,15 @@ export default function DocumentLibrary({
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState('');
   const [title, setTitle] = useState('');
-  const [category, setCategory] = useState(CATEGORIES[0]);
+  const [category, setCategory] = useState(categories[0]);
   const [description, setDescription] = useState('');
-  const [selectedDocumentId, setSelectedDocumentId] = useState('');
   const [file, setFile] = useState(null);
-  const isSk = scope === 'sk';
-  const portalLabel = isSk ? 'SK' : 'Barangay';
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('All');
+
+  useEffect(() => {
+    setCategory(categories[0]);
+  }, [scope, categories]);
 
   const fetchDocuments = useCallback(async () => {
     if (!barangay?.id) {
@@ -163,11 +190,11 @@ export default function DocumentLibrary({
 
     setDocuments((current) => [data, ...current]);
     setTitle('');
-    setCategory(CATEGORIES[0]);
+    setCategory(categories[0]);
     setDescription('');
     setFile(null);
     event.target.reset();
-    setNotice('Document published. Residents can request and download it now without official approval.');
+    setNotice('Document published. It is now publicly available for residents to open or download.');
     setSubmitting(false);
   };
 
@@ -201,41 +228,36 @@ export default function DocumentLibrary({
     setDocuments((current) => current.filter((item) => item.id !== document.id));
     setDeletingId('');
   };
+  if (!barangay?.id) {
+    return <p className="text-sm text-slate-500">Loading barangay information...</p>;
+  }
 
-  const requestableItems = [
-    ...documents.map((document) => ({ ...document, requestId: `document-${document.id}`, requestType: 'document' })),
+  const publicItems = [
+    ...documents.map((document) => ({ ...document, itemType: 'document' })),
     ...expenseReceipts
       .filter((expense) => expense.receipt_url)
       .map((expense) => ({
         ...expense,
-        id: expense.id,
+        itemType: 'receipt',
         title: `${isSk ? 'SK ' : ''}Expense receipt — ${expense.category} · ${expense.date_incurred}`,
         category: 'Expense receipt / proof',
-        requestId: `expense-${expense.id}`,
-        requestType: 'receipt',
       })),
   ];
-  const availableDocuments = requestableItems.filter(
-    (item) => !requestedDocuments.some((requested) => requested.requestId === item.requestId),
-  );
-
-  const handleRequestDocument = (event) => {
-    event.preventDefault();
-    const item = availableDocuments.find((entry) => entry.requestId === selectedDocumentId);
-    if (!item) return;
-
-    setRequestedDocuments((current) => (
-      current.some((requested) => requested.requestId === item.requestId)
-        ? current
-        : [item, ...current]
-    ));
-    setSelectedDocumentId('');
-    setNotice(`Request sent. "${item.title}" is now available in Requested documents.`);
-  };
-
-  if (!barangay?.id) {
-    return <p className="text-sm text-slate-500">Loading barangay information...</p>;
-  }
+  const publicCategoryOptions = [
+    'All',
+    ...categories,
+    'Expense receipt / proof',
+  ];
+  const filteredPublicItems = publicItems.filter((item) => {
+    const matchesCategory = categoryFilter === 'All' || item.category === categoryFilter;
+    const searchableText = [
+      item.title,
+      item.category,
+      item.description,
+      item.file_name,
+    ].filter(Boolean).join(' ').toLowerCase();
+    return matchesCategory && searchableText.includes(searchQuery.trim().toLowerCase());
+  });
 
   return (
     <div className="space-y-6">
@@ -249,8 +271,8 @@ export default function DocumentLibrary({
             <h1 className="mt-1 text-2xl font-bold text-civic-navy">Public Documents</h1>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
               {canManage
-                ? `Publish ${portalLabel} records for residents to request. Requested documents become available in the resident portal without another official's approval.`
-                : `Choose an uploaded ${portalLabel} document to request. It will appear in Requested documents; no personal details or official approval are needed.`}
+                ? `Publish ${portalLabel} records directly to the public transparency library. No resident request or official approval is required for access.`
+                : `Browse and download uploaded ${portalLabel} transparency records directly. No sign-in, personal details, or approval are required.`}
             </p>
           </div>
         </div>
@@ -270,7 +292,7 @@ export default function DocumentLibrary({
           <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
             <LockKeyholeOpen className="mt-0.5 h-4 w-4 shrink-0" />
             <p>
-              Uploaded files are publicly accessible. Residents must request a copy before a download link appears in their portal, but anyone with a direct file URL may still access it. Do not upload confidential records or documents containing personal information that should not be disclosed.
+              Uploaded files become publicly accessible immediately. Do not upload confidential records or documents containing personal information that should not be disclosed.
             </p>
           </div>
           <form onSubmit={handleUpload} className="grid gap-4 md:grid-cols-2">
@@ -288,7 +310,7 @@ export default function DocumentLibrary({
             <label className="space-y-1.5 text-sm font-medium text-slate-700">
               Category
               <select value={category} onChange={(event) => setCategory(event.target.value)} className="input-field">
-                {CATEGORIES.map((item) => <option key={item} value={item}>{item}</option>)}
+                {categories.map((item) => <option key={item} value={item}>{item}</option>)}
               </select>
             </label>
             <label className="space-y-1.5 text-sm font-medium text-slate-700 md:col-span-2">
@@ -324,41 +346,84 @@ export default function DocumentLibrary({
 
       {isResidentPortal ? (
         <section className="card space-y-4">
-          <div>
-            <h2 className="text-lg font-bold text-civic-navy">Request a document</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Select the document you want. After you send the request, its link will appear below.
-            </p>
+          <div className="flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <h2 className="text-lg font-bold text-civic-navy">Public transparency records</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Open or download any available record directly.
+              </p>
+            </div>
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+              {publicItems.length} {publicItems.length === 1 ? 'record' : 'records'}
+            </span>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_240px]">
+            <label className="sr-only" htmlFor="public-document-search">Search public records</label>
+            <input
+              id="public-document-search"
+              type="search"
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              className="input-field"
+              placeholder="Search titles, categories, or descriptions..."
+            />
+            <label className="sr-only" htmlFor="public-document-category">Filter by category</label>
+            <select
+              id="public-document-category"
+              value={categoryFilter}
+              onChange={(event) => setCategoryFilter(event.target.value)}
+              className="input-field"
+            >
+              {publicCategoryOptions.map((item) => (
+                <option key={item} value={item}>{item === 'All' ? 'All categories' : item}</option>
+              ))}
+            </select>
           </div>
           {loading ? (
             <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">Loading available documents...</p>
-          ) : availableDocuments.length === 0 ? (
-            <p className="rounded-lg bg-slate-50 p-4 text-sm text-slate-600">
-              {documents.length + expenseReceipts.filter((expense) => expense.receipt_url).length === 0
-                ? 'There are no documents or expense receipts available to request yet.'
-                : 'You have already requested all available documents.'}
-            </p>
+          ) : filteredPublicItems.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-slate-300 py-10 text-center">
+              <FileText className="mx-auto h-8 w-8 text-slate-300" />
+              <p className="mt-2 text-sm font-medium text-slate-600">
+                {publicItems.length === 0
+                  ? 'No public transparency records have been published yet.'
+                  : 'No records match your search or filter.'}
+              </p>
+            </div>
           ) : (
-            <form onSubmit={handleRequestDocument} className="flex flex-col gap-3 sm:flex-row">
-              <label className="sr-only" htmlFor="document-request">Choose a document</label>
-              <select
-                id="document-request"
-                required
-                value={selectedDocumentId}
-                onChange={(event) => setSelectedDocumentId(event.target.value)}
-                className="input-field flex-1"
-              >
-                <option value="">Choose a document...</option>
-                {availableDocuments.map((item) => (
-                  <option key={item.requestId} value={item.requestId}>
-                    {item.title} - {item.category}
-                  </option>
-                ))}
-              </select>
-              <button type="submit" disabled={!selectedDocumentId} className="btn-primary shrink-0 disabled:opacity-50">
-                Send request
-              </button>
-            </form>
+            <ul className="divide-y divide-slate-100">
+              {filteredPublicItems.map((item) => {
+                const fileUrl = item.itemType === 'receipt'
+                  ? item.receipt_url
+                  : supabase.storage.from(DOCUMENT_BUCKET).getPublicUrl(item.file_path).data.publicUrl;
+                return (
+                  <li key={`${item.itemType}-${item.id}`} className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 items-start gap-3">
+                      <FileText className="mt-0.5 h-5 w-5 shrink-0 text-civic-emerald" />
+                      <div className="min-w-0">
+                        <h3 className="font-semibold text-slate-800">{item.title}</h3>
+                        <p className="mt-0.5 text-xs text-slate-500">
+                          {item.category}
+                          {item.itemType === 'document'
+                            ? ` · ${item.file_name} · ${formatFileSize(item.file_size)} · ${new Date(item.created_at).toLocaleDateString()}`
+                            : ` · ₱${Number(item.amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                        </p>
+                        {item.description && <p className="mt-2 text-sm text-slate-600">{item.description}</p>}
+                      </div>
+                    </div>
+                    <a
+                      href={fileUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn-primary shrink-0 py-2 text-xs"
+                    >
+                      <Download className="h-4 w-4" />
+                      Open / download
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
           )}
         </section>
       ) : (
@@ -424,44 +489,6 @@ export default function DocumentLibrary({
         </section>
       )}
 
-      {isResidentPortal && requestedDocuments.length > 0 && (
-        <section className="card space-y-4">
-          <div>
-            <h2 className="text-lg font-bold text-civic-navy">Requested documents</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              Your selected documents are ready. No personal information or official approval is required.
-            </p>
-          </div>
-          <ul className="divide-y divide-slate-100">
-            {requestedDocuments.map((document) => {
-              const fileUrl = document.requestType === 'receipt'
-                ? document.receipt_url
-                : supabase.storage.from(DOCUMENT_BUCKET).getPublicUrl(document.file_path).data.publicUrl;
-              return (
-                <li key={document.requestId} className="flex flex-wrap items-center justify-between gap-3 py-3">
-                  <div>
-                    <p className="font-semibold text-slate-800">{document.title}</p>
-                    <p className="text-xs text-slate-500">
-                      {document.requestType === 'receipt'
-                        ? `${document.category} · ₱${Number(document.amount).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}${document.description ? ` · ${document.description}` : ''}`
-                        : document.file_name}
-                    </p>
-                  </div>
-                  <a
-                    href={fileUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="btn-primary py-2 text-xs"
-                  >
-                    <Download className="h-4 w-4" />
-                    Open / download
-                  </a>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
     </div>
   );
 }
