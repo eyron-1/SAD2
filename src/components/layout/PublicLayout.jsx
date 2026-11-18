@@ -44,7 +44,7 @@ export default function PublicLayout() {
       >
         Skip to content
       </a>
-      <header className="bg-civic-dark text-white border-b border-white/10 sticky top-0 z-40 shadow-lg shadow-slate-900/10">
+      <header className="bg-civic-dark/95 backdrop-blur-md text-white border-b border-white/10 sticky top-0 z-40 shadow-lg shadow-slate-900/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-white/10 p-0.5 flex items-center justify-center border border-white/20 overflow-hidden shadow-inner">
@@ -93,7 +93,7 @@ export default function PublicLayout() {
                   className={({ isActive }) =>
                     `flex items-center gap-2 px-3 py-2 rounded-lg font-medium whitespace-nowrap transition-all duration-150 ${
                       isActive
-                        ? 'bg-civic-emerald text-white font-semibold shadow-sm'
+                        ? 'bg-white text-civic-navy font-bold shadow-sm'
                         : 'text-slate-300 hover:bg-white/10 hover:text-white'
                     }`
                   }

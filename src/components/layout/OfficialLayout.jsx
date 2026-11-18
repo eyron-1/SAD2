@@ -95,7 +95,7 @@ export default function OfficialLayout() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 w-[min(18rem,calc(100vw-2rem))] bg-gradient-to-b from-civic-dark to-[#0a2034] text-white flex flex-col z-50 transition-transform duration-300 ease-in-out ${
+        className={`fixed inset-y-0 left-0 w-[min(18rem,calc(100vw-2rem))] border-r border-white/10 bg-gradient-to-b from-civic-dark via-[#102f49] to-[#091e31] text-white flex flex-col z-50 transition-transform duration-300 ease-in-out ${
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         }`}
       >
@@ -161,15 +161,23 @@ export default function OfficialLayout() {
                 end={item.to === '/dashboard' || item.to === '/sk'}
                 onClick={() => setMobileOpen(false)}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
+                  `group flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
                     isActive
-                      ? 'bg-civic-emerald text-white shadow-md shadow-emerald-950/20 font-semibold'
-                      : 'text-slate-300 hover:bg-white/10 hover:text-white'
+                      ? 'bg-white/[0.12] text-white shadow-sm ring-1 ring-inset ring-white/10 font-semibold'
+                      : 'text-slate-300 hover:bg-white/[0.07] hover:text-white'
                   }`
                 }
               >
-                <Icon className="w-4 h-4 shrink-0" />
-                <span className="truncate">{item.label}</span>
+                {({ isActive }) => (
+                  <>
+                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${
+                      isActive ? 'bg-civic-emerald text-white' : 'bg-white/[0.06] text-slate-300 group-hover:bg-white/[0.1]'
+                    }`}>
+                      <Icon className="w-4 h-4" />
+                    </span>
+                    <span className="truncate">{item.label}</span>
+                  </>
+                )}
               </NavLink>
             );
           })}
