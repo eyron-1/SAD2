@@ -214,6 +214,10 @@ export default function App() {
                   element={<PublicDocuments scope="sk" />}
                 />
                 <Route
+                  path="officials"
+                  element={<PublicOfficials scope="sk" />}
+                />
+                <Route
                   path="ask-ai"
                   element={<PublicAIAssistantPage />}
                 />

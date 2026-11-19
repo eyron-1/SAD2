@@ -1,11 +1,11 @@
 import { useParams } from 'react-router-dom';
 import { usePublicBarangay } from '../../lib/usePublicBarangay';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
-import { roleLabel } from '../../utils/roles';
+import { isSkRole, roleLabel } from '../../utils/roles';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import { ShieldCheck, Info } from 'lucide-react';
 
-export default function PublicOfficials() {
+export default function PublicOfficials({ scope = 'barangay' }) {
   const { slug } = useParams();
   const { barangay, loading: bLoading } = usePublicBarangay(slug);
   const { rows: officials, loading, error } = useSupabaseTable('profiles', barangay?.id);
@@ -19,7 +19,10 @@ export default function PublicOfficials() {
     );
   }
 
-  const active = officials.filter((o) => o.is_active);
+  const isSkDirectory = scope === 'sk';
+  const active = officials.filter((official) => (
+    official.is_active && isSkRole(official.role) === isSkDirectory
+  ));
 
   return (
     <div className="space-y-8 pb-12">
@@ -31,13 +34,13 @@ export default function PublicOfficials() {
           <div className="space-y-2 max-w-2xl">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-civic-navy/10 text-civic-navy border border-civic-navy/15">
               <ShieldCheck className="w-3.5 h-3.5 text-civic-emerald" />
-              Official Full Disclosure Transparency Portal
+              {isSkDirectory ? 'SK Full Disclosure Transparency Portal' : 'Official Full Disclosure Transparency Portal'}
             </div>
             <h1 className="text-2xl sm:text-3xl font-display text-civic-navy font-bold">
-              Elected Officials
+              {isSkDirectory ? 'SK Officials' : 'Elected Officials'}
             </h1>
             <p className="text-sm text-slate-600 leading-relaxed">
-              Meet the dedicated community leaders and representatives of{' '}
+              {isSkDirectory ? 'Meet the youth representatives serving' : 'Meet the dedicated community leaders and representatives of'}{' '}
               <span className="font-semibold text-civic-navy">{barangay?.name || 'the barangay'}</span>.
             </p>
           </div>
@@ -51,7 +54,9 @@ export default function PublicOfficials() {
           <div className="flex-1">
             <span className="font-semibold text-slate-800">How to read this portal:</span>{' '}
             <span className="text-slate-600">
-              This directory lists the actively serving members of the <strong>Barangay Council</strong> and the <strong>Sangguniang Kabataan (SK)</strong>.
+              {isSkDirectory
+                ? <>This directory lists the active <strong>Sangguniang Kabataan (SK)</strong> Chairperson, Treasurer, and Kagawad.</>
+                : <>This directory lists the actively serving members of the <strong>Barangay Council</strong>. SK officials are listed in the SK Portal.</>}
             </span>
           </div>
         </div>
