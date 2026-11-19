@@ -8,7 +8,8 @@ import {
 } from '../../lib/transparencyDocuments';
 import ErrorBanner from '../ui/ErrorBanner';
 import SelectedFilePreview from '../ui/SelectedFilePreview';
-import { Download, FileText, LockKeyholeOpen, ShieldCheck, Trash2, UploadCloud } from 'lucide-react';
+import PublicDocumentPreview from './PublicDocumentPreview';
+import { Download, Eye, FileText, LockKeyholeOpen, ShieldCheck, Trash2, UploadCloud } from 'lucide-react';
 
 const DOCUMENT_CATEGORIES = {
   barangay: [
@@ -71,6 +72,7 @@ export default function DocumentLibrary({
   const [file, setFile] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
+  const [previewItem, setPreviewItem] = useState(null);
 
   useEffect(() => {
     setCategory(categories[0]);
@@ -195,7 +197,7 @@ export default function DocumentLibrary({
     setDescription('');
     setFile(null);
     event.target.reset();
-    setNotice('Document published. It is now publicly available for residents to open or download.');
+    setNotice('Document published. It is now publicly available for residents to view and save.');
     setSubmitting(false);
   };
 
@@ -273,7 +275,7 @@ export default function DocumentLibrary({
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
               {canManage
                 ? `Publish ${portalLabel} records directly to the public transparency library. No resident request or official approval is required for access.`
-                : `Browse and download uploaded ${portalLabel} transparency records directly. No sign-in, personal details, or approval are required.`}
+                :                 `Browse and view uploaded ${portalLabel} transparency records directly. Save a copy from the preview. No sign-in, personal details, or approval are required.`}
             </p>
           </div>
         </div>
@@ -352,7 +354,7 @@ export default function DocumentLibrary({
             <div>
               <h2 className="text-lg font-bold text-civic-navy">Public transparency records</h2>
               <p className="mt-1 text-sm text-slate-500">
-                Open or download any available record directly.
+                View a record, then use Save in the preview to download it.
               </p>
             </div>
             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
@@ -413,15 +415,14 @@ export default function DocumentLibrary({
                         {item.description && <p className="mt-2 text-sm text-slate-600">{item.description}</p>}
                       </div>
                     </div>
-                    <a
-                      href={fileUrl}
-                      target="_blank"
-                      rel="noreferrer"
+                    <button
+                      type="button"
+                      onClick={() => setPreviewItem({ item, fileUrl })}
                       className="btn-primary shrink-0 py-2 text-xs"
                     >
-                      <Download className="h-4 w-4" />
-                      Open / download
-                    </a>
+                      <Eye className="h-4 w-4" />
+                      View
+                    </button>
                   </li>
                 );
               })}
@@ -491,6 +492,13 @@ export default function DocumentLibrary({
         </section>
       )}
 
+      {previewItem && (
+        <PublicDocumentPreview
+          item={previewItem.item}
+          fileUrl={previewItem.fileUrl}
+          onClose={() => setPreviewItem(null)}
+        />
+      )}
     </div>
   );
 }
