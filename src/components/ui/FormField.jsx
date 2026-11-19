@@ -12,15 +12,20 @@ export default function FormField({
 }) {
   const fieldId = useId();
   const id = inputProps.id || fieldId;
+  const errorId = `${id}-error`;
   const [passwordVisible, setPasswordVisible] = useState(false);
   const fieldClass = `input-field ${error ? 'input-error' : ''} ${className}`;
+  const accessibilityProps = {
+    'aria-invalid': error ? true : undefined,
+    'aria-describedby': error ? errorId : undefined,
+  };
   return (
     <div>
       {label && <label htmlFor={id} className="label">{label}</label>}
       {as === 'textarea' ? (
-        <textarea id={id} className={fieldClass} {...inputProps} />
+        <textarea id={id} className={fieldClass} {...accessibilityProps} {...inputProps} />
       ) : as === 'select' ? (
-        <select id={id} className={fieldClass} {...inputProps}>
+        <select id={id} className={fieldClass} {...accessibilityProps} {...inputProps}>
           {children}
         </select>
       ) : (
@@ -28,6 +33,7 @@ export default function FormField({
           <input
             id={id}
             className={`${fieldClass} ${showPasswordToggle ? 'pr-11' : ''}`}
+            {...accessibilityProps}
             {...inputProps}
             type={showPasswordToggle && passwordVisible ? 'text' : inputProps.type}
           />
@@ -44,7 +50,7 @@ export default function FormField({
           )}
         </div>
       )}
-      {error && <p className="error-text">{error}</p>}
+      {error && <p id={errorId} className="error-text">{error}</p>}
     </div>
   );
 }

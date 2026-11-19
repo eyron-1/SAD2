@@ -8,10 +8,19 @@ export function usePublicBarangay(slug) {
   const [error, setError] = useState('');
 
   useEffect(() => {
+    let active = true;
+
     if (!slug) {
-      setLoading(false);
+      if (active) {
+        setBarangay(null);
+        setError('');
+        setLoading(false);
+      }
       return;
     }
+
+    setBarangay(null);
+    setError('');
     setLoading(true);
     supabase
       .from('barangays')
@@ -19,10 +28,15 @@ export function usePublicBarangay(slug) {
       .eq('slug', slug)
       .single()
       .then(({ data, error: qError }) => {
+        if (!active) return;
         if (qError) setError(friendlySupabaseError(qError));
         else setBarangay(data);
         setLoading(false);
       });
+
+    return () => {
+      active = false;
+    };
   }, [slug]);
 
   return { barangay, loading, error };

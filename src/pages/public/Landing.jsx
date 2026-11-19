@@ -29,15 +29,22 @@ export default function Landing() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
+    let active = true;
+
     supabase
       .from('barangays')
       .select('*')
       .order('name')
       .then(({ data, error: qError }) => {
+        if (!active) return;
         if (qError) setError(friendlySupabaseError(qError));
         else setBarangays(data || []);
         setLoading(false);
       });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const provinces = useMemo(() => {

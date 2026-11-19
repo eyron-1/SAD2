@@ -26,6 +26,8 @@ export function useSupabaseTable(table, barangayId, { orderBy = 'created_at', as
 
   const refetch = useCallback(async () => {
     if (!barangayId) {
+      setRows([]);
+      setError('');
       setLoading(false);
       return;
     }
