@@ -23,7 +23,7 @@ function toCSV(rows, headers) {
     if (/^[\t\r ]*[=+\-@]/.test(s)) s = `'${s}`;
     return `"${s.replace(/"/g, '""')}"`;
   };
-  return [
+  return '\uFEFF' + [
     headers.map(([, label]) => esc(label)).join(','),
     ...rows.map((r) => headers.map(([k]) => esc(r[k])).join(',')),
   ].join('\n');
@@ -32,8 +32,12 @@ function downloadCSV(filename, csv) {
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = filename; a.click();
-  URL.revokeObjectURL(url);
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 /* ─── Sub-components ─────────────────────────────────────────────── */
@@ -112,8 +116,9 @@ export default function ReportsAnalytics() {
     const s = new Set();
     allocations.forEach((a) => a.fiscal_year && s.add(String(a.fiscal_year)));
     activeRows(expenses).forEach((e) => e.date_incurred && s.add(e.date_incurred.slice(0, 4)));
+    funds.forEach((f) => f.fiscal_year && s.add(String(f.fiscal_year)));
     return ['all', ...Array.from(s).sort((a, b) => b.localeCompare(a))];
-  }, [allocations, expenses]);
+  }, [allocations, expenses, funds]);
 
   const [fyFilter, setFyFilter] = useState('all');
   const filteredAllocations = useMemo(
@@ -132,13 +137,14 @@ export default function ReportsAnalytics() {
   const totalExpenses = sumAmounts(filteredExpenses);
   const totalFunds    = sumAmounts(fyFilter === 'all' ? funds : funds.filter((f) => String(f.fiscal_year) === fyFilter));
   const utilization   = totalBudget > 0 ? (totalExpenses / totalBudget) * 100 : 0;
-  const remaining     = Math.max(0, totalBudget - totalExpenses);
+  const remaining     = totalBudget - totalExpenses;
 
   /* Chart: expenses by category */
   const expenseByCategory = useMemo(() => {
     const map = {};
     filteredExpenses.forEach((e) => {
-      map[e.category] = (map[e.category] || 0) + Math.round(Number(e.amount || 0) * 100);
+      const category = String(e.category || 'Uncategorized').trim() || 'Uncategorized';
+      map[category] = (map[category] || 0) + Math.round(Number(e.amount || 0) * 100);
     });
     return Object.entries(map)
       .map(([name, cents]) => ({ name, value: cents / 100 }))
@@ -148,11 +154,11 @@ export default function ReportsAnalytics() {
   /* Chart: budget vs expenses by year */
   const budgetVsExpense = useMemo(() => {
     const byYear = {};
-    allocations.forEach((a) => {
+    filteredAllocations.forEach((a) => {
       byYear[a.fiscal_year] ??= { fiscal_year: a.fiscal_year, budget: 0, expenses: 0 };
       byYear[a.fiscal_year].budget += Math.round(Number(a.amount || 0) * 100);
     });
-    activeRows(expenses).forEach((e) => {
+    filteredExpenses.forEach((e) => {
       const fy = e.date_incurred ? e.date_incurred.slice(0, 4) : 'N/A';
       byYear[fy] ??= { fiscal_year: fy, budget: 0, expenses: 0 };
       byYear[fy].expenses += Math.round(Number(e.amount || 0) * 100);
@@ -160,7 +166,7 @@ export default function ReportsAnalytics() {
     return Object.values(byYear)
       .map((r) => ({ ...r, budget: r.budget / 100, expenses: r.expenses / 100 }))
       .sort((a, b) => String(a.fiscal_year).localeCompare(String(b.fiscal_year)));
-  }, [allocations, expenses]);
+  }, [filteredAllocations, filteredExpenses]);
 
   /* Chart: monthly spend trend (filtered year or all-time monthly) */
   const monthlyTrend = useMemo(() => {
@@ -169,7 +175,8 @@ export default function ReportsAnalytics() {
       amount: 0,
     }));
     filteredExpenses.forEach((e) => {
-      const idx = e.date_incurred ? new Date(e.date_incurred).getMonth() : -1;
+      const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(e.date_incurred || '');
+      const idx = match ? Number(match[2]) - 1 : -1;
       if (idx >= 0) months[idx].amount += Number(e.amount || 0);
     });
     return months;
@@ -375,7 +382,7 @@ export default function ReportsAnalytics() {
               label: 'Budget Allocations',
               icon: Download,
               desc: 'Fiscal year, category, amount',
-              onClick: () => downloadCSV('budget_allocations.csv', toCSV(allocations, [
+              onClick: () => downloadCSV('budget_allocations.csv', toCSV(filteredAllocations, [
                 ['fiscal_year', 'Fiscal Year'], ['category', 'Category'], ['amount', 'Amount'], ['description', 'Description'],
               ])),
             },
@@ -383,7 +390,7 @@ export default function ReportsAnalytics() {
               label: 'Recorded Expenses',
               icon: Download,
               desc: 'Date, category, amount, status',
-              onClick: () => downloadCSV('expenses.csv', toCSV(expenses, [
+              onClick: () => downloadCSV('expenses.csv', toCSV(filteredExpenses, [
                 ['date_incurred', 'Date'], ['category', 'Category'], ['amount', 'Amount'], ['status', 'Status'],
               ])),
             },
@@ -391,7 +398,9 @@ export default function ReportsAnalytics() {
               label: 'Fund Sources',
               icon: Download,
               desc: 'Name, type, fiscal year, amount',
-              onClick: () => downloadCSV('fund_sources.csv', toCSV(funds, [
+              onClick: () => downloadCSV('fund_sources.csv', toCSV(
+                fyFilter === 'all' ? funds : funds.filter((f) => String(f.fiscal_year) === fyFilter),
+              [
                 ['name', 'Name'], ['source_type', 'Type'], ['fiscal_year', 'FY'], ['amount', 'Amount'],
               ])),
             },
@@ -400,7 +409,12 @@ export default function ReportsAnalytics() {
               icon: Download,
               desc: 'Title, status, budget, beneficiaries',
               onClick: () => {
-                const formatted = programs.map((p) => {
+                const filteredPrograms = fyFilter === 'all'
+                  ? programs
+                  : programs.filter((p) =>
+                    p.start_date?.startsWith(fyFilter) || p.end_date?.startsWith(fyFilter),
+                  );
+                const formatted = filteredPrograms.map((p) => {
                   let sector = p.beneficiary_category || '';
                   if (!sector && p.description?.startsWith('[Beneficiary: ')) {
                     const m = p.description.match(/^\[Beneficiary:\s*([^\]]+)\]/);

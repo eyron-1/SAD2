@@ -211,6 +211,7 @@ create table fund_sources (
 create table budget_allocations (
   id uuid primary key default uuid_generate_v4(),
   barangay_id uuid references barangays(id) on delete cascade not null,
+  fund_source_id uuid,
   fiscal_year text not null,
   category text not null,
   amount numeric(14,2) not null check (amount >= 0),
@@ -218,6 +219,14 @@ create table budget_allocations (
   created_by uuid references profiles(id),
   created_at timestamptz default now()
 );
+
+alter table fund_sources
+  add constraint fund_sources_id_barangay_unique unique (id, barangay_id);
+
+alter table budget_allocations
+  add constraint budget_allocations_fund_source_same_barangay
+  foreign key (fund_source_id, barangay_id)
+  references fund_sources (id, barangay_id);
 
 -- ------------------------------------------------------------
 -- EXPENSES
@@ -290,6 +299,7 @@ create table sk_fund_sources (
 create table sk_budget (
   id uuid primary key default uuid_generate_v4(),
   barangay_id uuid references barangays(id) on delete cascade not null,
+  sk_fund_source_id uuid,
   fiscal_year text not null,
   category text not null,
   amount numeric(14,2) not null check (amount >= 0),
@@ -297,6 +307,14 @@ create table sk_budget (
   created_by uuid references profiles(id),
   created_at timestamptz default now()
 );
+
+alter table sk_fund_sources
+  add constraint sk_fund_sources_id_barangay_unique unique (id, barangay_id);
+
+alter table sk_budget
+  add constraint sk_budget_fund_source_same_barangay
+  foreign key (sk_fund_source_id, barangay_id)
+  references sk_fund_sources (id, barangay_id);
 
 create table sk_programs (
   id uuid primary key default uuid_generate_v4(),

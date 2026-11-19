@@ -53,6 +53,7 @@ const SK_NAV = [
   { to: '/sk/documents', label: 'SK Documents', icon: FileText },
   { to: '/sk/feedback', label: 'SK Community Feedback', icon: MessageSquare },
   { to: '/sk/officials', label: 'SK Officials & Handover', icon: Users },
+  { to: '/sk/reports', label: 'SK Reports & Analytics', icon: BarChart3 },
   { to: '/sk/audit-history', label: 'Audit History', icon: History },
   { to: '/sk/kk-monitoring', label: 'KK Youth Monitoring', icon: Users },
   { to: '/sk/ai-assistant', label: 'AI Assistant', icon: Bot },

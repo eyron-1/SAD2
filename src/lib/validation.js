@@ -172,6 +172,30 @@ export function runValidators(values, validatorMap) {
 export function friendlySupabaseError(error) {
   if (!error) return '';
   const msg = error.message || '';
+  if (msg.includes('Cannot allocate funds without a fund source')) {
+    return 'Cannot save this allocation because no fund source is recorded for the selected fiscal year.';
+  }
+  if (msg.includes('Cannot allocate SK funds without a fund source')) {
+    return 'Cannot save this SK allocation because no SK fund source is recorded for the selected fiscal year.';
+  }
+  if (msg.includes('Choose a fund source for this allocation')) {
+    return 'Select a fund source for this allocation before saving.';
+  }
+  if (msg.includes('Choose an SK fund source for this allocation')) {
+    return 'Select an SK fund source for this allocation before saving.';
+  }
+  if (msg.includes('remaining amount of the selected fund source')) {
+    return 'The allocation exceeds the remaining amount in the selected fund source.';
+  }
+  if (msg.includes('remaining amount of the selected SK fund source')) {
+    return 'The SK allocation exceeds the remaining amount in the selected fund source.';
+  }
+  if (msg.includes('Allocation exceeds available fund sources') ||
+      msg.includes('Allocations for fiscal year') ||
+      msg.includes('SK allocation exceeds available fund sources') ||
+      msg.includes('SK allocations for fiscal year')) {
+    return 'The allocation amount exceeds the available funds for this fiscal year.';
+  }
   if (msg.includes('Email not confirmed')) {
     return 'Email not confirmed. Please check your email inbox to verify, or turn off "Confirm email" in Supabase Dashboard → Authentication → Providers → Email.';
   }

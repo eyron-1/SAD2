@@ -97,6 +97,11 @@ for their fiscal year, fund amounts cannot be reduced below existing
 allocations, and expenses must match a funded allocation's category and
 remaining balance. These checks apply to both Barangay and SK records.
 
+To choose and validate the specific fund source used by each new Barangay or SK
+budget allocation, run `supabase/migration_allocation_fund_source.sql` in the
+Supabase SQL Editor. Deploy the updated app after applying this migration.
+Existing allocations remain intact; select a source when editing them. These checks apply to both Barangay and SK records.
+
 To allow self-registration for an unoccupied Barangay Captain, Secretary, or
 Treasurer seat in an existing barangay, run
 `supabase/migration_signup_barangay_editors.sql`.

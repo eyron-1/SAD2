@@ -24,7 +24,7 @@ function toCSV(rows, headers) {
     if (/^[\t\r ]*[=+\-@]/.test(s)) s = `'${s}`;
     return `"${s.replace(/"/g, '""')}"`;
   };
-  return [
+  return '\uFEFF' + [
     headers.map(([, label]) => esc(label)).join(','),
     ...rows.map((r) => headers.map(([k]) => esc(r[k])).join(',')),
   ].join('\n');
@@ -33,8 +33,12 @@ function downloadCSV(filename, csv) {
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url; a.download = filename; a.click();
-  URL.revokeObjectURL(url);
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 
 /* ─── Sub-components ─────────────────────────────────────────────── */
@@ -114,8 +118,9 @@ export default function SKReportsAnalytics() {
     const s = new Set();
     budget.forEach((b) => b.fiscal_year && s.add(String(b.fiscal_year)));
     activeRows(expenses).forEach((e) => e.date_incurred && s.add(e.date_incurred.slice(0, 4)));
+    funds.forEach((f) => f.fiscal_year && s.add(String(f.fiscal_year)));
     return ['all', ...Array.from(s).sort((a, b) => b.localeCompare(a))];
-  }, [budget, expenses]);
+  }, [budget, expenses, funds]);
 
   const [fyFilter, setFyFilter] = useState('all');
   const filteredBudget = useMemo(
@@ -134,14 +139,15 @@ export default function SKReportsAnalytics() {
   const totalExpenses = sumAmounts(filteredExpenses);
   const totalFunds    = sumAmounts(fyFilter === 'all' ? funds : funds.filter((f) => String(f.fiscal_year) === fyFilter));
   const utilization   = totalBudget > 0 ? (totalExpenses / totalBudget) * 100 : 0;
-  const remaining     = Math.max(0, totalBudget - totalExpenses);
+  const remaining     = totalBudget - totalExpenses;
   const activeKK      = kk.filter((m) => m.participation_status === 'active').length;
 
   /* Chart: expenses by category */
   const expenseByCategory = useMemo(() => {
     const map = {};
     filteredExpenses.forEach((e) => {
-      map[e.category] = (map[e.category] || 0) + Math.round(Number(e.amount || 0) * 100);
+      const category = String(e.category || 'Uncategorized').trim() || 'Uncategorized';
+      map[category] = (map[category] || 0) + Math.round(Number(e.amount || 0) * 100);
     });
     return Object.entries(map)
       .map(([name, cents]) => ({ name, value: cents / 100 }))
@@ -151,11 +157,11 @@ export default function SKReportsAnalytics() {
   /* Chart: budget vs expenses by year */
   const budgetVsExpense = useMemo(() => {
     const byYear = {};
-    budget.forEach((b) => {
+    filteredBudget.forEach((b) => {
       byYear[b.fiscal_year] ??= { fiscal_year: b.fiscal_year, budget: 0, expenses: 0 };
       byYear[b.fiscal_year].budget += Math.round(Number(b.amount || 0) * 100);
     });
-    activeRows(expenses).forEach((e) => {
+    filteredExpenses.forEach((e) => {
       const fy = e.date_incurred ? e.date_incurred.slice(0, 4) : 'N/A';
       byYear[fy] ??= { fiscal_year: fy, budget: 0, expenses: 0 };
       byYear[fy].expenses += Math.round(Number(e.amount || 0) * 100);
@@ -163,7 +169,7 @@ export default function SKReportsAnalytics() {
     return Object.values(byYear)
       .map((r) => ({ ...r, budget: r.budget / 100, expenses: r.expenses / 100 }))
       .sort((a, b) => String(a.fiscal_year).localeCompare(String(b.fiscal_year)));
-  }, [budget, expenses]);
+  }, [filteredBudget, filteredExpenses]);
 
   /* Chart: monthly spend trend */
   const monthlyTrend = useMemo(() => {
@@ -172,7 +178,8 @@ export default function SKReportsAnalytics() {
       amount: 0,
     }));
     filteredExpenses.forEach((e) => {
-      const idx = e.date_incurred ? new Date(e.date_incurred).getMonth() : -1;
+      const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(e.date_incurred || '');
+      const idx = match ? Number(match[2]) - 1 : -1;
       if (idx >= 0) months[idx].amount += Number(e.amount || 0);
     });
     return months;
@@ -453,7 +460,7 @@ export default function SKReportsAnalytics() {
               label: 'SK Budget Allocations',
               icon: Download,
               desc: 'Fiscal year, category, amount',
-              onClick: () => downloadCSV('sk_budget_allocations.csv', toCSV(budget, [
+              onClick: () => downloadCSV('sk_budget_allocations.csv', toCSV(filteredBudget, [
                 ['fiscal_year', 'Fiscal Year'], ['category', 'Category'], ['amount', 'Amount'], ['description', 'Description'],
               ])),
             },
@@ -461,7 +468,7 @@ export default function SKReportsAnalytics() {
               label: 'SK Expenses',
               icon: Download,
               desc: 'Date, category, amount, status',
-              onClick: () => downloadCSV('sk_expenses.csv', toCSV(expenses, [
+              onClick: () => downloadCSV('sk_expenses.csv', toCSV(filteredExpenses, [
                 ['date_incurred', 'Date'], ['category', 'Category'], ['amount', 'Amount'], ['status', 'Status'],
               ])),
             },
@@ -469,7 +476,9 @@ export default function SKReportsAnalytics() {
               label: 'SK Fund Sources',
               icon: Download,
               desc: 'Name, type, fiscal year, amount',
-              onClick: () => downloadCSV('sk_fund_sources.csv', toCSV(funds, [
+              onClick: () => downloadCSV('sk_fund_sources.csv', toCSV(
+                fyFilter === 'all' ? funds : funds.filter((f) => String(f.fiscal_year) === fyFilter),
+              [
                 ['name', 'Name'], ['source_type', 'Type'], ['fiscal_year', 'FY'], ['amount', 'Amount'],
               ])),
             },
@@ -477,7 +486,13 @@ export default function SKReportsAnalytics() {
               label: 'SK Programs & Projects',
               icon: Download,
               desc: 'Title, status, budget, beneficiaries',
-              onClick: () => downloadCSV('sk_programs.csv', toCSV(programs, [
+              onClick: () => downloadCSV('sk_programs.csv', toCSV(
+                fyFilter === 'all'
+                  ? programs
+                  : programs.filter((p) =>
+                    p.start_date?.startsWith(fyFilter) || p.end_date?.startsWith(fyFilter),
+                  ),
+              [
                 ['title', 'Title'], ['status', 'Status'], ['category', 'Category'],
                 ['budget_amount', 'Budget'], ['beneficiaries_count', 'Beneficiaries'],
               ])),

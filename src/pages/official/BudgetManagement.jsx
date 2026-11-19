@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useSupabaseTable } from "../../lib/useSupabaseTable";
+import { supabase } from "../../lib/supabaseClient";
 import {
   validateRequired,
   validateCurrency,
@@ -9,6 +11,7 @@ import {
   formatCurrencyInput,
   finalizeCurrencyInput,
   parseCurrencyValue,
+  friendlySupabaseError,
 } from "../../lib/validation";
 import { isBarangayEditor } from "../../utils/roles";
 import {
@@ -35,6 +38,7 @@ import {
 
 const CATEGORIES = BARANGAY_FINANCIAL_CATEGORIES;
 const EMPTY = {
+  fund_source_id: "",
   fiscal_year: "",
   category: CATEGORIES[0],
   amount: "",
@@ -53,11 +57,15 @@ export default function BudgetManagement() {
   const canEdit = isBarangayEditor(profile?.role);
   const { rows, loading, error, insertRow, updateRow, deleteRow } =
     useSupabaseTable("budget_allocations", profile?.barangay_id);
-  const { rows: funds } = useSupabaseTable(
+  const { rows: funds, loading: fundsLoading } = useSupabaseTable(
     "fund_sources",
     profile?.barangay_id,
   );
-  const { rows: expenses } = useSupabaseTable("expenses", profile?.barangay_id);
+  const { rows: expenses } = useSupabaseTable(
+    "expenses",
+    profile?.barangay_id,
+  );
+  const financialLoading = loading || fundsLoading;
 
   const [form, setForm] = useState(EMPTY);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -72,6 +80,7 @@ export default function BudgetManagement() {
   const [yearFilter, setYearFilter] = useState("all");
 
   const validators = {
+    fund_source_id: (v) => validateRequired(v, "Fund source"),
     fiscal_year: validateFiscalYear,
     category: (v) => validateRequired(v, "Category"),
     amount: (v) => validateCurrency(v, "Amount"),
@@ -79,19 +88,35 @@ export default function BudgetManagement() {
 
   const getAvailableFunding = (fiscalYear) => {
     const sourced = sumAmounts(
-      funds.filter((fund) => fund.fiscal_year === fiscalYear),
+      funds.filter((fund) => String(fund.fiscal_year) === String(fiscalYear)),
     );
     const allocated = sumAmounts(
       rows.filter(
-        (row) => row.fiscal_year === fiscalYear && row.id !== editingId,
+        (row) => String(row.fiscal_year) === String(fiscalYear) && row.id !== editingId,
       ),
     );
     return sourced - allocated;
   };
+  const getAvailableFromSource = (fundSourceId) => {
+    const source = funds.find((fund) => fund.id === fundSourceId);
+    if (!source) return 0;
+    const allocated = sumAmounts(
+      rows.filter(
+        (row) => row.fund_source_id === fundSourceId && row.id !== editingId,
+      ),
+    );
+    return Number(source.amount || 0) - allocated;
+  };
+  const sourcesForYear = funds.filter(
+    (fund) => String(fund.fiscal_year) === String(form.fiscal_year),
+  );
+  const sourcedForYear = sumAmounts(sourcesForYear);
+  const availableFunding = getAvailableFunding(form.fiscal_year);
 
   const openModal = (row = null) => {
     if (row) {
       setForm({
+        fund_source_id: row.fund_source_id || "",
         fiscal_year: row.fiscal_year,
         category: row.category,
         amount: finalizeCurrencyInput(row.amount),
@@ -116,21 +141,94 @@ export default function BudgetManagement() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting || financialLoading) return;
     const { errors } = runValidators(form, validators);
     const numericAmount = parseCurrencyValue(form.amount);
-    const availableFunding = getAvailableFunding(form.fiscal_year);
     if (numericAmount <= 0) {
       errors.amount = "Allocation amount must be greater than zero.";
-    } else if (availableFunding <= 0) {
-      errors.amount = `No funds are available for fiscal year ${form.fiscal_year}. Add a fund source before allocating.`;
-    } else if (numericAmount > availableFunding) {
-      errors.amount = `Allocation exceeds the available funds for ${form.fiscal_year} by ${formatCurrency(numericAmount - availableFunding)}.`;
     }
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;
 
     setSubmitting(true);
     setSubmitError("");
+    const [{ data: liveFunds, error: fundsQueryError }, { data: liveAllocations, error: allocationsQueryError }] =
+      await Promise.all([
+        supabase
+          .from("fund_sources")
+          .select("id,amount,fiscal_year")
+          .eq("barangay_id", profile.barangay_id),
+        supabase
+          .from("budget_allocations")
+          .select("id,amount,fiscal_year,fund_source_id")
+          .eq("barangay_id", profile.barangay_id),
+      ]);
+
+    if (fundsQueryError || allocationsQueryError) {
+      setSubmitting(false);
+      setSubmitError(
+        friendlySupabaseError(fundsQueryError || allocationsQueryError),
+      );
+      return;
+    }
+
+    const liveSourced = (liveFunds || [])
+      .filter((fund) => String(fund.fiscal_year) === String(form.fiscal_year))
+      .reduce((sum, fund) => sum + Number(fund.amount || 0), 0);
+    const liveAllocated = (liveAllocations || [])
+      .filter(
+        (allocation) =>
+          String(allocation.fiscal_year) === String(form.fiscal_year) &&
+          allocation.id !== editingId,
+      )
+      .reduce((sum, allocation) => sum + Number(allocation.amount || 0), 0);
+    const liveAvailable = liveSourced - liveAllocated;
+    const liveFundSource = (liveFunds || []).find(
+      (fund) =>
+        fund.id === form.fund_source_id &&
+        String(fund.fiscal_year) === String(form.fiscal_year),
+    );
+    const liveSourceAvailable = liveFundSource
+      ? Number(liveFundSource.amount || 0) -
+        (liveAllocations || [])
+          .filter(
+            (allocation) =>
+              allocation.fund_source_id === form.fund_source_id &&
+              allocation.id !== editingId,
+          )
+          .reduce((sum, allocation) => sum + Number(allocation.amount || 0), 0)
+      : 0;
+
+    if (liveSourced <= 0) {
+      setSubmitting(false);
+      setFieldErrors({
+        ...errors,
+        fiscal_year: `No fund source is recorded for fiscal year ${form.fiscal_year}.`,
+      });
+      return;
+    }
+    if (numericAmount > liveAvailable) {
+      setSubmitting(false);
+      setFieldErrors({
+        ...errors,
+        amount: `Allocation exceeds the available funds for ${form.fiscal_year} by ${formatCurrency(numericAmount - liveAvailable)}.`,
+      });
+      return;
+    }
+    if (!liveFundSource) {
+      setSubmitting(false);
+      setFieldErrors({ ...errors, fund_source_id: "Choose a fund source for the selected fiscal year." });
+      return;
+    }
+    if (numericAmount > liveSourceAvailable) {
+      setSubmitting(false);
+      setFieldErrors({
+        ...errors,
+        fund_source_id: `Only ${formatCurrency(Math.max(liveSourceAvailable, 0))} remains in the selected fund source.`,
+      });
+      return;
+    }
+
     const payload = { ...form, amount: numericAmount, created_by: profile.id };
 
     const result = editingId
@@ -139,7 +237,11 @@ export default function BudgetManagement() {
     setSubmitting(false);
 
     if (result.error) {
-      setSubmitError(result.error);
+      setSubmitError(
+        typeof result.error === "string"
+          ? friendlySupabaseError({ message: result.error })
+          : friendlySupabaseError(result.error),
+      );
     } else {
       closeModal();
     }
@@ -405,7 +507,11 @@ export default function BudgetManagement() {
                   placeholder="e.g. 2026"
                   value={form.fiscal_year}
                   onChange={(e) =>
-                    setForm({ ...form, fiscal_year: e.target.value })
+                    setForm({
+                      ...form,
+                      fiscal_year: e.target.value,
+                      fund_source_id: "",
+                    })
                   }
                   error={fieldErrors.fiscal_year}
                 />
@@ -434,6 +540,26 @@ export default function BudgetManagement() {
               </div>
 
               <FormField
+                as="select"
+                label="Fund Source"
+                value={form.fund_source_id}
+                onChange={(e) =>
+                  setForm({ ...form, fund_source_id: e.target.value })
+                }
+                error={fieldErrors.fund_source_id}
+              >
+                <option value="">Choose a fund source</option>
+                {sourcesForYear.map((fund) => {
+                  const sourceAvailable = getAvailableFromSource(fund.id);
+                  return (
+                    <option key={fund.id} value={fund.id}>
+                      {fund.name} · {formatCurrency(sourceAvailable)} available
+                    </option>
+                  );
+                })}
+              </FormField>
+
+              <FormField
                 type="text"
                 inputMode="decimal"
                 label="Allocation Amount (₱)"
@@ -458,6 +584,36 @@ export default function BudgetManagement() {
                 {formatCurrency(Math.max(getAvailableFunding(form.fiscal_year), 0))}
               </p>
 
+              {sourcesForYear.length === 0 ? (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                  <p className="font-semibold">No fund source recorded for this fiscal year.</p>
+                  <p className="mt-1 text-xs">
+                    Record a fund source before saving an allocation.
+                  </p>
+                  <Link
+                    to="/dashboard/funds"
+                    className="mt-2 inline-flex text-xs font-bold underline"
+                  >
+                    Go to Fund Sourcing
+                  </Link>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-emerald-800">
+                      Fund source validation
+                    </p>
+                    <span className="text-xs font-bold text-emerald-700">
+                      {formatCurrency(sourcedForYear)} sourced
+                    </span>
+                  </div>
+                  <p className="mt-1 text-xs text-emerald-700">
+                    {sourcesForYear.length} source{sourcesForYear.length === 1 ? "" : "s"} recorded for FY {form.fiscal_year}.
+                    Available balance: {formatCurrency(Math.max(availableFunding, 0))}.
+                  </p>
+                </div>
+              )}
+
               <FormField
                 as="textarea"
                 rows={3}
@@ -481,7 +637,7 @@ export default function BudgetManagement() {
                 </button>
                 <button
                   type="submit"
-                  disabled={submitting}
+                  disabled={submitting || financialLoading}
                   className="btn-emerald"
                 >
                   {submitting

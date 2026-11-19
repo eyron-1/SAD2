@@ -15,6 +15,7 @@ import {
   Receipt,
   Settings,
   Users,
+  BarChart3,
 } from "lucide-react";
 
 const formatCurrency = (value) =>
@@ -25,6 +26,12 @@ const formatCurrency = (value) =>
   }).format(Number(value || 0));
 
 const quickActions = [
+  {
+    to: "reports",
+    label: "SK reports & analytics",
+    description: "Review youth spending, funds, and export DILG reports.",
+    icon: BarChart3,
+  },
   {
     to: "budget",
     label: "SK budget allocation",

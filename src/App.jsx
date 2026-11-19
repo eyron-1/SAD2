@@ -268,6 +268,7 @@ export default function App() {
               />
               <Route path="funds" element={<SKFundSourcing />} />
               <Route path="expenses" element={<SKExpenseManagement />} />
+              <Route path="reports" element={<SKReportsAnalytics />} />
               <Route path="feedback" element={<SKFeedback />} />
               <Route path="officials" element={<OfficialsTransition />} />
               <Route path="audit-history" element={<AuditHistory />} />
