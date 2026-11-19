@@ -22,6 +22,9 @@ dist-ssr/
 # Firebase cache
 .firebase/
 
+# Supabase CLI local state
+supabase/.temp/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

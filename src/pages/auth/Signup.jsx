@@ -189,7 +189,7 @@ export default function Signup() {
       if (profileErr) {
         if (profileErr.code === '42501' || profileErr.message?.includes('row-level security')) {
           setSubmitError(
-            'The database signup permissions are out of date. Ask your administrator to run supabase/migration_signup_barangay_editors.sql in the Supabase SQL Editor. If this account was already created without a profile, remove that incomplete user from Supabase Authentication > Users before signing up again.'
+            'The database signup permissions are out of date. Ask your administrator to run supabase/migrations/migration_signup_barangay_editors.sql in the Supabase SQL Editor. If this account was already created without a profile, remove that incomplete user from Supabase Authentication > Users before signing up again.'
           );
         } else {
           setSubmitError(friendlySupabaseError(profileErr));

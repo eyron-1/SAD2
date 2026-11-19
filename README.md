@@ -20,9 +20,9 @@ gets its own public URL like `/b/san-isidro`.
 3. In the SQL Editor, run `supabase/storage.sql`. This creates the storage
    buckets and access policies. The KK ID-document bucket is private and can
    only be viewed by active SK officials in the matching barangay.
-4. Run `supabase/migration_audit_history.sql` in the SQL Editor to enable the
+4. Run `supabase/migrations/migration_audit_history.sql` in the SQL Editor to enable the
    barangay- and SK-scoped audit history.
-5. Run `supabase/migration_transparency_documents.sql` to enable public
+5. Run `supabase/migrations/migration_transparency_documents.sql` to enable public
    document uploads and resident downloads.
 6. Open **Project Settings → API** and copy the **Project URL** and **anon public key**.
 
@@ -51,17 +51,13 @@ The app sends reset emails back to the same origin where the request was made.
 
 ## Upgrade an existing Supabase database
 
-After the existing schema and security/financial workflow migrations are in
-place, run `supabase/migration_operations_audit.sql` once in the Supabase SQL
-Editor. It adds the operations, approval, notification, milestone, calendar,
-inventory, disaster response, document, audit, and receipt-verification tables
-and policies without dropping or recreating existing data. Do not rerun
-`schema.sql` against an existing database; it contains destructive drop
-statements.
+Keep the existing schema and security/financial workflow migrations in their
+deployed state before applying any additional SQL. Do not rerun `schema.sql`
+against an existing database; it contains destructive drop statements.
 
-To enable the audit history page, run `supabase/migration_audit_history.sql`
+To enable the audit history page, run `supabase/migrations/migration_audit_history.sql`
 after the base schema and profile/security migrations, including
-`supabase/migration_sk_data_isolation.sql` when SK isolation is enabled. If SK
+`supabase/migrations/migration_sk_data_isolation.sql` when SK isolation is enabled. If SK
 milestones are installed, run the audit migration after their migration too.
 It records authenticated changes from that point forward and does not
 reconstruct earlier changes.
@@ -69,50 +65,50 @@ Audit entries are append-only for app users and separated between Barangay and
 SK portals. Feedback content, contact details, receipt links, and KK personal
 profile details are deliberately excluded from recorded snapshots.
 
-To link milestones to SK programs, run `supabase/migration_sk_program_milestones.sql`
+To link milestones to SK programs, run `supabase/migrations/migration_sk_program_milestones.sql`
 after the operations migration. Existing barangay milestones remain linked and
 unchanged.
 
 For public KK profiling and ID-document uploads, first run
-`supabase/migration_kk_public_profiling.sql` if it has not already been applied,
-then run `supabase/migration_kk_id_documents.sql`. This adds the required ID
+`supabase/migrations/migration_kk_public_profiling.sql` if it has not already been applied,
+then run `supabase/migrations/migration_kk_id_documents.sql`. This adds the required ID
 proof field, validates submissions, and creates a private, barangay-scoped
 storage bucket. Existing KK records remain intact; their ID proof is shown as
 not on file for records created before this change.
 
 To separate authenticated SK and Barangay access, then run
-`supabase/migration_sk_data_isolation.sql`. Apply it after the SK milestone
+`supabase/migrations/migration_sk_data_isolation.sql`. Apply it after the SK milestone
 migration. It keeps SK figures available through the anonymous public portal,
 but prevents logged-in Barangay accounts from reading SK financial and audit
 records. Barangay operations and SK operations have separate pages.
 
 To link barangay and SK expenses to projects/programs, run
-`supabase/migration_expense_program_links.sql`. Existing expenses remain
+`supabase/migrations/migration_expense_program_links.sql`. Existing expenses remain
 unlinked and can be linked when edited; new expenses can select a program while
 recording the expense. Then run
-`supabase/migration_program_expense_budget_cap.sql` to ensure expenses linked to
+`supabase/migrations/migration_program_expense_budget_cap.sql` to ensure expenses linked to
 a program cannot exceed that program's budget, even when its category allocation
 has a higher balance.
 
 To enforce the full fund-to-allocation-to-expense workflow, run
-`supabase/migration_fund_allocation_expense_guards.sql` after the financial
+`supabase/migrations/migration_fund_allocation_expense_guards.sql` after the financial
 integrity and workflow migrations. Allocations must be covered by fund sources
 for their fiscal year, fund amounts cannot be reduced below existing
 allocations, and expenses must match a funded allocation's category and
 remaining balance. These checks apply to both Barangay and SK records.
 
 To choose and validate the specific fund source used by each new Barangay or SK
-budget allocation, run `supabase/migration_allocation_fund_source.sql` in the
+budget allocation, run `supabase/migrations/migration_allocation_fund_source.sql` in the
 Supabase SQL Editor. Deploy the updated app after applying this migration.
 Existing allocations remain intact; select a source when editing them. These checks apply to both Barangay and SK records.
 
 To allow self-registration for an unoccupied Barangay Captain, Secretary, or
 Treasurer seat in an existing barangay, run
-`supabase/migration_signup_barangay_editors.sql`.
+`supabase/migrations/migration_signup_barangay_editors.sql`.
 
 To enable complete officials handovers on an existing database, run
-`supabase/migration_officials_handover.sql` after the base schema and profile
-security migrations, including `supabase/migration_signup_barangay_editors.sql`.
+`supabase/migrations/migration_officials_handover.sql` after the base schema and profile
+security migrations, including `supabase/migrations/migration_signup_barangay_editors.sql`.
 Re-run the updated handover migration when deploying later handover changes.
 This lets active editors view inactive accounts in their own barangay and
 applies roster changes and handover history as one validated transaction.
@@ -125,7 +121,7 @@ remains inactive until an authorized Barangay editor or Staff member records the
 handover and selects it.
 
 To enable public disclosure document uploads on an existing database, run
-`supabase/migration_transparency_documents.sql` after the base schema and role
+`supabase/migrations/migration_transparency_documents.sql` after the base schema and role
 security functions are installed. Barangay editors can publish Barangay
 documents and SK editors can publish SK documents. JPG, PNG, WEBP, PDF, XLS,
 XLSX, DOC, and DOCX files up to 20 MB are supported. Uploads are public
@@ -218,25 +214,10 @@ React Router's client-side routes work on refresh.
 ├── supabase/
 │   ├── schema.sql
 │   ├── storage.sql
-│   ├── migration_auto_slug.sql
-│   ├── migration_audit_history.sql
-│   ├── migration_expense_program_links.sql
-│   ├── migration_fund_allocation_expense_guards.sql
-│   ├── migration_financial_integrity.sql
-│   ├── migration_financial_workflow.sql
-│   ├── migration_kk_id_documents.sql
-│   ├── migration_kk_public_profiling.sql
-│   ├── migration_operations_audit.sql
-│   ├── migration_officials_handover.sql
-│   ├── migration_program_allocation_integrity.sql
-│   ├── migration_program_date_status.sql
-│   ├── migration_program_expense_budget_cap.sql
-│   ├── migration_program_security.sql
-│   ├── migration_signup_barangay_editors.sql
-│   ├── migration_signup_sk_editor.sql
-│   ├── migration_sk_data_isolation.sql
-│   ├── migration_sk_program_milestones.sql
-│   ├── migration_sk_workflow.sql
+│   ├── migrations/
+│   │   ├── migration_auto_slug.sql
+│   │   ├── migration_audit_history.sql
+│   │   └── ... (additional ordered SQL migrations)
 │   └── functions/
 │       └── ai-assistant/
 │           └── index.ts

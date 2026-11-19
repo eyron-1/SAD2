@@ -22,7 +22,7 @@ const submissionErrorMessage = (error, action) => {
     || error?.message?.includes('row-level security')
     || error?.message?.includes('permission denied')
   ) {
-    return `${action} is blocked by the database permissions. Ask the administrator to run supabase/migration_kk_id_documents.sql in the Supabase SQL Editor, then try again.`;
+    return `${action} is blocked by the database permissions. Ask the administrator to run supabase/migrations/migration_kk_id_documents.sql in the Supabase SQL Editor, then try again.`;
   }
   return friendlySupabaseError(error);
 };
