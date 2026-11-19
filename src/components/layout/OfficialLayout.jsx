@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { isSkRole, isBarangayEditor, isSkEditor, roleLabel, ROLES } from '../../utils/roles';
 import FloatingAIChat from '../ai/FloatingAIChat';
@@ -63,12 +63,14 @@ const SK_NAV = [
 export default function OfficialLayout() {
   const { profile, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [signOutError, setSignOutError] = useState('');
 
   const skMember = isSkRole(profile?.role);
   const nav = skMember ? SK_NAV : BARANGAY_NAV;
   const canEdit = skMember ? isSkEditor(profile?.role) : isBarangayEditor(profile?.role);
+  const showFloatingAI = !/^\/(dashboard|sk)\/ai-assistant\/?$/.test(location.pathname);
 
   const handleSignOut = async () => {
     if (!window.confirm('Are you sure you want to sign out?')) return;
@@ -250,7 +252,7 @@ export default function OfficialLayout() {
         </main>
       </div>
 
-      <FloatingAIChat />
+      {showFloatingAI && <FloatingAIChat />}
     </div>
   );
 }

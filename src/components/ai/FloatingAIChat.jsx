@@ -21,7 +21,11 @@ export default function FloatingAIChat() {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [includeData, setIncludeData] = useState(true);
+  const [position, setPosition] = useState(null);
   const scrollRef = useRef(null);
+  const chatRef = useRef(null);
+  const dragRef = useRef(null);
+  const movedRef = useRef(false);
 
   const { rows: allocations } = useSupabaseTable('budget_allocations', profile?.barangay_id);
   const { rows: expenses } = useSupabaseTable('expenses', profile?.barangay_id);
@@ -65,14 +69,81 @@ export default function FloatingAIChat() {
     setError('');
   };
 
+  const startDragging = (event) => {
+    if (event.button !== 0 || !chatRef.current) return;
+    const bounds = chatRef.current.getBoundingClientRect();
+    dragRef.current = {
+      pointerId: event.pointerId,
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      left: bounds.left,
+      top: bounds.top,
+      width: bounds.width,
+      height: bounds.height,
+    };
+    movedRef.current = false;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const moveChat = (event) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    const deltaX = event.clientX - drag.pointerX;
+    const deltaY = event.clientY - drag.pointerY;
+    if (!movedRef.current && Math.hypot(deltaX, deltaY) < 4) return;
+
+    movedRef.current = true;
+    const maxLeft = Math.max(8, window.innerWidth - drag.width - 8);
+    const maxTop = Math.max(8, window.innerHeight - drag.height - 8);
+    const left = Math.min(
+      Math.max(drag.left + deltaX, 8),
+      maxLeft,
+    );
+    const top = Math.min(
+      Math.max(drag.top + deltaY, 8),
+      maxTop,
+    );
+    setPosition({
+      right: window.innerWidth - left - drag.width,
+      bottom: window.innerHeight - top - drag.height,
+    });
+  };
+
+  const stopDragging = (event) => {
+    if (dragRef.current?.pointerId === event.pointerId) {
+      dragRef.current = null;
+    }
+  };
+
+  const handleToggle = () => {
+    if (movedRef.current) {
+      movedRef.current = false;
+      return;
+    }
+    setOpen(!open);
+  };
+
   if (!profile) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end font-body">
+    <div
+      ref={chatRef}
+      style={position ? { right: position.right, bottom: position.bottom } : undefined}
+      className={`fixed z-50 flex flex-col items-end font-body ${
+        position ? '' : 'bottom-4 right-4 sm:bottom-6 sm:right-6'
+      }`}
+    >
       {open && (
         <div className="mb-3 w-[380px] max-w-[calc(100vw-2rem)] h-[540px] max-h-[calc(100dvh-7rem)] bg-white rounded-2xl shadow-card-hover border border-slate-200 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
           {/* Header */}
-          <div className="bg-civic-dark text-white px-4 py-3.5 flex items-center justify-between shrink-0 border-b border-slate-800">
+          <div
+            onPointerDown={startDragging}
+            onPointerMove={moveChat}
+            onPointerUp={stopDragging}
+            onPointerCancel={stopDragging}
+            className="bg-civic-dark text-white px-4 py-3.5 flex items-center justify-between shrink-0 border-b border-slate-800 cursor-grab active:cursor-grabbing touch-none select-none"
+          >
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-civic-emerald/20 text-civic-emerald flex items-center justify-center border border-civic-emerald/30">
                 <Bot className="w-4 h-4" />
@@ -164,9 +235,14 @@ export default function FloatingAIChat() {
 
       {/* Floating Toggle Button */}
       <button
-        onClick={() => setOpen(!open)}
-        className="w-14 h-14 rounded-2xl bg-civic-navy text-white shadow-card-hover flex items-center justify-center hover:scale-105 transition-all duration-200 border border-white/20"
+        onClick={handleToggle}
+        onPointerDown={startDragging}
+        onPointerMove={moveChat}
+        onPointerUp={stopDragging}
+        onPointerCancel={stopDragging}
+        className="w-14 h-14 rounded-2xl bg-civic-navy text-white shadow-card-hover flex items-center justify-center hover:scale-105 transition-all duration-200 border border-white/20 touch-none"
         aria-label="Open Groq AI Assistant"
+        title="Drag to move"
       >
         {open ? (
           <X className="w-6 h-6" />

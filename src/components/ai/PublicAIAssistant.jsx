@@ -11,6 +11,10 @@ export default function PublicAIAssistant({ barangay, variant = "floating" }) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const scrollRef = useRef(null);
+  const [position, setPosition] = useState(null);
+  const assistantRef = useRef(null);
+  const dragRef = useRef(null);
+  const movedRef = useRef(false);
 
   const barangayId = barangay?.id;
   const { rows: allocations } = useSupabaseTable("budget_allocations", barangayId);
@@ -68,6 +72,55 @@ export default function PublicAIAssistant({ barangay, variant = "floating" }) {
     } finally {
       setSending(false);
     }
+  };
+
+  const startDragging = (event) => {
+    if (event.button !== 0 || !assistantRef.current) return;
+    const bounds = assistantRef.current.getBoundingClientRect();
+    dragRef.current = {
+      pointerId: event.pointerId,
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      left: bounds.left,
+      top: bounds.top,
+      width: bounds.width,
+      height: bounds.height,
+    };
+    movedRef.current = false;
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const moveAssistant = (event) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+
+    const deltaX = event.clientX - drag.pointerX;
+    const deltaY = event.clientY - drag.pointerY;
+    if (!movedRef.current && Math.hypot(deltaX, deltaY) < 4) return;
+
+    movedRef.current = true;
+    const maxLeft = Math.max(8, window.innerWidth - drag.width - 8);
+    const maxTop = Math.max(8, window.innerHeight - drag.height - 8);
+    const left = Math.min(Math.max(drag.left + deltaX, 8), maxLeft);
+    const top = Math.min(Math.max(drag.top + deltaY, 8), maxTop);
+    setPosition({
+      right: window.innerWidth - left - drag.width,
+      bottom: window.innerHeight - top - drag.height,
+    });
+  };
+
+  const stopDragging = (event) => {
+    if (dragRef.current?.pointerId === event.pointerId) {
+      dragRef.current = null;
+    }
+  };
+
+  const toggleAssistant = () => {
+    if (movedRef.current) {
+      movedRef.current = false;
+      return;
+    }
+    setOpen((isOpen) => !isOpen);
   };
 
   if (variant === "page") {
@@ -154,13 +207,25 @@ export default function PublicAIAssistant({ barangay, variant = "floating" }) {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end font-body">
+    <div
+      ref={assistantRef}
+      style={position ? { right: position.right, bottom: position.bottom } : undefined}
+      className={`fixed z-50 flex flex-col items-end font-body ${
+        position ? "" : "bottom-4 right-4 sm:bottom-6 sm:right-6"
+      }`}
+    >
       {open && (
         <section
           aria-label="Public AI assistant"
           className="mb-3 flex h-[min(34rem,calc(100dvh-7rem))] w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card-hover"
         >
-          <div className="flex shrink-0 items-center justify-between border-b border-slate-800 bg-civic-dark px-4 py-3.5 text-white">
+          <div
+            onPointerDown={startDragging}
+            onPointerMove={moveAssistant}
+            onPointerUp={stopDragging}
+            onPointerCancel={stopDragging}
+            className="flex shrink-0 cursor-grab select-none touch-none items-center justify-between border-b border-slate-800 bg-civic-dark px-4 py-3.5 text-white active:cursor-grabbing"
+          >
             <div className="flex items-center gap-2">
               <Bot className="h-5 w-5 text-civic-emerald" />
               <div>
@@ -242,10 +307,15 @@ export default function PublicAIAssistant({ barangay, variant = "floating" }) {
 
       <button
         type="button"
-        onClick={() => setOpen((isOpen) => !isOpen)}
-        className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-civic-navy text-white shadow-card-hover transition-all hover:scale-105"
+        onClick={toggleAssistant}
+        onPointerDown={startDragging}
+        onPointerMove={moveAssistant}
+        onPointerUp={stopDragging}
+        onPointerCancel={stopDragging}
+        className="flex h-14 w-14 touch-none items-center justify-center rounded-2xl border border-white/20 bg-civic-navy text-white shadow-card-hover transition-all hover:scale-105"
         aria-label={open ? "Close AI assistant" : "Open public AI assistant"}
         aria-expanded={open}
+        title="Drag to move"
       >
         {open ? <X className="h-6 w-6" /> : <Bot className="h-7 w-7" />}
       </button>
