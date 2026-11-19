@@ -15,6 +15,7 @@ import { isSkEditor } from "../../utils/roles";
 import FormField from "../../components/ui/FormField";
 import ErrorBanner from "../../components/ui/ErrorBanner";
 import Badge from "../../components/ui/Badge";
+import ProgramMediaGallery from "../../components/programs/ProgramMediaGallery";
 import {
   FolderKanban,
   Plus,
@@ -473,6 +474,15 @@ export default function SKPrograms() {
                 {row.end_date && `– ${row.end_date}`}
               </span>
             </div>
+            <ProgramMediaGallery
+              barangayId={profile?.barangay_id}
+              programId={row.id}
+              programType="sk"
+              programStatus={row.status}
+              programTitle={row.title}
+              canManage={canEdit}
+              uploadedBy={profile?.id}
+            />
           </div>
         ))}
       </div>

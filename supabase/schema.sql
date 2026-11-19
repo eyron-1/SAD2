@@ -199,7 +199,7 @@ create table fund_sources (
   source_type text not null,
   amount numeric(14,2) not null check (amount >= 0),
   fiscal_year text not null,
-  received_date date,
+  received_date date not null,
   description text,
   created_by uuid references profiles(id),
   created_at timestamptz default now()

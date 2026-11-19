@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
-import { validateRequired, validateCurrency, runValidators, formatCurrencyInput, finalizeCurrencyInput, parseCurrencyValue } from '../../lib/validation';
+import { validateRequired, validateCurrency, runValidators, formatCurrencyInput, finalizeCurrencyInput, parseCurrencyValue, friendlySupabaseError } from '../../lib/validation';
 import { isSkEditor } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import SelectedFilePreview from '../../components/ui/SelectedFilePreview';
 import ImageLightbox from '../../components/ui/ImageLightbox';
 import { sumAmounts, sumActiveAmounts } from '../../lib/financial';
-import { Receipt, Plus, Pencil, Trash2, Upload, FileText, X, Eye, ShieldCheck } from 'lucide-react';
+import { Receipt, Plus, Pencil, Trash2, Upload, FileText, X, Eye, ShieldCheck, Search, Filter, PieChart, Wallet } from 'lucide-react';
 
 const CATEGORIES = ['Youth Development', 'CBYDP (Comprehensive Barangay Youth Development Plan)', 'ABYIP (Annual Barangay Youth Investment Program)', 'Sports & Recreation', 'Education & Training', 'Environment', 'Health Awareness', 'Livelihood', 'Other'];
 const EMPTY = { category: CATEGORIES[0], amount: '', description: '', date_incurred: '', sk_budget_id: '', sk_program_id: '' };
@@ -19,9 +19,9 @@ export default function SKExpenseManagement() {
   const { profile } = useAuth();
   const canEdit = isSkEditor(profile?.role);
   const { rows, loading, error, insertRow, updateRow, deleteRow } = useSupabaseTable('sk_expenses', profile?.barangay_id, { orderBy: 'date_incurred' });
-  const { rows: allocations } = useSupabaseTable('sk_budget', profile?.barangay_id);
-  const { rows: funds } = useSupabaseTable('sk_fund_sources', profile?.barangay_id);
-  const { rows: programs } = useSupabaseTable('sk_programs', profile?.barangay_id);
+  const { rows: allocations, error: allocationsError } = useSupabaseTable('sk_budget', profile?.barangay_id);
+  const { rows: funds, error: fundsError } = useSupabaseTable('sk_fund_sources', profile?.barangay_id);
+  const { rows: programs, error: programsError } = useSupabaseTable('sk_programs', profile?.barangay_id);
   const [form, setForm] = useState(EMPTY);
   const [editingId, setEditingId] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -30,6 +30,8 @@ export default function SKExpenseManagement() {
   const [receiptFile, setReceiptFile] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState(null);
+  const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('all');
 
   const resetForm = () => { setForm(EMPTY); setEditingId(null); setFieldErrors({}); setSubmitError(''); setReceiptFile(null); setModalOpen(false); };
   const openModal = (row = null) => { if (row) { handleEdit(row); } else { setForm({ ...EMPTY, date_incurred: new Date().toISOString().split('T')[0] }); setEditingId(null); setReceiptFile(null); setFieldErrors({}); setSubmitError(''); setModalOpen(true); } };
@@ -67,9 +69,10 @@ export default function SKExpenseManagement() {
     if (!receiptFile) return null;
     const path = `${profile.barangay_id}/sk-${Date.now()}-${receiptFile.name.replace(/\s+/g, '-')}`;
     const { error: uploadError } = await supabase.storage.from('receipts').upload(path, receiptFile);
-    if (uploadError) return null;
+    if (uploadError) throw uploadError;
     const { data } = supabase.storage.from('receipts').getPublicUrl(path);
-    return data?.publicUrl || null;
+    if (!data?.publicUrl) throw new Error('Could not access the uploaded receipt.');
+    return data.publicUrl;
   };
 
   const handleSubmit = async (event) => {
@@ -115,7 +118,14 @@ export default function SKExpenseManagement() {
     }
     setSubmitting(true);
     setSubmitError('');
-    const receiptUrl = await uploadReceipt();
+    let receiptUrl;
+    try {
+      receiptUrl = await uploadReceipt();
+    } catch (uploadError) {
+      setSubmitting(false);
+      setSubmitError(friendlySupabaseError(uploadError));
+      return;
+    }
     const payload = {
       category: form.category,
       description: form.description.trim(),
@@ -160,6 +170,25 @@ export default function SKExpenseManagement() {
   };
 
   const totalSpent = sumActiveAmounts(rows);
+  const totalAllocated = sumAmounts(allocations);
+  const unallocatedFunds = sumAmounts(funds) - totalAllocated;
+  const remainingBudget = totalAllocated - totalSpent;
+  const filteredRows = rows.filter((row) => {
+    const programName = programs.find((program) => program.id === row.sk_program_id)?.title || '';
+    const matchesSearch = [
+      row.category,
+      row.description,
+      row.date_incurred,
+      programName,
+      allocations.find((allocation) => allocation.id === row.sk_budget_id)?.fiscal_year,
+    ].some((value) => String(value || '').toLowerCase().includes(search.toLowerCase()));
+    return matchesSearch && (categoryFilter === 'all' || row.category === categoryFilter);
+  });
+  const expenseStatus = remainingBudget < 0
+    ? { tone: 'rose', title: 'Overspending alert', message: `SK expenses exceed the allocated budget by ₱${Math.abs(remainingBudget).toLocaleString('en-PH', { minimumFractionDigits: 2 })}.` }
+    : unallocatedFunds < 0
+      ? { tone: 'amber', title: 'Budget exceeds available funding', message: `SK allocations exceed current fund sources by ₱${Math.abs(unallocatedFunds).toLocaleString('en-PH', { minimumFractionDigits: 2 })}.` }
+      : { tone: 'emerald', title: 'Spending is within budget', message: 'Recorded SK expenses are within available allocations and sourced funds.' };
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -170,11 +199,45 @@ export default function SKExpenseManagement() {
         </div>
         {canEdit && <button onClick={() => openModal()} className="btn-emerald"><Plus className="w-4 h-4" /> Record New SK Expense</button>}
       </div>
-      <ErrorBanner message={error} />
-      <div className="card bg-civic-navy text-white p-5 rounded-xl">
-        <p className="text-xs font-bold text-white/60 uppercase tracking-wider">Total SK Expenses</p>
-        <p className="text-2xl font-extrabold mt-1">₱{totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
-        <p className="text-xs text-white/50 mt-1">{rows.length} expense record{rows.length !== 1 ? 's' : ''}</p>
+      <ErrorBanner message={error || allocationsError || fundsError || programsError} />
+      <div className={`rounded-xl border p-4 ${expenseStatus.tone === 'rose' ? 'border-rose-200 bg-rose-50 text-rose-800' : expenseStatus.tone === 'amber' ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
+        <p className="text-xs font-bold uppercase tracking-wider">SK Financial Status</p>
+        <h2 className="mt-1 text-base font-bold">{expenseStatus.title}</h2>
+        <p className="mt-2 text-sm">{expenseStatus.message}</p>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="card space-y-1">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Total SK Expenses</span>
+          <p className="text-2xl font-bold text-civic-navy">₱{totalSpent.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
+          <p className="text-xs text-slate-500">{rows.length} expense record{rows.length !== 1 ? 's' : ''}</p>
+        </div>
+        <div className="card space-y-1">
+          <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-400"><PieChart className="h-4 w-4 text-blue-600" /> Total Allocated SK Budget</span>
+          <p className="text-2xl font-bold text-civic-navy">₱{totalAllocated.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
+        </div>
+        <div className="card space-y-1">
+          <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-400"><Wallet className="h-4 w-4 text-emerald-600" /> Remaining SK Budget</span>
+          <p className={`text-2xl font-bold ${remainingBudget < 0 ? 'text-rose-600' : 'text-emerald-700'}`}>₱{remainingBudget.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
+        </div>
+      </div>
+      <div className="card flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
+        <div className="relative w-full flex-1">
+          <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search date, category, program, or description..."
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            className="input-field pl-10"
+          />
+        </div>
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          <Filter className="h-4 w-4 text-slate-400" />
+          <select className="input-field text-xs font-semibold" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}>
+            <option value="all">All SK Categories</option>
+            {CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}
+          </select>
+        </div>
       </div>
 
       {canEdit && modalOpen && (
@@ -236,10 +299,10 @@ export default function SKExpenseManagement() {
       <div className="card p-0 overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-2"><Receipt className="w-4 h-4 text-civic-emerald" /><h2 className="font-bold text-sm text-civic-navy">SK Expense Records</h2></div>
         <div className="overflow-x-auto">
-        <table className="w-full text-sm"><thead className="bg-civic-navy/5 text-civic-slate text-left"><tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Category</th><th className="px-4 py-3">SK Program</th><th className="px-4 py-3">Description</th><th className="px-4 py-3 text-right">Amount</th><th className="px-4 py-3">Receipt</th>{canEdit && <th className="px-4 py-3" />}</tr></thead><tbody>
-          {loading && <tr><td colSpan={canEdit ? 7 : 6} className="px-4 py-8 text-center text-slate-400">Loading SK expenses…</td></tr>}
-          {!loading && rows.length === 0 && <tr><td colSpan={canEdit ? 7 : 6} className="px-4 py-8 text-center text-slate-400">No SK expenses recorded yet.</td></tr>}
-          {rows.map((row) => <tr key={row.id} className="border-t border-slate-100"><td className="px-4 py-3">{row.date_incurred}</td><td className="px-4 py-3">{row.category}</td><td className="px-4 py-3">{programs.find((program) => program.id === row.sk_program_id)?.title || '—'}</td><td className="px-4 py-3">{row.description || '—'}</td><td className="px-4 py-3 text-right">₱{Number(row.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td className="px-4 py-3">{row.receipt_url ? <div><button type="button" onClick={() => setLightboxUrl(row.receipt_url)} className="inline-flex items-center gap-1 text-xs text-civic-emerald hover:underline font-semibold"><Eye className="w-3.5 h-3.5" /> View</button>{row.receipt_verified_at ? <span className="flex items-center gap-1 text-[11px] text-emerald-700"><ShieldCheck className="h-3 w-3" />Verified</span> : canEdit && <button type="button" onClick={() => handleVerifyReceipt(row)} className="flex items-center gap-1 text-[11px] font-semibold text-slate-600 hover:text-civic-emerald"><ShieldCheck className="h-3 w-3" />Verify</button>}</div> : '—'}</td>{canEdit && <td className="px-4 py-3 text-right whitespace-nowrap"><button onClick={() => handleEdit(row)} className="text-civic-navy hover:underline mr-3 text-xs"><Pencil className="w-3 h-3 inline" /> Edit</button><button onClick={() => handleDelete(row.id)} className="text-civic-clay hover:underline text-xs"><Trash2 className="w-3 h-3 inline" /> Delete</button></td>}</tr>)}
+        <table className="w-full text-sm"><thead className="bg-civic-navy/5 text-civic-slate text-left"><tr><th className="px-4 py-3">Date</th><th className="px-4 py-3">Category</th><th className="px-4 py-3">SK Budget Allocation</th><th className="px-4 py-3">SK Program</th><th className="px-4 py-3">Description</th><th className="px-4 py-3 text-right">Amount</th><th className="px-4 py-3">Receipt</th>{canEdit && <th className="px-4 py-3" />}</tr></thead><tbody>
+          {loading && <tr><td colSpan={canEdit ? 8 : 7} className="px-4 py-8 text-center text-slate-400">Loading SK expenses…</td></tr>}
+          {!loading && filteredRows.length === 0 && <tr><td colSpan={canEdit ? 8 : 7} className="px-4 py-8 text-center text-slate-400">{rows.length ? 'No SK expenses match your search.' : 'No SK expenses recorded yet.'}</td></tr>}
+          {filteredRows.map((row) => <tr key={row.id} className="border-t border-slate-100"><td className="px-4 py-3">{row.date_incurred}</td><td className="px-4 py-3">{row.category}</td><td className="px-4 py-3">{allocations.find((allocation) => allocation.id === row.sk_budget_id)?.fiscal_year || '—'} · {allocations.find((allocation) => allocation.id === row.sk_budget_id)?.category || 'Unlinked'}</td><td className="px-4 py-3">{programs.find((program) => program.id === row.sk_program_id)?.title || '—'}</td><td className="px-4 py-3">{row.description || '—'}</td><td className="px-4 py-3 text-right">₱{Number(row.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td><td className="px-4 py-3">{row.receipt_url ? <div><button type="button" onClick={() => setLightboxUrl(row.receipt_url)} className="inline-flex items-center gap-1 text-xs text-civic-emerald hover:underline font-semibold"><Eye className="w-3.5 h-3.5" /> View</button>{row.receipt_verified_at ? <span className="flex items-center gap-1 text-[11px] text-emerald-700"><ShieldCheck className="h-3 w-3" />Verified</span> : canEdit && <button type="button" onClick={() => handleVerifyReceipt(row)} className="flex items-center gap-1 text-[11px] font-semibold text-slate-600 hover:text-civic-emerald"><ShieldCheck className="h-3 w-3" />Verify</button>}</div> : '—'}</td>{canEdit && <td className="px-4 py-3 text-right whitespace-nowrap"><button onClick={() => handleEdit(row)} className="text-civic-navy hover:underline mr-3 text-xs"><Pencil className="w-3 h-3 inline" /> Edit</button><button onClick={() => handleDelete(row.id)} className="text-civic-clay hover:underline text-xs"><Trash2 className="w-3 h-3 inline" /> Delete</button></td>}</tr>)}
         </tbody></table>
         </div>
       </div>

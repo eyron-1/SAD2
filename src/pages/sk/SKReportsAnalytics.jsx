@@ -140,7 +140,9 @@ export default function SKReportsAnalytics() {
   const totalFunds    = sumAmounts(fyFilter === 'all' ? funds : funds.filter((f) => String(f.fiscal_year) === fyFilter));
   const utilization   = totalBudget > 0 ? (totalExpenses / totalBudget) * 100 : 0;
   const remaining     = totalBudget - totalExpenses;
-  const activeKK      = kk.filter((m) => m.participation_status === 'active').length;
+  const activeKK      = kk.filter((m) =>
+    m.participation_status === 'active' && m.profile_status === 'verified'
+  ).length;
 
   /* Chart: expenses by category */
   const expenseByCategory = useMemo(() => {

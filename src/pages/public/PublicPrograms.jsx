@@ -4,6 +4,7 @@ import { usePublicBarangay } from '../../lib/usePublicBarangay';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import Badge from '../../components/ui/Badge';
+import ProgramMediaGallery from '../../components/programs/ProgramMediaGallery';
 
 import { Calendar, Tag, Building2, Search, ShieldCheck, Users } from 'lucide-react';
 
@@ -23,7 +24,7 @@ const parseBeneficiary = (row) => {
   };
 };
 
-function ProgramCard({ row, milestones = [] }) {
+function ProgramCard({ row, milestones = [], barangayId }) {
   const { beneficiary_category, clean_description } = parseBeneficiary(row);
   const progress = milestones.length
     ? Math.round(milestones.reduce((sum, item) => sum + Number(item.progress_percent || 0), 0) / milestones.length)
@@ -77,6 +78,13 @@ function ProgramCard({ row, milestones = [] }) {
           </span>
         )}
       </div>
+      <ProgramMediaGallery
+        barangayId={barangayId}
+        programId={row.id}
+        programType="barangay"
+        programStatus={row.status}
+        programTitle={row.title}
+      />
     </div>
   );
 }
@@ -159,7 +167,7 @@ export default function PublicPrograms() {
           <div className="grid gap-4">
             {l1 && <p className="text-civic-slate text-sm">Loading…</p>}
             {!l1 && filteredPrograms.length === 0 && <p className="text-civic-slate text-sm">No programs found.</p>}
-            {filteredPrograms.map((row) => <ProgramCard key={row.id} row={row} milestones={milestones.filter((item) => item.program_id === row.id)} />)}
+            {filteredPrograms.map((row) => <ProgramCard key={row.id} row={row} barangayId={barangay?.id} milestones={milestones.filter((item) => item.program_id === row.id)} />)}
           </div>
       </section>
     </div>

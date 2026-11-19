@@ -12,6 +12,7 @@ import {
   Landmark,
   MessageSquare,
   PieChart,
+  RefreshCw,
   Receipt,
   Settings,
   Users,
@@ -25,12 +26,16 @@ const formatCurrency = (value) =>
     minimumFractionDigits: 2,
   }).format(Number(value || 0));
 
+const sumAmounts = (rows) =>
+  rows.reduce((sum, row) => sum + (Number(row.amount) || 0), 0);
+
 const quickActions = [
   {
     to: "reports",
     label: "SK reports & analytics",
     description: "Review youth spending, funds, and export DILG reports.",
     icon: BarChart3,
+    tone: "bg-indigo-50 text-indigo-700",
   },
   {
     to: "budget",
@@ -68,6 +73,13 @@ const quickActions = [
     tone: "bg-rose-50 text-rose-700",
   },
   {
+    to: "kk-monitoring",
+    label: "KK youth monitoring",
+    description: "Manage youth profiles and participation records.",
+    icon: Users,
+    tone: "bg-amber-50 text-amber-700",
+  },
+  {
     to: "ai-assistant",
     label: "SK AI assistant",
     description: "Get help drafting resolutions and proposals.",
@@ -83,7 +95,7 @@ const quickActions = [
   },
 ];
 
-function MetricCard({ to, label, value, detail, icon: Icon, tone }) {
+function MetricCard({ to, label, value, detail, icon: Icon, tone, loading }) {
   return (
     <Link
       to={to}
@@ -98,7 +110,7 @@ function MetricCard({ to, label, value, detail, icon: Icon, tone }) {
         </span>
       </div>
       <p className="mt-2 break-words text-[clamp(1.05rem,1.4vw,1.35rem)] font-bold tracking-tight text-civic-navy">
-        {value}
+        {loading ? "Loading…" : value}
       </p>
       <div className="mt-3 flex items-center justify-between gap-2">
         <span className="text-xs text-slate-500">{detail}</span>
@@ -110,33 +122,45 @@ function MetricCard({ to, label, value, detail, icon: Icon, tone }) {
 
 export default function SKDashboard() {
   const { profile } = useAuth();
-  const { rows: budget, error: e1 } = useSupabaseTable(
+  const { rows: budget, loading: budgetLoading, error: e1, refetch: refetchBudget } = useSupabaseTable(
     "sk_budget",
     profile?.barangay_id,
   );
-  const { rows: funds, error: e2 } = useSupabaseTable(
+  const { rows: funds, loading: fundsLoading, error: e2, refetch: refetchFunds } = useSupabaseTable(
     "sk_fund_sources",
     profile?.barangay_id,
   );
-  const { rows: programs, error: e3 } = useSupabaseTable(
+  const { rows: programs, loading: programsLoading, error: e3, refetch: refetchPrograms } = useSupabaseTable(
     "sk_programs",
     profile?.barangay_id,
   );
-  const { rows: kk, error: e4 } = useSupabaseTable(
+  const { rows: kk, loading: kkLoading, error: e4, refetch: refetchKK } = useSupabaseTable(
     "kk_monitoring",
     profile?.barangay_id,
   );
 
-  const totalBudget = budget.reduce((sum, row) => sum + Number(row.amount || 0), 0);
-  const totalFunds = funds.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+  const dashboardLoading = budgetLoading || fundsLoading || programsLoading || kkLoading;
+  const totalBudget = sumAmounts(budget);
+  const totalFunds = sumAmounts(funds);
   const activeKK = kk.filter(
-    (member) => member.participation_status === "active",
+    (member) =>
+      member.participation_status === "active" &&
+      member.profile_status === "verified",
   ).length;
   const activePrograms = programs.filter(
     (program) => program.status === "ongoing",
   ).length;
   const currentDate = new Date();
   const logoUrl = profile?.barangays?.sk_logo_url || profile?.barangays?.logo_url;
+  const refreshDashboard = () => {
+    Promise.all([
+      refetchBudget(),
+      refetchFunds(),
+      refetchPrograms(),
+      refetchKK(),
+    ]);
+  };
+  const dashboardError = e1 || e2 || e3 || e4;
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-7">
@@ -177,6 +201,16 @@ export default function SKDashboard() {
               View programs
               <ArrowUpRight className="h-4 w-4" />
             </Link>
+            <button
+              type="button"
+              onClick={refreshDashboard}
+              disabled={dashboardLoading}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white transition hover:bg-white/15 disabled:cursor-wait disabled:opacity-60"
+              aria-label="Refresh SK dashboard"
+              title="Refresh dashboard"
+            >
+              <RefreshCw className={`h-4 w-4 ${dashboardLoading ? "animate-spin" : ""}`} />
+            </button>
             <div className="hidden h-14 w-14 items-center justify-center overflow-hidden rounded-2xl border border-white/20 bg-white/10 p-1 sm:flex">
               {logoUrl ? (
                 <img
@@ -192,7 +226,7 @@ export default function SKDashboard() {
         </div>
       </section>
 
-      <ErrorBanner message={e1 || e2 || e3 || e4} />
+      <ErrorBanner message={dashboardError} onRetry={refreshDashboard} />
 
       <section aria-label="SK overview">
         <div className="mb-3 flex items-end justify-between gap-3">
@@ -214,6 +248,7 @@ export default function SKDashboard() {
             detail={`${budget.length} allocation records`}
             icon={PieChart}
             tone="bg-blue-50 text-blue-700"
+            loading={budgetLoading}
           />
           <MetricCard
             to="funds"
@@ -222,6 +257,7 @@ export default function SKDashboard() {
             detail={`${funds.length} recorded sources`}
             icon={Landmark}
             tone="bg-violet-50 text-violet-700"
+            loading={fundsLoading}
           />
           <MetricCard
             to="programs"
@@ -230,6 +266,7 @@ export default function SKDashboard() {
             detail={`${programs.length} projects in total`}
             icon={FolderKanban}
             tone="bg-emerald-50 text-emerald-700"
+            loading={programsLoading}
           />
           <MetricCard
             to="kk-monitoring"
@@ -238,6 +275,7 @@ export default function SKDashboard() {
             detail={`${kk.length} youth profiles`}
             icon={Users}
             tone="bg-amber-50 text-amber-700"
+            loading={kkLoading}
           />
         </div>
       </section>

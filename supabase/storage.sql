@@ -6,6 +6,7 @@ values
   ('feedback-photos', 'feedback-photos', true),
   ('receipts', 'receipts', true),
   ('barangay-logos', 'barangay-logos', true),
+  ('program-media', 'program-media', true),
   ('kk-id-documents', 'kk-id-documents', false)
 on conflict (id) do update
 set public = excluded.public;
@@ -17,9 +18,14 @@ set file_size_limit = 5242880,
       when 'feedback-photos' then array['image/jpeg', 'image/png', 'image/webp']::text[]
       when 'receipts' then array['image/jpeg', 'image/png', 'image/webp', 'application/pdf']::text[]
       when 'barangay-logos' then array['image/jpeg', 'image/png', 'image/webp', 'image/svg+xml']::text[]
+      when 'program-media' then array['image/jpeg', 'image/png', 'image/webp', 'video/mp4', 'video/webm', 'video/quicktime']::text[]
       when 'kk-id-documents' then array['image/jpeg', 'image/png', 'image/webp', 'application/pdf']::text[]
     end
-where id in ('feedback-photos', 'receipts', 'barangay-logos', 'kk-id-documents');
+where id in ('feedback-photos', 'receipts', 'barangay-logos', 'program-media', 'kk-id-documents');
+
+update storage.buckets
+set file_size_limit = 52428800
+where id = 'program-media';
 
 update storage.buckets
 set public = false
@@ -40,6 +46,11 @@ drop policy if exists "Public can read barangay logos" on storage.objects;
 create policy "Public can read barangay logos"
   on storage.objects for select
   using (bucket_id = 'barangay-logos');
+
+drop policy if exists "Public can read program media" on storage.objects;
+create policy "Public can read program media"
+  on storage.objects for select
+  using (bucket_id = 'program-media');
 
 drop policy if exists "SK members can read KK ID documents" on storage.objects;
 create policy "SK members can read KK ID documents"
@@ -96,3 +107,42 @@ create policy "Officials can update logos"
   to authenticated
   using (bucket_id = 'barangay-logos')
   with check (bucket_id = 'barangay-logos');
+
+drop policy if exists "Editors can upload program media" on storage.objects;
+create policy "Editors can upload program media"
+  on storage.objects for insert
+  to authenticated
+  with check (
+    bucket_id = 'program-media'
+    and name ~ '^[0-9a-fA-F-]{36}/(barangay|sk)/[0-9a-fA-F-]{36}/[0-9a-fA-F-]{36}\.(jpg|jpeg|png|webp|mp4|webm|mov)$'
+    and public.belongs_to_barangay(auth.uid(), ((storage.foldername(name))[1])::uuid)
+    and (
+      (
+        (storage.foldername(name))[2] = 'barangay'
+        and public.is_barangay_editor(auth.uid())
+      )
+      or (
+        (storage.foldername(name))[2] = 'sk'
+        and public.is_sk_editor(auth.uid())
+      )
+    )
+  );
+
+drop policy if exists "Editors can delete program media" on storage.objects;
+create policy "Editors can delete program media"
+  on storage.objects for delete
+  to authenticated
+  using (
+    bucket_id = 'program-media'
+    and public.belongs_to_barangay(auth.uid(), ((storage.foldername(name))[1])::uuid)
+    and (
+      (
+        (storage.foldername(name))[2] = 'barangay'
+        and public.is_barangay_editor(auth.uid())
+      )
+      or (
+        (storage.foldername(name))[2] = 'sk'
+        and public.is_sk_editor(auth.uid())
+      )
+    )
+  );

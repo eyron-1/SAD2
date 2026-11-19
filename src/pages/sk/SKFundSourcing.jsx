@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
-import { validateRequired, validateCurrency, validateFiscalYear, runValidators, formatCurrencyInput, finalizeCurrencyInput, parseCurrencyValue } from '../../lib/validation';
+import { validateRequired, validateCurrency, validateFiscalYear, runValidators, formatCurrencyInput, finalizeCurrencyInput, parseCurrencyValue, friendlySupabaseError } from '../../lib/validation';
 import { isSkEditor } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import SelectedFilePreview from '../../components/ui/SelectedFilePreview';
 import { supabase } from '../../lib/supabaseClient';
 import ImageLightbox from '../../components/ui/ImageLightbox';
-import { Landmark, Plus, Pencil, Trash2, Calendar, TrendingUp, X, Upload, FileText, Eye } from 'lucide-react';
+import { sumAmounts } from '../../lib/financial';
+import { Landmark, Plus, Search, Pencil, Trash2, Calendar, X, Upload, FileText, Eye, PieChart, Wallet } from 'lucide-react';
 
 const SOURCE_TYPES = [
   '10% IRA Allotment',
@@ -25,6 +26,7 @@ export default function SKFundSourcing() {
   const { profile } = useAuth();
   const canEdit = isSkEditor(profile?.role);
   const { rows, loading, error, insertRow, updateRow, deleteRow } = useSupabaseTable('sk_fund_sources', profile?.barangay_id);
+  const { rows: allocations, error: allocationsError } = useSupabaseTable('sk_budget', profile?.barangay_id);
 
   const [form, setForm] = useState(EMPTY);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -34,12 +36,14 @@ export default function SKFundSourcing() {
   const [modalOpen, setModalOpen] = useState(false);
   const [proofFile, setProofFile] = useState(null);
   const [lightboxUrl, setLightboxUrl] = useState(null);
+  const [search, setSearch] = useState('');
 
   const validators = {
     name: (v) => validateRequired(v, 'Fund name'),
     source_type: (v) => validateRequired(v, 'Source type'),
     amount: (v) => validateCurrency(v, 'Amount'),
     fiscal_year: validateFiscalYear,
+    received_date: (v) => validateRequired(v, 'Date received'),
   };
 
   const resetForm = () => { setForm(EMPTY); setFieldErrors({}); setEditingId(null); setSubmitError(''); setProofFile(null); setModalOpen(false); };
@@ -71,17 +75,12 @@ export default function SKFundSourcing() {
 
   const uploadProof = async () => {
     if (!proofFile) return { url: null };
-    try {
-      const path = `${profile.barangay_id}/sk-funds-${Date.now()}-${proofFile.name.replace(/\s+/g, '-')}`;
-      const { error: upErr } = await supabase.storage.from('receipts').upload(path, proofFile);
-      if (!upErr) {
-        const { data } = supabase.storage.from('receipts').getPublicUrl(path);
-        if (data?.publicUrl) return { url: data.publicUrl };
-      }
-    } catch (e) {
-      console.warn('Storage upload error', e);
-    }
-    return { url: null };
+    const path = `${profile.barangay_id}/sk-funds-${Date.now()}-${proofFile.name.replace(/\s+/g, '-')}`;
+    const { error: uploadError } = await supabase.storage.from('receipts').upload(path, proofFile);
+    if (uploadError) throw uploadError;
+    const { data } = supabase.storage.from('receipts').getPublicUrl(path);
+    if (!data?.publicUrl) throw new Error('Could not access the uploaded proof document.');
+    return { url: data.publicUrl };
   };
 
   const handleSubmit = async (e) => {
@@ -99,12 +98,18 @@ export default function SKFundSourcing() {
 
     setSubmitting(true);
     setSubmitError('');
-    
-    const upload = await uploadProof();
+    let upload;
+    try {
+      upload = await uploadProof();
+    } catch (uploadError) {
+      setSubmitting(false);
+      setSubmitError(friendlySupabaseError(uploadError));
+      return;
+    }
+
     let payload = {
       ...form,
       amount: parseCurrencyValue(form.amount),
-      received_date: form.received_date || null,
       created_by: profile.id,
     };
     
@@ -147,15 +152,13 @@ export default function SKFundSourcing() {
     if (result.error) setSubmitError(result.error);
   };
 
-  const totalFunds = rows.reduce((s, r) => s + Number(r.amount || 0), 0);
-
-  // Group by fiscal year for mini-summary
-  const byYear = Object.entries(
-    rows.reduce((acc, r) => {
-      acc[r.fiscal_year] = (acc[r.fiscal_year] || 0) + Number(r.amount || 0);
-      return acc;
-    }, {})
-  ).slice(0, 2);
+  const totalFunds = sumAmounts(rows);
+  const totalAllocated = sumAmounts(allocations);
+  const availableFunds = totalFunds - totalAllocated;
+  const filteredRows = rows.filter((row) =>
+    [row.name, row.source_type, row.fiscal_year, row.received_date]
+      .some((value) => String(value || '').toLowerCase().includes(search.toLowerCase())),
+  );
 
   return (
     <div className="space-y-6 max-w-5xl">
@@ -172,28 +175,48 @@ export default function SKFundSourcing() {
         {canEdit && <button onClick={() => openModal()} className="btn-emerald"><Plus className="w-4 h-4" /> Add New SK Fund Source</button>}
       </div>
 
-      <ErrorBanner message={error} />
+      <ErrorBanner message={error || allocationsError} />
 
       {/* Summary KPIs */}
-      <div className="grid sm:grid-cols-3 gap-4">
-        <div className="card bg-civic-navy text-white p-5 rounded-xl">
-          <p className="text-xs font-bold text-white/60 uppercase tracking-wider">Total SK Funds</p>
-          <p className="text-2xl font-extrabold mt-1">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="card space-y-1">
+          <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-400">
+            <Landmark className="h-4 w-4 text-civic-emerald" /> Total SK Funds Sourced
+          </span>
+          <p className="text-2xl font-bold text-civic-navy">
             ₱{totalFunds.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </p>
-          <p className="text-xs text-white/50 mt-1">{rows.length} source{rows.length !== 1 ? 's' : ''} recorded</p>
+          <p className="text-xs text-slate-500">{rows.length} source{rows.length !== 1 ? 's' : ''} recorded</p>
         </div>
-        {byYear.map(([year, amt]) => (
-          <div key={year} className="card p-5">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">FY {year}</p>
-              <TrendingUp className="w-4 h-4 text-civic-emerald" />
-            </div>
-            <p className="text-2xl font-extrabold text-civic-navy mt-1">
-              ₱{amt.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </p>
-          </div>
-        ))}
+        <div className="card space-y-1">
+          <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-400">
+            <PieChart className="h-4 w-4 text-blue-600" /> Allocated to SK Budget
+          </span>
+          <p className="text-2xl font-bold text-civic-navy">
+            ₱{totalAllocated.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </p>
+        </div>
+        <div className="card space-y-1">
+          <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-400">
+            <Wallet className="h-4 w-4 text-emerald-600" /> Available Unallocated Funds
+          </span>
+          <p className={`text-2xl font-bold ${availableFunds < 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
+            ₱{availableFunds.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+          </p>
+        </div>
+      </div>
+
+      <div className="card p-4 flex items-center">
+        <div className="relative w-full">
+          <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search by fund name, source type, fiscal year, or date received..."
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            className="input-field pl-10"
+          />
+        </div>
       </div>
 
       {/* Add / Edit Form */}
@@ -243,9 +266,11 @@ export default function SKFundSourcing() {
             />
             <FormField
               type="date"
-              label="Date Received (optional)"
+              label="Date Received *"
               value={form.received_date}
               onChange={(e) => setForm({ ...form, received_date: e.target.value })}
+              error={fieldErrors.received_date}
+              required
             />
           </div>
 
@@ -300,17 +325,17 @@ export default function SKFundSourcing() {
           </thead>
           <tbody>
             {loading && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400">Loading SK fund sources…</td></tr>
+              <tr><td colSpan={canEdit ? 7 : 6} className="px-4 py-8 text-center text-slate-400">Loading SK fund sources…</td></tr>
             )}
-            {!loading && rows.length === 0 && (
+            {!loading && filteredRows.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center">
+                <td colSpan={canEdit ? 7 : 6} className="px-4 py-10 text-center">
                   <Landmark className="w-8 h-8 mx-auto text-slate-300 mb-2" />
-                  <p className="text-slate-400">No SK fund sources recorded yet.</p>
+                  <p className="text-slate-400">{rows.length ? 'No SK fund sources match your search.' : 'No SK fund sources recorded yet.'}</p>
                 </td>
               </tr>
             )}
-            {rows.map((row) => (
+            {filteredRows.map((row) => (
               <tr key={row.id} className="border-t border-civic-navy/5 hover:bg-slate-50 transition-colors">
                 <td className="px-4 py-3 font-medium text-slate-800">{row.name}</td>
                 <td className="px-4 py-3">

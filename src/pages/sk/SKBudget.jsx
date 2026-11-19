@@ -17,8 +17,8 @@ export default function SKBudget() {
   const { profile } = useAuth();
   const canEdit = isSkEditor(profile?.role);
   const { rows, loading, error, insertRow, updateRow, deleteRow } = useSupabaseTable('sk_budget', profile?.barangay_id);
-  const { rows: funds, loading: fundsLoading } = useSupabaseTable('sk_fund_sources', profile?.barangay_id);
-  const { rows: expenses } = useSupabaseTable('sk_expenses', profile?.barangay_id);
+  const { rows: funds, loading: fundsLoading, error: fundsError } = useSupabaseTable('sk_fund_sources', profile?.barangay_id);
+  const { rows: expenses, error: expensesError } = useSupabaseTable('sk_expenses', profile?.barangay_id);
   const financialLoading = loading || fundsLoading;
   const [form, setForm] = useState(EMPTY);
   const [fieldErrors, setFieldErrors] = useState({});
@@ -47,7 +47,6 @@ export default function SKBudget() {
   const sourcesForYear = funds.filter(
     (fund) => String(fund.fiscal_year) === String(form.fiscal_year),
   );
-  const availableFunding = getAvailableFunding(form.fiscal_year);
   const openModal = (row = null) => {
     setForm(row ? { sk_fund_source_id: row.sk_fund_source_id || '', fiscal_year: row.fiscal_year, category: row.category, amount: finalizeCurrencyInput(row.amount), description: row.description || '' } : { ...EMPTY, fiscal_year: String(new Date().getFullYear()) });
     setEditingId(row?.id || null); setFieldErrors({}); setSubmitError(''); setModalOpen(true);
@@ -149,12 +148,37 @@ export default function SKBudget() {
   const totalSourced = sumAmounts(funds);
   const totalAllocated = sumAmounts(rows);
   const totalSpent = sumActiveAmounts(expenses);
+  const remainingBudget = totalAllocated - totalSpent;
+  const unallocatedFunds = totalSourced - totalAllocated;
+  const utilization = totalAllocated > 0 ? Math.min((totalSpent / totalAllocated) * 100, 100) : 0;
+  const budgetStatus = remainingBudget < 0
+    ? { tone: 'rose', title: 'Overspending alert', message: `Expenses exceed the allocated SK budget by ₱${Math.abs(remainingBudget).toLocaleString('en-PH', { minimumFractionDigits: 2 })}.` }
+    : unallocatedFunds < 0
+      ? { tone: 'amber', title: 'Budget exceeds available funding', message: `SK allocations exceed current fund sources by ₱${Math.abs(unallocatedFunds).toLocaleString('en-PH', { minimumFractionDigits: 2 })}.` }
+      : { tone: 'emerald', title: 'Budget is within available funding', message: 'Current SK allocations are backed by sourced funds.' };
 
   return (
     <div className="space-y-6 max-w-6xl">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"><div><h1 className="text-3xl font-bold text-civic-navy flex items-center gap-3"><PieChart className="w-8 h-8 text-civic-emerald" /> SK Budget Allocations</h1><p className="text-slate-600 text-sm mt-1">Manage youth budget allocations by category and fiscal year.</p></div>{canEdit && <button onClick={() => openModal()} className="btn-emerald shrink-0"><Plus className="w-4 h-4" /> Add New SK Allocation</button>}</div>
-      <ErrorBanner message={error} />
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4"><div className="card"><span className="text-xs font-bold text-slate-400 uppercase tracking-wider">SK Funds Sourced</span><p className="text-2xl font-bold text-civic-navy">₱{totalSourced.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div><div className="card"><span className="text-xs font-bold text-slate-400 uppercase tracking-wider">SK Budget Allocated</span><p className="text-2xl font-bold text-civic-navy">₱{totalAllocated.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div><div className="card"><span className="text-xs font-bold text-slate-400 uppercase tracking-wider"><Receipt className="w-4 h-4 inline text-amber-600" /> SK Expenses Spent</span><p className="text-2xl font-bold text-civic-navy">₱{totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div><div className="card"><span className="text-xs font-bold text-slate-400 uppercase tracking-wider"><Wallet className="w-4 h-4 inline text-emerald-600" /> Remaining SK Budget</span><p className={`text-2xl font-bold ${totalAllocated - totalSpent < 0 ? 'text-rose-600' : 'text-emerald-700'}`}>₱{(totalAllocated - totalSpent).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div></div>
+      <ErrorBanner message={error || fundsError || expensesError} />
+      <div className={`rounded-xl border p-4 ${budgetStatus.tone === 'rose' ? 'border-rose-200 bg-rose-50 text-rose-800' : budgetStatus.tone === 'amber' ? 'border-amber-200 bg-amber-50 text-amber-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
+        <p className="text-xs font-bold uppercase tracking-wider">SK Budget Status</p>
+        <h2 className="mt-1 text-base font-bold">{budgetStatus.title}</h2>
+        <p className="mt-2 text-sm">{budgetStatus.message}</p>
+      </div>
+      <div className="card p-4 sm:p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Budget Utilization</p>
+            <h3 className="mt-1 text-xl font-bold text-civic-navy">{totalAllocated > 0 ? ((totalSpent / totalAllocated) * 100).toFixed(1) : '0.0'}%</h3>
+          </div>
+          <p className="text-right text-sm font-semibold text-slate-600">₱{totalSpent.toLocaleString('en-PH', { minimumFractionDigits: 2 })} spent of ₱{totalAllocated.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
+        </div>
+        <div className="mt-4 h-3 w-full overflow-hidden rounded-full bg-slate-200">
+          <div className={`h-full rounded-full ${remainingBudget < 0 ? 'bg-rose-500' : utilization > 80 ? 'bg-amber-500' : 'bg-emerald-500'}`} style={{ width: `${utilization}%` }} />
+        </div>
+      </div>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4"><div className="card"><span className="text-xs font-bold text-slate-400 uppercase tracking-wider">SK Funds Sourced</span><p className="text-2xl font-bold text-civic-navy">₱{totalSourced.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div><div className="card"><span className="text-xs font-bold text-slate-400 uppercase tracking-wider">SK Budget Allocated</span><p className="text-2xl font-bold text-civic-navy">₱{totalAllocated.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div><div className="card"><span className="text-xs font-bold text-slate-400 uppercase tracking-wider"><Receipt className="w-4 h-4 inline text-amber-600" /> SK Expenses Spent</span><p className="text-2xl font-bold text-civic-navy">₱{totalSpent.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div><div className="card"><span className="text-xs font-bold text-slate-400 uppercase tracking-wider"><Wallet className="w-4 h-4 inline text-emerald-600" /> Remaining SK Budget</span><p className={`text-2xl font-bold ${remainingBudget < 0 ? 'text-rose-600' : 'text-emerald-700'}`}>₱{remainingBudget.toLocaleString(undefined, { minimumFractionDigits: 2 })}</p></div></div>
       <div className="card p-4 flex flex-col sm:flex-row items-center gap-3"><div className="relative flex-1 w-full"><Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" /><input className="input-field pl-10" placeholder="Search SK fiscal year, category, description..." value={search} onChange={(event) => setSearch(event.target.value)} /></div><div className="flex items-center gap-2 w-full sm:w-auto"><Filter className="w-4 h-4 text-slate-400" /><select className="input-field text-xs font-semibold" value={yearFilter} onChange={(event) => setYearFilter(event.target.value)}><option value="all">All Years</option>{years.map((year) => <option key={year} value={year}>{year}</option>)}</select><select className="input-field text-xs font-semibold" value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="all">All SK Categories</option>{CATEGORIES.map((category) => <option key={category} value={category}>{category}</option>)}</select></div></div>
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">

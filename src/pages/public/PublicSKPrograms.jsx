@@ -4,6 +4,7 @@ import { usePublicBarangay } from '../../lib/usePublicBarangay';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import Badge from '../../components/ui/Badge';
+import ProgramMediaGallery from '../../components/programs/ProgramMediaGallery';
 import { Calendar, FolderKanban, Search, Tag } from 'lucide-react';
 
 export default function PublicSKPrograms() {
@@ -91,6 +92,13 @@ export default function PublicSKPrograms() {
                 </span>
               )}
             </div>
+            <ProgramMediaGallery
+              barangayId={barangay.id}
+              programId={row.id}
+              programType="sk"
+              programStatus={row.status}
+              programTitle={row.title}
+            />
           </article>
         ))}
         {!programsLoading && filteredPrograms.length === 0 && (
