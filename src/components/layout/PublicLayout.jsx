@@ -19,7 +19,7 @@ export default function PublicLayout() {
         { to: '', label: 'SK Overview', icon: LayoutDashboard, end: true },
         { to: 'budget', label: 'SK Budget & Expenses', icon: PieChart },
         { to: 'programs', label: 'SK Youth Programs', icon: FolderKanban },
-        { to: 'documents', label: 'Public Documents', icon: FileText },
+        { to: 'documents', label: 'SK Documents', icon: FileText },
         { to: 'profiling', label: 'KK Profiling', icon: ClipboardList },
         { to: 'feedback', label: 'Send SK Feedback', icon: MessageSquarePlus },
         { to: 'ask-ai', label: 'Ask AI', icon: Bot },

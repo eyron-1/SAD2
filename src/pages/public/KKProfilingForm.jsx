@@ -6,6 +6,7 @@ import { supabase } from '../../lib/supabaseClient';
 import { friendlySupabaseError, validateMobile, validateRequired, validateName, runValidators } from '../../lib/validation';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
+import SelectedFilePreview from '../../components/ui/SelectedFilePreview';
 
 const MAX_ID_DOCUMENT_BYTES = 5 * 1024 * 1024;
 const ID_DOCUMENT_EXTENSIONS = {
@@ -252,7 +253,7 @@ export default function KKProfilingForm() {
               <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-800 transition-transform group-hover:-translate-y-0.5">
                 <FileCheck2 className="h-6 w-6" />
               </span>
-              <span className="mt-3 text-sm font-semibold text-civic-navy">{idDocument ? idDocument.name : 'Choose an ID file'}</span>
+              <span className="mt-3 text-sm font-semibold text-civic-navy">{idDocument ? 'Choose a different ID file' : 'Choose an ID file'}</span>
               <span className="mt-1 text-xs text-slate-500">Click to browse · JPG, PNG, WEBP, or PDF · up to 5MB</span>
               <input
                 id="kk-id-document"
@@ -263,6 +264,7 @@ export default function KKProfilingForm() {
                 aria-describedby="kk-id-document-help"
               />
             </label>
+            <SelectedFilePreview file={idDocument} />
             <p id="kk-id-document-help" className="mt-3 flex items-start gap-2 text-xs leading-5 text-slate-500">
               <LockKeyhole className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-700" />
               Your ID is private and will only be used by the SK team for verification.

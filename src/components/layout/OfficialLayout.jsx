@@ -50,7 +50,7 @@ const SK_NAV = [
   { to: '/sk/expenses', label: 'SK Expenses', icon: Receipt },
   { to: '/sk/funds', label: 'SK Fund Sourcing', icon: Landmark },
   { to: '/sk/programs', label: 'SK Programs', icon: FolderKanban },
-  { to: '/sk/documents', label: 'Public Documents', icon: FileText },
+  { to: '/sk/documents', label: 'SK Documents', icon: FileText },
   { to: '/sk/feedback', label: 'SK Community Feedback', icon: MessageSquare },
   { to: '/sk/officials', label: 'SK Officials & Handover', icon: Users },
   { to: '/sk/audit-history', label: 'Audit History', icon: History },

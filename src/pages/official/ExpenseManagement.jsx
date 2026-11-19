@@ -13,6 +13,7 @@ import {
 import { isBarangayEditor } from "../../utils/roles";
 import FormField from "../../components/ui/FormField";
 import ErrorBanner from "../../components/ui/ErrorBanner";
+import SelectedFilePreview from "../../components/ui/SelectedFilePreview";
 import Badge from "../../components/ui/Badge";
 import ImageLightbox from "../../components/ui/ImageLightbox";
 import {
@@ -566,11 +567,7 @@ export default function ExpenseManagement() {
                     className="hidden"
                   />
                 </label>
-                {receiptFile && (
-                  <span className="text-xs text-slate-600 font-medium block mt-1">
-                    Selected: {receiptFile.name}
-                  </span>
-                )}
+                <SelectedFilePreview file={receiptFile} />
               </div>
 
               <ErrorBanner message={submitError} />

@@ -6,6 +6,7 @@ import { validateRequired, validateCurrency, runValidators, formatCurrencyInput,
 import { isSkEditor } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
+import SelectedFilePreview from '../../components/ui/SelectedFilePreview';
 import ImageLightbox from '../../components/ui/ImageLightbox';
 import { sumAmounts, sumActiveAmounts } from '../../lib/financial';
 import { Receipt, Plus, Pencil, Trash2, Upload, FileText, X, Eye, ShieldCheck } from 'lucide-react';
@@ -224,7 +225,7 @@ export default function SKExpenseManagement() {
               <Upload className="w-4 h-4 text-civic-emerald" /> Choose Receipt File…
               <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={handleReceiptChange} className="hidden" />
             </label>
-            {receiptFile && <span className="text-xs text-slate-600 block mt-1 font-medium">Selected: {receiptFile.name}</span>}
+            <SelectedFilePreview file={receiptFile} />
           </div>
           {/* Error banner INSIDE the modal so user always sees it */}
           <ErrorBanner message={submitError} />

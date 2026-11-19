@@ -5,6 +5,7 @@ import { validateRequired, validateCurrency, validateFiscalYear, runValidators, 
 import { isBarangayEditor } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
+import SelectedFilePreview from '../../components/ui/SelectedFilePreview';
 import { sumAmounts } from '../../lib/financial';
 import { supabase } from '../../lib/supabaseClient';
 import ImageLightbox from '../../components/ui/ImageLightbox';
@@ -284,7 +285,7 @@ export default function FundSourcing() {
                   <Upload className="w-4 h-4 text-civic-emerald" /> Choose Proof File...
                   <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={handleFileChange} className="hidden" />
                 </label>
-                {proofFile && <span className="text-xs text-slate-600 font-medium block mt-1">Selected: {proofFile.name}</span>}
+                <SelectedFilePreview file={proofFile} />
               </div>
 
               <ErrorBanner message={submitError} />

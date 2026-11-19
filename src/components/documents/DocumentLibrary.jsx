@@ -7,6 +7,7 @@ import {
   getDocumentFileError,
 } from '../../lib/transparencyDocuments';
 import ErrorBanner from '../ui/ErrorBanner';
+import SelectedFilePreview from '../ui/SelectedFilePreview';
 import { Download, FileText, LockKeyholeOpen, ShieldCheck, Trash2, UploadCloud } from 'lucide-react';
 
 const DOCUMENT_CATEGORIES = {
@@ -334,6 +335,7 @@ export default function DocumentLibrary({
                 className="block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:font-semibold file:text-slate-700"
               />
             </label>
+            <SelectedFilePreview file={file} />
             <div className="md:col-span-2">
               <button type="submit" disabled={submitting} className="btn-primary disabled:cursor-not-allowed disabled:opacity-60">
                 <UploadCloud className="h-4 w-4" />

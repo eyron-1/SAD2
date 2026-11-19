@@ -5,6 +5,7 @@ import { validateRequired, validateCurrency, validateFiscalYear, runValidators, 
 import { isSkEditor } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
+import SelectedFilePreview from '../../components/ui/SelectedFilePreview';
 import { supabase } from '../../lib/supabaseClient';
 import ImageLightbox from '../../components/ui/ImageLightbox';
 import { Landmark, Plus, Pencil, Trash2, Calendar, TrendingUp, X, Upload, FileText, Eye } from 'lucide-react';
@@ -262,7 +263,7 @@ export default function SKFundSourcing() {
               <Upload className="w-4 h-4 text-civic-emerald" /> Choose Proof File...
               <input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" onChange={handleFileChange} className="hidden" />
             </label>
-            {proofFile && <span className="text-xs text-slate-600 font-medium block mt-1">Selected: {proofFile.name}</span>}
+            <SelectedFilePreview file={proofFile} />
           </div>
 
           <ErrorBanner message={submitError} />
