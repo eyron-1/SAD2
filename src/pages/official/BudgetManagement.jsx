@@ -21,6 +21,7 @@ import {
 } from "../../lib/financial";
 import FormField from "../../components/ui/FormField";
 import ErrorBanner from "../../components/ui/ErrorBanner";
+import ExpandableDescription from "../../components/ui/ExpandableDescription";
 import {
   PieChart,
   Plus,
@@ -720,8 +721,8 @@ export default function BudgetManagement() {
                       minimumFractionDigits: 2,
                     })}
                   </td>
-                  <td className="px-6 py-4 text-slate-600 max-w-xs truncate">
-                    {row.description || "—"}
+                  <td className="px-6 py-4 text-slate-600 max-w-xs">
+                    <ExpandableDescription description={row.description} />
                   </td>
                   {canEdit && (
                     <td className="px-6 py-4 text-right whitespace-nowrap">

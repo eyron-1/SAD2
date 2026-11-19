@@ -4,6 +4,7 @@ import { usePublicBarangay } from '../../lib/usePublicBarangay';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import Badge from '../../components/ui/Badge';
+import ExpandableDescription from '../../components/ui/ExpandableDescription';
 import { activeRows, sumAmounts, sumActiveAmounts } from '../../lib/financial';
 import {
   Users,
@@ -344,7 +345,7 @@ export default function PublicSKBudget() {
                       {formatDate(row.date_incurred)}
                     </td>
                     <td className="px-5 py-3.5 font-medium text-emerald-950">{row.category}</td>
-                    <td className="px-5 py-3.5 text-slate-600 text-xs max-w-xs truncate">{row.description || '—'}</td>
+                    <td className="px-5 py-3.5 text-slate-600 text-xs max-w-xs"><ExpandableDescription description={row.description} /></td>
                     <td className="px-5 py-3.5 text-right font-bold text-slate-900 whitespace-nowrap">
                       {formatCurrency(row.amount)}
                     </td>
