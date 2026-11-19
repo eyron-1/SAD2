@@ -43,7 +43,7 @@ export default function PublicLayout() {
       >
         Skip to content
       </a>
-      <header className="bg-civic-dark/95 backdrop-blur-md text-white border-b border-white/10 sticky top-0 z-40 shadow-lg shadow-slate-900/10">
+      <header className={`sticky top-0 z-40 border-b border-white/10 text-white shadow-lg shadow-slate-900/10 backdrop-blur-md ${isSkPortal ? 'bg-emerald-950/95' : 'bg-civic-dark/95'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-white/10 p-0.5 flex items-center justify-center border border-white/20 overflow-hidden shadow-inner">

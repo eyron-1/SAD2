@@ -4,7 +4,7 @@ import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import PublicMetricCard from '../../components/public/PublicMetricCard';
 import { sumAmounts, sumActiveAmounts } from '../../lib/financial';
-import { FolderKanban, Landmark, PieChart, Receipt, Users } from 'lucide-react';
+import { FolderKanban, Landmark, PieChart, Receipt, Users, CalendarDays, ArrowUpRight } from 'lucide-react';
 
 export default function PublicSKOverview() {
   const { slug } = useParams();
@@ -21,6 +21,10 @@ export default function PublicSKOverview() {
   const totalBudget = sumAmounts(allocations);
   const totalExpenses = sumActiveAmounts(expenses);
   const activePrograms = programs.filter((row) => row.status === 'ongoing').length;
+  const recentPrograms = [...programs]
+    .sort((a, b) => new Date(b.updated_at || b.created_at || 0) - new Date(a.updated_at || a.created_at || 0))
+    .slice(0, 3);
+  const utilization = totalBudget > 0 ? Math.min(100, Math.round((totalExpenses / totalBudget) * 100)) : 0;
   const formatCurrency = (value) => new Intl.NumberFormat('en-PH', {
     style: 'currency',
     currency: 'PHP',
@@ -57,6 +61,50 @@ export default function PublicSKOverview() {
           <PublicMetricCard label="Expenses recorded" value={formatCurrency(totalExpenses)} detail={`${expenses.length} expense ${expenses.length === 1 ? 'record' : 'records'}`} icon={Receipt} tone="amber" />
           <PublicMetricCard label="Ongoing programs" value={activePrograms} detail={`${programs.length} published ${programs.length === 1 ? 'program' : 'programs'}`} icon={FolderKanban} />
         </div>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-[1.35fr_.65fr]" aria-label="SK program and budget details">
+        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-civic-emerald">Youth programs</p>
+              <h2 className="mt-1 text-xl font-bold text-civic-navy">Recently published</h2>
+            </div>
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700"><FolderKanban className="h-5 w-5" /></span>
+          </div>
+          <div className="mt-5 divide-y divide-slate-100">
+            {recentPrograms.map((program) => (
+              <div key={program.id} className="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-slate-800">{program.title}</p>
+                  <p className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
+                    <CalendarDays className="h-3.5 w-3.5" />
+                    {program.start_date ? new Date(`${program.start_date}T00:00:00`).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Schedule not specified'}
+                  </p>
+                </div>
+                <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-bold ${program.status === 'ongoing' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}`}>
+                  {program.status || 'Published'}
+                </span>
+              </div>
+            ))}
+            {recentPrograms.length === 0 && <p className="py-6 text-center text-sm text-slate-500">No SK programs have been published yet.</p>}
+          </div>
+        </article>
+
+        <article className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-950 to-civic-navy p-5 text-white shadow-sm sm:p-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-emerald-200">Budget status</p>
+              <h2 className="mt-1 font-display text-xl font-bold">{utilization}% utilized</h2>
+            </div>
+            <ArrowUpRight className="h-5 w-5 text-emerald-300" />
+          </div>
+          <div className="mt-6 h-2 overflow-hidden rounded-full bg-white/15"><div className="h-full rounded-full bg-emerald-300" style={{ width: `${utilization}%` }} /></div>
+          <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
+            <div><p className="text-emerald-200/70">Spent</p><p className="mt-1 font-bold tabular-nums">{formatCurrency(totalExpenses)}</p></div>
+            <div><p className="text-emerald-200/70">Allocated</p><p className="mt-1 font-bold tabular-nums">{formatCurrency(totalBudget)}</p></div>
+          </div>
+        </article>
       </section>
     </div>
   );
