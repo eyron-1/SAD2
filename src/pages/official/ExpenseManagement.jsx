@@ -694,7 +694,7 @@ export default function ExpenseManagement() {
                           {row.receipt_verified_at ? (
                             <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-700"><ShieldCheck className="h-3 w-3" />Verified</span>
                           ) : canEdit ? (
-                            <button type="button" onClick={() => handleVerifyReceipt(row)} className="flex items-center gap-1 text-[11px] font-semibold text-slate-600 hover:text-civic-emerald"><ShieldCheck className="h-3 w-3" />Verify receipt</button>
+                            <button type="button" onClick={() => handleVerifyReceipt(row)} className="flex items-center gap-1 text-[11px] font-semibold text-slate-600 hover:text-civic-emerald"><ShieldCheck className="h-3 w-3" />Verified</button>
                           ) : null}
                         </div>
                       ) : (
