@@ -21,7 +21,6 @@ export default function PublicLayout() {
         { to: 'programs', label: 'SK Youth Programs', icon: FolderKanban },
         { to: 'documents', label: 'Public Documents', icon: FileText },
         { to: 'profiling', label: 'KK Profiling', icon: ClipboardList },
-        { to: '', label: 'Open Barangay Portal', icon: Building2, base: 'barangay' },
         { to: 'feedback', label: 'Send SK Feedback', icon: MessageSquarePlus },
         { to: 'ask-ai', label: 'Ask AI', icon: Bot },
       ]
@@ -30,7 +29,6 @@ export default function PublicLayout() {
         { to: 'budget', label: 'Barangay Budget & Expenses', icon: PieChart },
         { to: 'programs', label: 'Barangay Programs & Projects', icon: FolderKanban },
         { to: 'documents', label: 'Public Documents', icon: FileText },
-        { to: 'sk/profiling', label: 'KK Profiling', icon: ClipboardList },
         { to: 'officials', label: 'Elected Officials', icon: Users },
         { to: 'feedback', label: 'Send Feedback', icon: MessageSquarePlus },
         { to: 'ask-ai', label: 'Ask AI', icon: Bot },
@@ -81,6 +79,38 @@ export default function PublicLayout() {
           </div>
         </div>
 
+        <div className="border-t border-white/10 bg-white">
+          <nav
+            aria-label="Choose public portal"
+            className="mx-auto flex max-w-7xl items-center gap-2 overflow-x-auto px-4 py-2.5 text-sm sm:px-6 lg:px-8"
+          >
+            <Link
+              to={`/b/${slug}`}
+              aria-current={!isSkPortal ? 'page' : undefined}
+              className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 font-semibold transition-colors ${
+                !isSkPortal
+                  ? 'bg-civic-navy text-white shadow-sm'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-civic-navy'
+              }`}
+            >
+              <Building2 className="h-4 w-4" />
+              Barangay Portal
+            </Link>
+            <Link
+              to={`/b/${slug}/sk`}
+              aria-current={isSkPortal ? 'page' : undefined}
+              className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 font-semibold transition-colors ${
+                isSkPortal
+                  ? 'bg-emerald-800 text-white shadow-sm'
+                  : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-900'
+              }`}
+            >
+              <Users className="h-4 w-4" />
+              SK Portal
+            </Link>
+          </nav>
+        </div>
+
         <div className="bg-slate-950/30 border-t border-white/10">
           <nav aria-label="Public portal navigation" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-1.5 overflow-x-auto py-2 text-xs [scrollbar-width:none]">
             {nav.map((item) => {
@@ -88,7 +118,7 @@ export default function PublicLayout() {
               return (
                 <NavLink
                   key={item.label}
-                  to={item.base === 'barangay' ? `/b/${slug}` : `${portalBase}${item.to ? `/${item.to}` : ''}`}
+                  to={`${portalBase}${item.to ? `/${item.to}` : ''}`}
                   end={item.end}
                   className={({ isActive }) =>
                     `flex items-center gap-2 px-3 py-2 rounded-lg font-medium whitespace-nowrap transition-all duration-150 ${

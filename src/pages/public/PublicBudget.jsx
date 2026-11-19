@@ -8,24 +8,16 @@ import ImageLightbox from '../../components/ui/ImageLightbox';
 import { activeRows, sumAmounts, sumActiveAmounts } from '../../lib/financial';
 import {
   Building2,
-  Users,
   Wallet,
   Receipt,
   Calendar,
   PieChart,
-  TrendingUp,
   CheckCircle2,
-  AlertCircle,
   Search,
-  Layers,
   FileText,
-  ExternalLink,
   ShieldCheck,
   Info,
   DollarSign,
-  ArrowUpRight,
-  Filter,
-  Check
 } from 'lucide-react';
 
 const formatCurrency = (value) =>
@@ -58,15 +50,9 @@ export default function PublicBudget() {
   const { rows: allocations, loading: l1, error: e1 } = useSupabaseTable('budget_allocations', barangay?.id);
   const { rows: expenses, loading: l2, error: e2 } = useSupabaseTable('expenses', barangay?.id, { orderBy: 'date_incurred' });
   const { rows: programs } = useSupabaseTable('programs', barangay?.id);
-  const { rows: skAllocations, loading: l3, error: e3 } = useSupabaseTable('sk_budget', barangay?.id);
-  const { rows: skFunds, loading: l4, error: e4 } = useSupabaseTable('sk_fund_sources', barangay?.id);
-  const { rows: skExpenses, loading: l5, error: e5 } = useSupabaseTable('sk_expenses', barangay?.id, { orderBy: 'date_incurred' });
-  const { rows: skPrograms } = useSupabaseTable('sk_programs', barangay?.id);
 
-  // Navigation & Filtering state
-  const [activeTab, setActiveTab] = useState('all'); // 'all' | 'barangay' | 'sk'
+  // Filtering state
   const [barangaySubTab, setBarangaySubTab] = useState('allocations'); // 'allocations' | 'expenses' | 'categories'
-  const [skSubTab, setSkSubTab] = useState('funds'); // 'funds' | 'expenses'
   const [selectedYear, setSelectedYear] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedReceipt, setSelectedReceipt] = useState(null);
@@ -76,11 +62,8 @@ export default function PublicBudget() {
     const years = new Set();
     allocations.forEach((r) => r.fiscal_year && years.add(String(r.fiscal_year)));
     expenses.forEach((r) => r.date_incurred && years.add(r.date_incurred.slice(0, 4)));
-    skFunds.forEach((r) => r.fiscal_year && years.add(String(r.fiscal_year)));
-    skAllocations.forEach((r) => r.fiscal_year && years.add(String(r.fiscal_year)));
-    skExpenses.forEach((r) => r.date_incurred && years.add(r.date_incurred.slice(0, 4)));
     return Array.from(years).sort().reverse();
-  }, [allocations, expenses, skFunds, skAllocations, skExpenses]);
+  }, [allocations, expenses]);
 
   // Filtered lists based on fiscal year and search term
   const filteredBarangayAllocations = useMemo(() => {
@@ -107,54 +90,12 @@ export default function PublicBudget() {
     });
   }, [expenses, programs, selectedYear, searchTerm]);
 
-  const filteredSkFunds = useMemo(() => {
-    return skFunds.filter((item) => {
-      const matchYear = selectedYear === 'all' || String(item.fiscal_year) === selectedYear;
-      const matchSearch =
-        !searchTerm ||
-        item.name?.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchYear && matchSearch;
-    });
-  }, [skFunds, selectedYear, searchTerm]);
-
-  const filteredSkAllocations = useMemo(() => {
-    return skAllocations.filter((item) => {
-      const matchYear = selectedYear === 'all' || String(item.fiscal_year) === selectedYear;
-      const matchSearch =
-        !searchTerm ||
-        item.category?.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchYear && matchSearch;
-    });
-  }, [skAllocations, selectedYear, searchTerm]);
-
-  const filteredSkExpenses = useMemo(() => {
-    return activeRows(skExpenses).filter((item) => {
-      const year = item.date_incurred?.slice(0, 4);
-      const matchYear = selectedYear === 'all' || year === selectedYear;
-      const matchSearch =
-        !searchTerm ||
-        item.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        item.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        skPrograms.find((program) => program.id === item.sk_program_id)?.title?.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchYear && matchSearch;
-    });
-  }, [skExpenses, skPrograms, selectedYear, searchTerm]);
-
   // Financial calculations
   const totalBarangayBudget = useMemo(() => sumAmounts(filteredBarangayAllocations), [filteredBarangayAllocations]);
   const totalBarangaySpent = useMemo(() => sumActiveAmounts(filteredBarangayExpenses), [filteredBarangayExpenses]);
   const remainingBarangay = totalBarangayBudget - totalBarangaySpent;
   const barangayUtilizationRate = totalBarangayBudget > 0
     ? Math.min(100, Math.round((totalBarangaySpent / totalBarangayBudget) * 100))
-    : 0;
-
-  const totalSkFundAmount = useMemo(() => sumAmounts(filteredSkFunds), [filteredSkFunds]);
-  const totalSkBudget = useMemo(() => sumAmounts(filteredSkAllocations), [filteredSkAllocations]);
-  const totalSkSpent = useMemo(() => sumActiveAmounts(filteredSkExpenses), [filteredSkExpenses]);
-  const effectiveSkBudget = totalSkBudget > 0 ? totalSkBudget : totalSkFundAmount;
-  const remainingSk = effectiveSkBudget - totalSkSpent;
-  const skUtilizationRate = effectiveSkBudget > 0
-    ? Math.min(100, Math.round((totalSkSpent / effectiveSkBudget) * 100))
     : 0;
 
   // Category breakdown comparison for Barangay (Allocated vs Spent)
@@ -176,16 +117,6 @@ export default function PublicBudget() {
       .map((item) => ({ ...item, allocated: item.allocatedCents / 100, spent: item.spentCents / 100 }))
       .sort((a, b) => b.allocated - a.allocated);
   }, [filteredBarangayAllocations, filteredBarangayExpenses]);
-
-  // Combined totals for "All" tab
-  const grandTotalBudget = totalBarangayBudget + effectiveSkBudget;
-  const grandTotalSpent = totalBarangaySpent + totalSkSpent;
-  const grandRemaining = grandTotalBudget - grandTotalSpent;
-  const grandUtilizationRate = grandTotalBudget > 0
-    ? Math.min(100, Math.round((grandTotalSpent / grandTotalBudget) * 100))
-    : 0;
-
-  const isLoading = bLoading || l1 || l2 || l3 || l4 || l5;
 
   if (bLoading) {
     return (
@@ -209,10 +140,10 @@ export default function PublicBudget() {
               Official Full Disclosure Transparency Portal
             </div>
             <h1 className="text-2xl sm:text-3xl font-display text-civic-navy font-bold">
-              Barangay & SK Budget and Expenses
+              Barangay Budget & Expenses
             </h1>
             <p className="text-sm text-slate-600 leading-relaxed">
-              Explore how public funds, annual allocations, and youth budgets are utilized in{' '}
+              Review published allocations and recorded expenses for{' '}
               <span className="font-semibold text-civic-navy">{barangay?.name || 'the barangay'}</span>. Every transaction is transparent and backed by verified records.
             </p>
           </div>
@@ -254,56 +185,16 @@ export default function PublicBudget() {
         </div>
       </div>
 
-      <ErrorBanner message={e1 || e2 || e3 || e4 || e5} />
+      <ErrorBanner message={e1 || e2} />
 
-      {/* Scope Navigation Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-3">
-        <div className="flex items-center gap-2 p-1 bg-slate-200/60 rounded-xl w-fit">
-          <button
-            type="button"
-            onClick={() => setActiveTab('all')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
-              activeTab === 'all'
-                ? 'bg-white text-civic-navy shadow-sm'
-                : 'text-slate-600 hover:text-civic-navy hover:bg-white/50'
-            }`}
-          >
-            <Layers className="w-4 h-4 text-civic-slate" />
-            Combined Overview
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('barangay')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
-              activeTab === 'barangay'
-                ? 'bg-white text-civic-navy shadow-sm'
-                : 'text-slate-600 hover:text-civic-navy hover:bg-white/50'
-            }`}
-          >
-            <Building2 className="w-4 h-4 text-civic-navy" />
-            Barangay Government
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('sk')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
-              activeTab === 'sk'
-                ? 'bg-white text-emerald-800 shadow-sm'
-                : 'text-slate-600 hover:text-emerald-800 hover:bg-white/50'
-            }`}
-          >
-            <Users className="w-4 h-4 text-emerald-600" />
-            Sangguniang Kabataan (SK)
-          </button>
-        </div>
-
-        {/* Global Search Input */}
+      <div className="flex justify-end">
         <div className="relative w-full sm:w-64">
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            aria-label="Search barangay budget records"
             placeholder="Search category or item…"
             className="w-full pl-9 pr-3 py-2 bg-white border border-slate-200 rounded-xl text-xs sm:text-sm focus:border-civic-navy focus:ring-1 focus:ring-civic-navy/20 outline-none placeholder:text-slate-400"
           />
@@ -316,25 +207,13 @@ export default function PublicBudget() {
           {/* Card 1: Total Allocated */}
           <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                {activeTab === 'all'
-                  ? 'Total Funds Allocated'
-                  : activeTab === 'barangay'
-                  ? 'Barangay Budget'
-                  : 'SK Total Budget'}
-              </span>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Budget Allocated</span>
               <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-700 flex items-center justify-center">
                 <Wallet className="w-4 h-4" />
               </div>
             </div>
             <div className="text-2xl font-bold text-slate-900">
-              {formatCurrency(
-                activeTab === 'all'
-                  ? grandTotalBudget
-                  : activeTab === 'barangay'
-                  ? totalBarangayBudget
-                  : effectiveSkBudget
-              )}
+              {formatCurrency(totalBarangayBudget)}
             </div>
             <p className="text-[11px] text-slate-500">
               {selectedYear === 'all' ? 'All recorded fiscal years' : `Fiscal Year ${selectedYear}`}
@@ -344,33 +223,17 @@ export default function PublicBudget() {
           {/* Card 2: Total Spent */}
           <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                {activeTab === 'all'
-                  ? 'Total Expenses Spent'
-                  : activeTab === 'barangay'
-                  ? 'Barangay Expenses'
-                  : 'SK Youth Expenses'}
-              </span>
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Expenses Recorded</span>
               <div className="w-8 h-8 rounded-lg bg-rose-50 text-rose-700 flex items-center justify-center">
                 <Receipt className="w-4 h-4" />
               </div>
             </div>
             <div className="text-2xl font-bold text-slate-900">
-              {formatCurrency(
-                activeTab === 'all'
-                  ? grandTotalSpent
-                  : activeTab === 'barangay'
-                  ? totalBarangaySpent
-                  : totalSkSpent
-              )}
+              {formatCurrency(totalBarangaySpent)}
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
               <span className="font-semibold text-slate-700">
-                {activeTab === 'all'
-                  ? grandUtilizationRate
-                  : activeTab === 'barangay'
-                  ? barangayUtilizationRate
-                  : skUtilizationRate}
+                {barangayUtilizationRate}
                 %
               </span>{' '}
               of recorded allocation spent
@@ -385,7 +248,7 @@ export default function PublicBudget() {
               </span>
               <div
                 className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                  (activeTab === 'all' ? grandRemaining : activeTab === 'barangay' ? remainingBarangay : remainingSk) < 0
+                  remainingBarangay < 0
                     ? 'bg-rose-100 text-rose-700'
                     : 'bg-emerald-50 text-emerald-700'
                 }`}
@@ -395,22 +258,18 @@ export default function PublicBudget() {
             </div>
             <div
               className={`text-2xl font-bold ${
-                (activeTab === 'all' ? grandRemaining : activeTab === 'barangay' ? remainingBarangay : remainingSk) < 0
+                remainingBarangay < 0
                   ? 'text-rose-600'
                   : 'text-emerald-700'
               }`}
             >
               {formatCurrency(
-                activeTab === 'all'
-                  ? grandRemaining
-                  : activeTab === 'barangay'
-                  ? remainingBarangay
-                  : remainingSk
+                remainingBarangay
               )}
             </div>
             <p className="text-[11px] text-slate-500">
-              {(activeTab === 'all' ? grandRemaining : activeTab === 'barangay' ? remainingBarangay : remainingSk) < 0
-                ? '⚠️ Spending exceeds current allocation'
+              {remainingBarangay < 0
+                ? 'Spending exceeds current allocation'
                 : 'Available unspent budget'}
             </p>
           </div>
@@ -428,41 +287,38 @@ export default function PublicBudget() {
             <div className="flex items-center gap-2">
               <span
                 className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold ${
-                  (activeTab === 'all' ? grandRemaining : activeTab === 'barangay' ? remainingBarangay : remainingSk) < 0
+                  totalBarangayBudget <= 0
+                    ? 'bg-slate-100 text-slate-700 border border-slate-200'
+                    : remainingBarangay < 0
                     ? 'bg-rose-100 text-rose-800 border border-rose-200'
                     : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                 }`}
               >
-                {(activeTab === 'all' ? grandRemaining : activeTab === 'barangay' ? remainingBarangay : remainingSk) < 0
-                  ? 'BUDGET WATCH'
-                  : 'ON TRACK'}
+                {totalBarangayBudget <= 0
+                  ? 'AWAITING DATA'
+                  : remainingBarangay < 0
+                    ? 'BUDGET WATCH'
+                    : 'ON TRACK'}
               </span>
             </div>
-            <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden mt-2">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  (activeTab === 'all' ? grandUtilizationRate : activeTab === 'barangay' ? barangayUtilizationRate : skUtilizationRate) > 90
-                    ? 'bg-rose-500'
-                    : 'bg-civic-emerald'
-                }`}
-                style={{
-                  width: `${Math.min(
-                    100,
-                    activeTab === 'all'
-                      ? grandUtilizationRate
-                      : activeTab === 'barangay'
-                      ? barangayUtilizationRate
-                      : skUtilizationRate
-                  )}%`,
-                }}
-              />
-            </div>
+            {totalBarangayBudget > 0 ? (
+              <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden mt-2" role="progressbar" aria-label="Barangay budget used" aria-valuemin={0} aria-valuemax={100} aria-valuenow={barangayUtilizationRate}>
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    barangayUtilizationRate > 90 ? 'bg-rose-500' : 'bg-civic-emerald'
+                  }`}
+                  style={{ width: `${barangayUtilizationRate}%` }}
+                />
+              </div>
+            ) : (
+              <p className="text-[11px] text-slate-500">A status will appear after a budget allocation is published.</p>
+            )}
           </div>
         </div>
       </section>
 
       {/* Category Spending Breakdown (Budget vs Spent) - Great for user comprehension! */}
-      {(activeTab === 'all' || activeTab === 'barangay') && categoryBreakdown.length > 0 && (
+      {categoryBreakdown.length > 0 && (
         <section className="bg-white rounded-2xl border border-slate-200/80 p-6 shadow-sm space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-4">
             <div>
@@ -520,8 +376,7 @@ export default function PublicBudget() {
       )}
 
       {/* Detailed Tables Section: Barangay Government */}
-      {(activeTab === 'all' || activeTab === 'barangay') && (
-        <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+      <section className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
           {/* Section Header */}
           <div className="p-5 sm:p-6 border-b border-slate-100 bg-slate-50/50 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -711,203 +566,7 @@ export default function PublicBudget() {
               </table>
             </div>
           )}
-        </section>
-      )}
-
-      {/* Detailed Tables Section: Sangguniang Kabataan (SK) */}
-      {(activeTab === 'all' || activeTab === 'sk') && (
-        <section className="bg-white rounded-2xl border border-emerald-100 shadow-sm overflow-hidden">
-          {/* Section Header */}
-          <div className="p-5 sm:p-6 border-b border-emerald-100/80 bg-emerald-50/40 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold shrink-0">
-                <Users className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-emerald-950">Sangguniang Kabataan (SK) Finances</h2>
-                <p className="text-xs text-emerald-800/70">Youth fund sources, statutory allocations & youth project expenses</p>
-              </div>
-            </div>
-
-            {/* Sub-tab pills for SK */}
-            <div className="flex items-center gap-1.5 bg-emerald-100/70 p-1 rounded-xl w-fit">
-              <button
-                type="button"
-                onClick={() => setSkSubTab('funds')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  skSubTab === 'funds'
-                    ? 'bg-white text-emerald-900 shadow-xs'
-                    : 'text-emerald-800 hover:text-emerald-950'
-                }`}
-              >
-                Funds & Allocations ({filteredSkFunds.length + filteredSkAllocations.length})
-              </button>
-              <button
-                type="button"
-                onClick={() => setSkSubTab('expenses')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  skSubTab === 'expenses'
-                    ? 'bg-white text-emerald-900 shadow-xs'
-                    : 'text-emerald-800 hover:text-emerald-950'
-                }`}
-              >
-                SK Expenses ({filteredSkExpenses.length})
-              </button>
-            </div>
-          </div>
-
-          {/* SK Sub-Tab 1: Fund Sources & Allocations Table */}
-          {skSubTab === 'funds' && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-emerald-50/60 text-emerald-900 text-xs uppercase tracking-wider border-b border-emerald-100">
-                  <tr>
-                    <th className="px-5 py-3.5">Type</th>
-                    <th className="px-5 py-3.5">Fiscal Year</th>
-                    <th className="px-5 py-3.5">Category / Source Name</th>
-                    <th className="px-5 py-3.5 text-right">Amount</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-emerald-50">
-                  {(l3 || l4) && (
-                    <tr>
-                      <td colSpan={4} className="px-5 py-8 text-center text-slate-400">
-                        Loading SK funds & allocations…
-                      </td>
-                    </tr>
-                  )}
-                  {!l3 && !l4 && filteredSkFunds.length === 0 && filteredSkAllocations.length === 0 && (
-                    <tr>
-                      <td colSpan={4} className="px-5 py-10 text-center">
-                        <div className="max-w-xs mx-auto text-slate-400 space-y-1">
-                          <Wallet className="w-8 h-8 mx-auto text-emerald-300 mb-2" />
-                          <p className="font-semibold text-slate-600 text-sm">No SK funds published</p>
-                          <p className="text-xs">No SK fund records match the current filter.</p>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                  {filteredSkFunds.map((row) => (
-                    <tr key={`sk-fund-${row.id}`} className="hover:bg-emerald-50/40 transition-colors">
-                      <td className="px-5 py-3.5 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
-                          Fund Source
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5 font-medium text-slate-700 whitespace-nowrap text-xs">
-                        FY {row.fiscal_year}
-                      </td>
-                      <td className="px-5 py-3.5 font-medium text-slate-900">{row.name}</td>
-                      <td className="px-5 py-3.5 text-right font-bold text-slate-900 whitespace-nowrap">
-                        {formatCurrency(row.amount)}
-                      </td>
-                    </tr>
-                  ))}
-                  {filteredSkAllocations.map((row) => (
-                    <tr key={`sk-alloc-${row.id}`} className="hover:bg-emerald-50/40 transition-colors">
-                      <td className="px-5 py-3.5 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-100 text-sky-800">
-                          Budget Allocation
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5 font-medium text-slate-700 whitespace-nowrap text-xs">
-                        FY {row.fiscal_year}
-                      </td>
-                      <td className="px-5 py-3.5 font-medium text-slate-900">{row.category}</td>
-                      <td className="px-5 py-3.5 text-right font-bold text-slate-900 whitespace-nowrap">
-                        {formatCurrency(row.amount)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                {(filteredSkFunds.length > 0 || filteredSkAllocations.length > 0) && (
-                  <tfoot className="bg-emerald-50/40 border-t border-emerald-100 font-semibold text-xs text-slate-700">
-                    <tr>
-                      <td colSpan={3} className="px-5 py-3 text-right">
-                        Total SK Budget / Funds:
-                      </td>
-                      <td className="px-5 py-3 text-right text-sm font-bold text-emerald-900">
-                        {formatCurrency(effectiveSkBudget)}
-                      </td>
-                    </tr>
-                  </tfoot>
-                )}
-              </table>
-            </div>
-          )}
-
-          {/* SK Sub-Tab 2: Recorded Expenses Table */}
-          {skSubTab === 'expenses' && (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-emerald-50/60 text-emerald-900 text-xs uppercase tracking-wider border-b border-emerald-100">
-                  <tr>
-                    <th className="px-5 py-3.5">Date Incurred</th>
-                    <th className="px-5 py-3.5">Category</th>
-                    <th className="px-5 py-3.5">SK Project / Program</th>
-                    <th className="px-5 py-3.5">Description</th>
-                    <th className="px-5 py-3.5 text-right">Amount</th>
-                    <th className="px-5 py-3.5">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-emerald-50">
-                  {l5 && (
-                    <tr>
-                      <td colSpan={6} className="px-5 py-8 text-center text-slate-400">
-                        Loading SK expenses…
-                      </td>
-                    </tr>
-                  )}
-                  {!l5 && filteredSkExpenses.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="px-5 py-10 text-center">
-                        <div className="max-w-xs mx-auto text-slate-400 space-y-1">
-                          <Receipt className="w-8 h-8 mx-auto text-emerald-300 mb-2" />
-                          <p className="font-semibold text-slate-600 text-sm">No SK expenses found</p>
-                          <p className="text-xs">No SK expenses match the current filter.</p>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                  {filteredSkExpenses.map((row) => (
-                    <tr key={row.id} className="hover:bg-emerald-50/40 transition-colors">
-                      <td className="px-5 py-3.5 text-slate-700 whitespace-nowrap text-xs font-medium">
-                        {formatDate(row.date_incurred)}
-                      </td>
-                      <td className="px-5 py-3.5 font-medium text-emerald-950">{row.category}</td>
-                      <td className="px-5 py-3.5 text-xs text-slate-600">
-                        {skPrograms.find((program) => program.id === row.sk_program_id)?.title || '—'}
-                      </td>
-                      <td className="px-5 py-3.5 text-slate-600 text-xs max-w-xs truncate">
-                        {row.description || '—'}
-                      </td>
-                      <td className="px-5 py-3.5 text-right font-bold text-slate-900 whitespace-nowrap">
-                        {formatCurrency(row.amount)}
-                      </td>
-                      <td className="px-5 py-3.5 whitespace-nowrap">
-                        <Badge status={row.status} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-                {filteredSkExpenses.length > 0 && (
-                  <tfoot className="bg-emerald-50/40 border-t border-emerald-100 font-semibold text-xs text-slate-700">
-                    <tr>
-                      <td colSpan={4} className="px-5 py-3 text-right">
-                        Total SK Expenses:
-                      </td>
-                      <td className="px-5 py-3 text-right text-sm font-bold text-rose-700">
-                        {formatCurrency(totalSkSpent)}
-                      </td>
-                      <td />
-                    </tr>
-                  </tfoot>
-                )}
-              </table>
-            </div>
-          )}
-        </section>
-      )}
+      </section>
 
       {/* Receipt Modal Preview */}
       {selectedReceipt && (

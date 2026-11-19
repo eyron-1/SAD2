@@ -1,10 +1,10 @@
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { usePublicBarangay } from '../../lib/usePublicBarangay';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import PublicMetricCard from '../../components/public/PublicMetricCard';
 import { sumAmounts, sumActiveAmounts } from '../../lib/financial';
-import { ArrowRight, ClipboardList, FolderKanban, Landmark, MessageSquare, PieChart, Receipt, Users } from 'lucide-react';
+import { FolderKanban, Landmark, PieChart, Receipt, Users } from 'lucide-react';
 
 export default function PublicSKOverview() {
   const { slug } = useParams();
@@ -41,9 +41,6 @@ export default function PublicSKOverview() {
               <p className="max-w-xl text-sm leading-relaxed text-emerald-100/80">Explore youth programs, SK funds, budget allocations, and published expenses.</p>
             </div>
           </div>
-          <Link to={`/b/${slug}/sk/programs`} className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-4 py-3 text-sm font-semibold text-emerald-950 shadow-sm transition hover:bg-emerald-50 focus-visible:outline-white">
-            Explore programs <ArrowRight className="h-4 w-4" />
-          </Link>
         </div>
       </section>
 
@@ -59,29 +56,6 @@ export default function PublicSKOverview() {
           <PublicMetricCard label="Budget allocated" value={formatCurrency(totalBudget)} detail={`${allocations.length} published ${allocations.length === 1 ? 'allocation' : 'allocations'}`} icon={PieChart} tone="blue" />
           <PublicMetricCard label="Expenses recorded" value={formatCurrency(totalExpenses)} detail={`${expenses.length} expense ${expenses.length === 1 ? 'record' : 'records'}`} icon={Receipt} tone="amber" />
           <PublicMetricCard label="Ongoing programs" value={activePrograms} detail={`${programs.length} published ${programs.length === 1 ? 'program' : 'programs'}`} icon={FolderKanban} />
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.14em] text-civic-emerald">Get involved</p>
-          <h2 className="mt-1 text-xl font-bold text-civic-navy">Explore SK services</h2>
-          <p className="mt-1 text-sm text-slate-500">Find records, take part in youth programs, or share feedback.</p>
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {[
-            { to: `/b/${slug}/sk/profiling`, title: 'KK Youth Profiling', text: 'Submit your profile to the SK for verification.', icon: ClipboardList },
-            { to: `/b/${slug}/sk/budget`, title: 'SK Budget & Expenses', text: 'Review fund sources, allocations, and expenses.', icon: PieChart },
-            { to: `/b/${slug}/sk/programs`, title: 'SK Youth Programs', text: 'Explore youth-focused projects and budgets.', icon: FolderKanban },
-            { to: `/b/${slug}/sk/feedback`, title: 'Send SK Feedback', text: 'Share a concern or suggestion with SK officials.', icon: MessageSquare },
-          ].map(({ to, title, text, icon: Icon }) => (
-            <Link key={to} to={to} className="group flex min-h-36 flex-col rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-civic-emerald/50 hover:shadow-md focus-visible:outline-offset-4">
-              <span className="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-civic-emerald"><Icon className="h-5 w-5" /></span>
-              <h3 className="font-bold text-civic-navy">{title}</h3>
-              <p className="mt-1 flex-1 text-sm leading-relaxed text-slate-500">{text}</p>
-              <span className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-civic-emerald">Open <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></span>
-            </Link>
-          ))}
         </div>
       </section>
     </div>

@@ -78,7 +78,9 @@ export default function PublicAIAssistant({ barangay, variant = "floating" }) {
             <Bot className="h-6 w-6 text-civic-emerald" />
           </div>
           <div>
-            <h1 className="text-lg font-bold">Ask the Barangay Assistant</h1>
+            <h1 className="text-lg font-bold text-white">
+              Ask the Barangay Assistant
+            </h1>
             <p className="text-xs text-slate-300">
               Ask about {barangay?.name || "your barangay"}, SK, or general topics
             </p>
@@ -162,7 +164,9 @@ export default function PublicAIAssistant({ barangay, variant = "floating" }) {
             <div className="flex items-center gap-2">
               <Bot className="h-5 w-5 text-civic-emerald" />
               <div>
-                <h2 className="text-sm font-bold">Ask the Barangay Assistant</h2>
+                <h2 className="text-sm font-bold text-white">
+                  Ask the Barangay Assistant
+                </h2>
                 <p className="text-[10px] text-slate-300">
                   Questions about {barangay?.name || "your barangay"} and SK
                 </p>
