@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import { sumAmounts, activeRows } from '../../lib/financial';
+import ReportPrintTable from '../../components/reports/ReportPrintTable';
 import {
   BarChart3, Download, PieChart as PieIcon, Landmark, Receipt,
   Percent, FolderKanban, FileSpreadsheet, TrendingUp, TrendingDown,
@@ -16,30 +17,6 @@ import {
 
 /* ─── Colour palette ─────────────────────────────────────────────── */
 const PALETTE = ['#0F2D4A', '#2F6B4F', '#C9A24B', '#B4472B', '#6D28D9', '#0369A1', '#059669', '#1E4258'];
-
-/* ─── CSV helpers ─────────────────────────────────────────────────── */
-function toCSV(rows, headers) {
-  const esc = (v) => {
-    let s = String(v ?? '');
-    if (/^[\t\r ]*[=+\-@]/.test(s)) s = `'${s}`;
-    return `"${s.replace(/"/g, '""')}"`;
-  };
-  return '\uFEFF' + [
-    headers.map(([, label]) => esc(label)).join(','),
-    ...rows.map((r) => headers.map(([k]) => esc(r[k])).join(',')),
-  ].join('\n');
-}
-function downloadCSV(filename, csv) {
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
-}
 
 /* ─── Sub-components ─────────────────────────────────────────────── */
 function StatCard({ label, value, icon: Icon, iconClass, sub, trend, progressPct }) {
@@ -107,6 +84,7 @@ const defaultMeta = { label: 'Other', icon: AlertCircle, cls: 'bg-slate-100 text
 /* ─── Main page ──────────────────────────────────────────────────── */
 export default function SKReportsAnalytics() {
   const { profile } = useAuth();
+  const [exportError, setExportError] = useState('');
   const { rows: budget,    error: e1 } = useSupabaseTable('sk_budget',       profile?.barangay_id);
   const { rows: expenses,  error: e2 } = useSupabaseTable('sk_expenses',     profile?.barangay_id);
   const { rows: funds,     error: e3 } = useSupabaseTable('sk_fund_sources', profile?.barangay_id);
@@ -133,6 +111,21 @@ export default function SKReportsAnalytics() {
       : activeRows(expenses).filter((e) => e.date_incurred?.startsWith(fyFilter)),
     [expenses, fyFilter],
   );
+  const periodFunds = fyFilter === 'all' ? funds : funds.filter((f) => String(f.fiscal_year) === fyFilter);
+  const periodPrograms = fyFilter === 'all'
+    ? programs
+    : programs.filter((p) => p.start_date?.startsWith(fyFilter) || p.end_date?.startsWith(fyFilter));
+  const handleExcelExport = (options) => {
+    setExportError('');
+    import('../../lib/excelExport').then(({ downloadExcel }) => downloadExcel({
+      ...options,
+      organization: profile?.barangays?.name || 'Barangay',
+      period: fyFilter === 'all' ? 'All Fiscal Years' : `Fiscal Year ${fyFilter}`,
+    })).catch((error) => {
+      console.error('SK Excel report export failed:', error);
+      setExportError('Unable to create the Excel file. Please try again.');
+    });
+  };
 
   /* KPIs */
   const totalBudget   = sumAmounts(filteredBudget);
@@ -204,7 +197,7 @@ export default function SKReportsAnalytics() {
   const phpFmt = (v) => `₱${Number(v).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
 
   return (
-    <div className="space-y-8 max-w-6xl">
+    <div className="report-page space-y-8 max-w-6xl">
 
       {/* Print-only header — hidden on screen */}
       <div data-print="show" className="hidden border-b-2 border-civic-navy pb-4 mb-2">
@@ -218,6 +211,59 @@ export default function SKReportsAnalytics() {
         </p>
       </div>
 
+      <section className="hidden print-report-section print-summary" data-print="show">
+        <h2>Executive Summary</h2>
+        <div className="print-summary-grid">
+          <div><span>SK Funds Sourced</span><strong>{phpFmt(totalFunds)}</strong></div>
+          <div><span>SK Budget Allocated</span><strong>{phpFmt(totalBudget)}</strong></div>
+          <div><span>SK Total Spent</span><strong>{phpFmt(totalExpenses)}</strong></div>
+          <div><span>Budget Utilization</span><strong>{utilization.toFixed(1)}%</strong></div>
+          <div><span>Active KK Members</span><strong>{activeKK}</strong></div>
+        </div>
+      </section>
+      <ReportPrintTable
+        title="SK Budget Allocations"
+        columns={[
+          { key: 'fiscal_year', label: 'Fiscal Year' },
+          { key: 'category', label: 'Category' },
+          { key: 'description', label: 'Description' },
+          { key: 'amount', label: 'Allocated Amount', render: phpFmt },
+        ]}
+        rows={filteredBudget}
+      />
+      <ReportPrintTable
+        title="SK Expenses"
+        columns={[
+          { key: 'date_incurred', label: 'Date' },
+          { key: 'category', label: 'Category' },
+          { key: 'status', label: 'Status' },
+          { key: 'amount', label: 'Amount', render: phpFmt },
+        ]}
+        rows={filteredExpenses}
+      />
+      <ReportPrintTable
+        title="SK Fund Sources"
+        columns={[
+          { key: 'name', label: 'Source' },
+          { key: 'source_type', label: 'Type' },
+          { key: 'fiscal_year', label: 'Fiscal Year' },
+          { key: 'amount', label: 'Amount', render: phpFmt },
+        ]}
+        rows={periodFunds}
+      />
+      <ReportPrintTable
+        title="SK Programs and Projects"
+        columns={[
+          { key: 'title', label: 'Program' },
+          { key: 'category', label: 'Category' },
+          { key: 'status', label: 'Status' },
+          { key: 'budget_amount', label: 'Budget', render: phpFmt },
+          { key: 'beneficiaries_count', label: 'Beneficiaries' },
+        ]}
+        rows={periodPrograms}
+      />
+
+      <div data-print="screen">
       {/* Screen-only page header */}
       <div data-print="no-print" className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
@@ -438,6 +484,8 @@ export default function SKReportsAnalytics() {
         </div>
       </div>
 
+      </div>
+
       {/* Export panel */}
       <div data-print="no-print" className="card space-y-5">
         <div className="flex items-start gap-3 border-b border-slate-100 pb-4">
@@ -446,7 +494,7 @@ export default function SKReportsAnalytics() {
           </span>
           <div>
             <h2 className="text-base font-bold text-civic-navy">Export SK Audit Data</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Download CSV files for DILG compliance, or save this page as PDF.</p>
+            <p className="text-xs text-slate-500 mt-0.5">Download formatted Excel workbooks or save this report as PDF.</p>
           </div>
         </div>
 
@@ -462,51 +510,87 @@ export default function SKReportsAnalytics() {
               label: 'SK Budget Allocations',
               icon: Download,
               desc: 'Fiscal year, category, amount',
-              onClick: () => downloadCSV('sk_budget_allocations.csv', toCSV(filteredBudget, [
-                ['fiscal_year', 'Fiscal Year'], ['category', 'Category'], ['amount', 'Amount'], ['description', 'Description'],
-              ])),
+              onClick: () => handleExcelExport({
+                filename: 'sk_budget_allocations.xlsx',
+                title: 'SK Budget Allocations',
+                summary: `${filteredBudget.length} allocations  |  Total: ${phpFmt(totalBudget)}`,
+                rows: filteredBudget,
+                columns: [
+                  { key: 'fiscal_year', label: 'Fiscal Year' },
+                  { key: 'category', label: 'Category' },
+                  { key: 'amount', label: 'Amount', format: 'currency' },
+                  { key: 'description', label: 'Description', width: 40 },
+                ],
+              }),
             },
             {
               label: 'SK Expenses',
               icon: Download,
               desc: 'Date, category, amount, status',
-              onClick: () => downloadCSV('sk_expenses.csv', toCSV(filteredExpenses, [
-                ['date_incurred', 'Date'], ['category', 'Category'], ['amount', 'Amount'], ['status', 'Status'],
-              ])),
+              onClick: () => handleExcelExport({
+                filename: 'sk_expenses.xlsx',
+                title: 'SK Expenses',
+                summary: `${filteredExpenses.length} expenses  |  Total: ${phpFmt(totalExpenses)}`,
+                rows: filteredExpenses,
+                columns: [
+                  { key: 'date_incurred', label: 'Date' },
+                  { key: 'category', label: 'Category' },
+                  { key: 'amount', label: 'Amount', format: 'currency' },
+                  { key: 'status', label: 'Status' },
+                ],
+              }),
             },
             {
               label: 'SK Fund Sources',
               icon: Download,
               desc: 'Name, type, fiscal year, amount',
-              onClick: () => downloadCSV('sk_fund_sources.csv', toCSV(
-                fyFilter === 'all' ? funds : funds.filter((f) => String(f.fiscal_year) === fyFilter),
-              [
-                ['name', 'Name'], ['source_type', 'Type'], ['fiscal_year', 'FY'], ['amount', 'Amount'],
-              ])),
+              onClick: () => handleExcelExport({
+                filename: 'sk_fund_sources.xlsx',
+                title: 'SK Fund Sources',
+                summary: `${periodFunds.length} sources  |  Total: ${phpFmt(totalFunds)}`,
+                rows: periodFunds,
+                columns: [
+                  { key: 'name', label: 'Name', width: 28 },
+                  { key: 'source_type', label: 'Type' },
+                  { key: 'fiscal_year', label: 'Fiscal Year' },
+                  { key: 'amount', label: 'Amount', format: 'currency' },
+                ],
+              }),
             },
             {
               label: 'SK Programs & Projects',
               icon: Download,
               desc: 'Title, status, budget, beneficiaries',
-              onClick: () => downloadCSV('sk_programs.csv', toCSV(
-                fyFilter === 'all'
-                  ? programs
-                  : programs.filter((p) =>
-                    p.start_date?.startsWith(fyFilter) || p.end_date?.startsWith(fyFilter),
-                  ),
-              [
-                ['title', 'Title'], ['status', 'Status'], ['category', 'Category'],
-                ['budget_amount', 'Budget'], ['beneficiaries_count', 'Beneficiaries'],
-              ])),
+              onClick: () => handleExcelExport({
+                filename: 'sk_programs.xlsx',
+                title: 'SK Programs and Projects',
+                rows: periodPrograms,
+                columns: [
+                  { key: 'title', label: 'Title', width: 32 },
+                  { key: 'status', label: 'Status' },
+                  { key: 'category', label: 'Category' },
+                  { key: 'budget_amount', label: 'Budget', format: 'currency' },
+                  { key: 'beneficiaries_count', label: 'Beneficiaries', format: 'number' },
+                ],
+              }),
             },
             {
               label: 'KK Member Profiles',
               icon: Download,
               desc: 'Name, age, status, profiling data',
-              onClick: () => downloadCSV('kk_monitoring.csv', toCSV(kk, [
-                ['full_name', 'Full Name'], ['age', 'Age'], ['participation_status', 'Status'],
-                ['address', 'Address'], ['contact_number', 'Contact'],
-              ])),
+              onClick: () => handleExcelExport({
+                filename: 'kk_monitoring.xlsx',
+                title: 'KK Member Profiles',
+                summary: `${kk.length} youth profiles`,
+                rows: kk,
+                columns: [
+                  { key: 'full_name', label: 'Full Name', width: 28 },
+                  { key: 'age', label: 'Age', format: 'number' },
+                  { key: 'participation_status', label: 'Status' },
+                  { key: 'address', label: 'Address', width: 36 },
+                  { key: 'contact_number', label: 'Contact', width: 20 },
+                ],
+              }),
             },
           ].map(({ label, icon: Icon, desc, onClick }) => (
             <button
@@ -524,6 +608,7 @@ export default function SKReportsAnalytics() {
             </button>
           ))}
         </div>
+        <ErrorBanner message={exportError} />
       </div>
     </div>
   );

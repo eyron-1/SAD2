@@ -171,27 +171,33 @@
 }
 
 @media print {
-  /* ── Reset page chrome ───────────────────────────────────── */
-  @page { margin: 1.8cm 1.5cm; }
+  @page { size: A4 portrait; margin: 14mm 13mm; }
 
-  body { background: #fff !important; color: #000 !important; font-size: 11pt; }
+  html,
+  body {
+    background: #fff !important;
+    color: #1e293b !important;
+    font: 10pt/1.4 Arial, sans-serif !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
 
-  /* ── Hide all portal UI chrome ───────────────────────────── */
   aside,
   header,
   .floating-ai-chat { display: none !important; }
 
-  /* ── Hide items tagged for screen-only ───────────────────── */
   [data-print="no-print"] { display: none !important; }
-
-  /* ── Show items tagged for print-only ───────────────────── */
+  [data-print="screen"] { display: none !important; }
   [data-print="show"] { display: block !important; }
 
-  /* ── Layout reset ─────────────────────────────────────────── */
   .min-h-screen,
-  #root > div { min-height: unset !important; }
+  #root > div,
+  .report-page {
+    min-height: unset !important;
+    width: 100% !important;
+    max-width: none !important;
+  }
 
-  /* Undo the sidebar left-margin so the content fills the page */
   .lg\:ml-72 { margin-left: 0 !important; }
 
   main {
@@ -200,18 +206,98 @@
     max-width: 100% !important;
   }
 
-  /* ── Cards / charts ──────────────────────────────────────── */
-  .card {
-    box-shadow: none !important;
-    border: 1px solid #e2e8f0 !important;
-    break-inside: avoid;
-    page-break-inside: avoid;
+  .report-page {
+    display: block !important;
+    color: #1e293b !important;
   }
 
-  /* ── Colour fixes for print ──────────────────────────────── */
-  .text-civic-navy { color: #0F2D4A !important; }
+  .report-page [data-print="show"] {
+    margin: 0 0 7mm !important;
+  }
 
-  /* ── Recharts: keep SVG visible ──────────────────────────── */
-  .recharts-wrapper,
-  .recharts-surface { overflow: visible !important; }
+  .report-page > [data-print="show"]:first-child {
+    border-bottom: 2px solid #0f2d4a !important;
+    padding-bottom: 5mm !important;
+  }
+
+  .report-page h1,
+  .report-page h2 {
+    color: #0f2d4a !important;
+  }
+
+  .report-page h1 { font-size: 19pt !important; }
+
+  .report-page .print-report-section {
+    margin: 0 0 7mm !important;
+    break-inside: auto;
+  }
+
+  .report-page .print-report-section h2 {
+    margin: 0 0 3mm !important;
+    padding-bottom: 1.5mm;
+    border-bottom: 1px solid #cbd5e1;
+    font-size: 12pt !important;
+    break-after: avoid;
+  }
+
+  .report-page .print-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 3mm;
+  }
+
+  .report-page .print-summary-grid > div {
+    padding: 3mm;
+    border: 1px solid #cbd5e1;
+    border-radius: 2mm;
+  }
+
+  .report-page .print-summary-grid span,
+  .report-page .print-summary-grid strong {
+    display: block;
+  }
+
+  .report-page .print-summary-grid span {
+    margin-bottom: 1mm;
+    color: #64748b;
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+
+  .report-page .print-summary-grid strong {
+    color: #0f2d4a;
+    font-size: 11pt;
+  }
+
+  .report-page table {
+    display: table !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    border-collapse: collapse !important;
+    font-size: 8.5pt !important;
+  }
+
+  .report-page thead { display: table-header-group; }
+  .report-page tr { break-inside: avoid; }
+
+  .report-page th,
+  .report-page td {
+    padding: 2mm 2.5mm !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #1e293b !important;
+    white-space: normal !important;
+    text-align: left;
+  }
+
+  .report-page th {
+    background: #eaf0f5 !important;
+    color: #0f2d4a !important;
+    font-size: 7pt !important;
+  }
+
+  .report-page .print-report-section:nth-of-type(even) tbody tr:nth-child(even) {
+    background: #f8fafc !important;
+  }
 }

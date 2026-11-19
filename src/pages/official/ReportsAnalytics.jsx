@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import { sumAmounts, sumActiveAmounts, activeRows } from '../../lib/financial';
+import ReportPrintTable from '../../components/reports/ReportPrintTable';
 import {
   BarChart3, Download, PieChart as PieIcon, Landmark, Receipt,
   Percent, FolderKanban, FileSpreadsheet, TrendingUp, TrendingDown,
@@ -15,30 +16,6 @@ import {
 
 /* ─── Colour palette ───────────────────────────────────────────── */
 const PALETTE = ['#0F2D4A', '#2F6B4F', '#C9A24B', '#B4472B', '#1E4258', '#6D28D9', '#0369A1', '#059669'];
-
-/* ─── CSV helpers ───────────────────────────────────────────────── */
-function toCSV(rows, headers) {
-  const esc = (v) => {
-    let s = String(v ?? '');
-    if (/^[\t\r ]*[=+\-@]/.test(s)) s = `'${s}`;
-    return `"${s.replace(/"/g, '""')}"`;
-  };
-  return '\uFEFF' + [
-    headers.map(([, label]) => esc(label)).join(','),
-    ...rows.map((r) => headers.map(([k]) => esc(r[k])).join(',')),
-  ].join('\n');
-}
-function downloadCSV(filename, csv) {
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
-}
 
 /* ─── Sub-components ─────────────────────────────────────────────── */
 function StatCard({ label, value, icon: Icon, iconClass, sub, trend, progressPct }) {
@@ -106,6 +83,7 @@ const defaultMeta = { label: 'Other', icon: AlertCircle, cls: 'bg-slate-100 text
 /* ─── Main page ──────────────────────────────────────────────────── */
 export default function ReportsAnalytics() {
   const { profile } = useAuth();
+  const [exportError, setExportError] = useState('');
   const { rows: allocations, error: e1 } = useSupabaseTable('budget_allocations', profile?.barangay_id);
   const { rows: expenses,    error: e2 } = useSupabaseTable('expenses',           profile?.barangay_id);
   const { rows: funds,       error: e3 } = useSupabaseTable('fund_sources',       profile?.barangay_id);
@@ -131,6 +109,29 @@ export default function ReportsAnalytics() {
       : activeRows(expenses).filter((e) => e.date_incurred?.startsWith(fyFilter)),
     [expenses, fyFilter],
   );
+  const periodFunds = fyFilter === 'all' ? funds : funds.filter((f) => String(f.fiscal_year) === fyFilter);
+  const periodPrograms = fyFilter === 'all'
+    ? programs
+    : programs.filter((p) => p.start_date?.startsWith(fyFilter) || p.end_date?.startsWith(fyFilter));
+  const exportPrograms = periodPrograms.map((p) => {
+    let sector = p.beneficiary_category || '';
+    if (!sector && p.description?.startsWith('[Beneficiary: ')) {
+      const match = p.description.match(/^\[Beneficiary:\s*([^\]]+)\]/);
+      if (match) sector = match[1];
+    }
+    return { ...p, beneficiary_category: sector || 'General Residents' };
+  });
+  const handleExcelExport = (options) => {
+    setExportError('');
+    import('../../lib/excelExport').then(({ downloadExcel }) => downloadExcel({
+      ...options,
+      organization: profile?.barangays?.name || 'Barangay',
+      period: fyFilter === 'all' ? 'All Fiscal Years' : `Fiscal Year ${fyFilter}`,
+    })).catch((error) => {
+      console.error('Excel report export failed:', error);
+      setExportError('Unable to create the Excel file. Please try again.');
+    });
+  };
 
   /* KPIs */
   const totalBudget   = sumAmounts(filteredAllocations);
@@ -193,7 +194,7 @@ export default function ReportsAnalytics() {
   const phpFmt = (v) => `₱${Number(v).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
 
   return (
-    <div className="space-y-8 max-w-6xl">
+    <div className="report-page space-y-8 max-w-6xl">
 
       {/* Print-only header — hidden on screen */}
       <div data-print="show" className="hidden border-b-2 border-civic-navy pb-4 mb-2">
@@ -207,6 +208,58 @@ export default function ReportsAnalytics() {
         </p>
       </div>
 
+      <section className="hidden print-report-section print-summary" data-print="show">
+        <h2>Executive Summary</h2>
+        <div className="print-summary-grid">
+          <div><span>Total Funds Sourced</span><strong>{phpFmt(totalFunds)}</strong></div>
+          <div><span>Total Allocated</span><strong>{phpFmt(totalBudget)}</strong></div>
+          <div><span>Total Spent</span><strong>{phpFmt(totalExpenses)}</strong></div>
+          <div><span>Budget Utilization</span><strong>{utilization.toFixed(1)}%</strong></div>
+        </div>
+      </section>
+      <ReportPrintTable
+        title="Budget Allocations"
+        columns={[
+          { key: 'fiscal_year', label: 'Fiscal Year' },
+          { key: 'category', label: 'Category' },
+          { key: 'description', label: 'Description' },
+          { key: 'amount', label: 'Allocated Amount', render: phpFmt },
+        ]}
+        rows={filteredAllocations}
+      />
+      <ReportPrintTable
+        title="Recorded Expenses"
+        columns={[
+          { key: 'date_incurred', label: 'Date' },
+          { key: 'category', label: 'Category' },
+          { key: 'status', label: 'Status' },
+          { key: 'amount', label: 'Amount', render: phpFmt },
+        ]}
+        rows={filteredExpenses}
+      />
+      <ReportPrintTable
+        title="Fund Sources"
+        columns={[
+          { key: 'name', label: 'Source' },
+          { key: 'source_type', label: 'Type' },
+          { key: 'fiscal_year', label: 'Fiscal Year' },
+          { key: 'amount', label: 'Amount', render: phpFmt },
+        ]}
+        rows={periodFunds}
+      />
+      <ReportPrintTable
+        title="Programs and Projects"
+        columns={[
+          { key: 'title', label: 'Program' },
+          { key: 'category', label: 'Category' },
+          { key: 'status', label: 'Status' },
+          { key: 'beneficiary_category', label: 'Beneficiary Sector' },
+          { key: 'budget_amount', label: 'Budget', render: phpFmt },
+        ]}
+        rows={exportPrograms}
+      />
+
+      <div data-print="screen">
       {/* Screen-only page header */}
       <div data-print="no-print" className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
@@ -358,6 +411,8 @@ export default function ReportsAnalytics() {
         )}
       </div>
 
+      </div>
+
       {/* Export panel */}
       <div data-print="no-print" className="card space-y-5">
         <div className="flex items-start gap-3 border-b border-slate-100 pb-4">
@@ -366,7 +421,7 @@ export default function ReportsAnalytics() {
           </span>
           <div>
             <h2 className="text-base font-bold text-civic-navy">Export DILG Audit Data</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Download CSV files compatible with Excel, or save this page as PDF.</p>
+            <p className="text-xs text-slate-500 mt-0.5">Download formatted Excel workbooks or save this report as PDF.</p>
           </div>
         </div>
 
@@ -382,52 +437,70 @@ export default function ReportsAnalytics() {
               label: 'Budget Allocations',
               icon: Download,
               desc: 'Fiscal year, category, amount',
-              onClick: () => downloadCSV('budget_allocations.csv', toCSV(filteredAllocations, [
-                ['fiscal_year', 'Fiscal Year'], ['category', 'Category'], ['amount', 'Amount'], ['description', 'Description'],
-              ])),
+              onClick: () => handleExcelExport({
+                filename: 'budget_allocations.xlsx',
+                title: 'Budget Allocations',
+                summary: `${filteredAllocations.length} allocations  |  Total: ${phpFmt(totalBudget)}`,
+                rows: filteredAllocations,
+                columns: [
+                  { key: 'fiscal_year', label: 'Fiscal Year' },
+                  { key: 'category', label: 'Category' },
+                  { key: 'amount', label: 'Amount', format: 'currency' },
+                  { key: 'description', label: 'Description', width: 40 },
+                ],
+              }),
             },
             {
               label: 'Recorded Expenses',
               icon: Download,
               desc: 'Date, category, amount, status',
-              onClick: () => downloadCSV('expenses.csv', toCSV(filteredExpenses, [
-                ['date_incurred', 'Date'], ['category', 'Category'], ['amount', 'Amount'], ['status', 'Status'],
-              ])),
+              onClick: () => handleExcelExport({
+                filename: 'expenses.xlsx',
+                title: 'Recorded Expenses',
+                summary: `${filteredExpenses.length} expenses  |  Total: ${phpFmt(totalExpenses)}`,
+                rows: filteredExpenses,
+                columns: [
+                  { key: 'date_incurred', label: 'Date' },
+                  { key: 'category', label: 'Category' },
+                  { key: 'amount', label: 'Amount', format: 'currency' },
+                  { key: 'status', label: 'Status' },
+                ],
+              }),
             },
             {
               label: 'Fund Sources',
               icon: Download,
               desc: 'Name, type, fiscal year, amount',
-              onClick: () => downloadCSV('fund_sources.csv', toCSV(
-                fyFilter === 'all' ? funds : funds.filter((f) => String(f.fiscal_year) === fyFilter),
-              [
-                ['name', 'Name'], ['source_type', 'Type'], ['fiscal_year', 'FY'], ['amount', 'Amount'],
-              ])),
+              onClick: () => handleExcelExport({
+                filename: 'fund_sources.xlsx',
+                title: 'Fund Sources',
+                summary: `${periodFunds.length} sources  |  Total: ${phpFmt(totalFunds)}`,
+                rows: periodFunds,
+                columns: [
+                  { key: 'name', label: 'Name', width: 28 },
+                  { key: 'source_type', label: 'Type' },
+                  { key: 'fiscal_year', label: 'Fiscal Year' },
+                  { key: 'amount', label: 'Amount', format: 'currency' },
+                ],
+              }),
             },
             {
               label: 'Programs & Projects',
               icon: Download,
               desc: 'Title, status, budget, beneficiaries',
-              onClick: () => {
-                const filteredPrograms = fyFilter === 'all'
-                  ? programs
-                  : programs.filter((p) =>
-                    p.start_date?.startsWith(fyFilter) || p.end_date?.startsWith(fyFilter),
-                  );
-                const formatted = filteredPrograms.map((p) => {
-                  let sector = p.beneficiary_category || '';
-                  if (!sector && p.description?.startsWith('[Beneficiary: ')) {
-                    const m = p.description.match(/^\[Beneficiary:\s*([^\]]+)\]/);
-                    if (m) sector = m[1];
-                  }
-                  return { ...p, beneficiary_category: sector || 'General Residents' };
-                });
-                downloadCSV('programs.csv', toCSV(formatted, [
-                  ['title', 'Title'], ['status', 'Status'], ['category', 'Category'],
-                  ['beneficiary_category', 'Beneficiary Sector'],
-                  ['budget_amount', 'Budget'], ['beneficiaries_count', 'Beneficiaries'],
-                ]));
-              },
+              onClick: () => handleExcelExport({
+                filename: 'programs.xlsx',
+                title: 'Programs and Projects',
+                rows: exportPrograms,
+                columns: [
+                  { key: 'title', label: 'Title', width: 32 },
+                  { key: 'status', label: 'Status' },
+                  { key: 'category', label: 'Category' },
+                  { key: 'beneficiary_category', label: 'Beneficiary Sector', width: 24 },
+                  { key: 'budget_amount', label: 'Budget', format: 'currency' },
+                  { key: 'beneficiaries_count', label: 'Beneficiaries', format: 'number' },
+                ],
+              }),
             },
           ].map(({ label, icon: Icon, desc, onClick }) => (
             <button
@@ -445,6 +518,7 @@ export default function ReportsAnalytics() {
             </button>
           ))}
         </div>
+        <ErrorBanner message={exportError} />
       </div>
     </div>
   );
