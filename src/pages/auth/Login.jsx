@@ -118,6 +118,12 @@ export default function Login() {
             error={fieldErrors.password}
           />
 
+          <div className="-mt-2 text-right">
+            <Link to="/forgot-password" state={{ email: form.email.trim() }} className="text-xs font-semibold text-civic-leaf hover:underline">
+              Forgot password?
+            </Link>
+          </div>
+
           <ErrorBanner message={submitError} />
 
           <button

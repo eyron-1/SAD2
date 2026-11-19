@@ -129,6 +129,8 @@ const NotFound = lazy(() => import("./pages/public/NotFound"));
 
 const Login = lazy(() => import("./pages/auth/Login"));
 const Signup = lazy(() => import("./pages/auth/Signup"));
+const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
 
 const Dashboard = lazy(() => import("./pages/official/Dashboard"));
 const BudgetManagement = lazy(
@@ -223,6 +225,8 @@ export default function App() {
             {/* Auth */}
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* Barangay officials (captain, secretary, treasurer, kagawad, staff) */}
             <Route

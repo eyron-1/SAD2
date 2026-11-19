@@ -45,6 +45,10 @@ npm run dev
 
 The app runs at `http://localhost:5173`.
 
+For password recovery, add the local and deployed `/reset-password` URLs to
+**Supabase Dashboard → Authentication → URL Configuration → Redirect URLs**.
+The app sends reset emails back to the same origin where the request was made.
+
 ## Upgrade an existing Supabase database
 
 After the existing schema and security/financial workflow migrations are in
