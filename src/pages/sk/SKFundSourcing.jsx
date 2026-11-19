@@ -7,6 +7,7 @@ import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import SelectedFilePreview from '../../components/ui/SelectedFilePreview';
 import { supabase } from '../../lib/supabaseClient';
+import { getFundProofUrl } from '../../lib/fundProof';
 import ImageLightbox from '../../components/ui/ImageLightbox';
 import { sumAmounts } from '../../lib/financial';
 import { Landmark, Plus, Search, Pencil, Trash2, Calendar, X, Upload, FileText, Eye, PieChart, Wallet } from 'lucide-react';
@@ -356,8 +357,8 @@ export default function SKFundSourcing() {
                   ₱{Number(row.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </td>
                 <td className="px-4 py-3">
-                  {row.proof_url ? (
-                    <button type="button" onClick={() => setLightboxUrl(row.proof_url)} className="inline-flex items-center gap-1 text-xs font-semibold text-civic-emerald hover:underline">
+                  {getFundProofUrl(row) ? (
+                    <button type="button" onClick={() => setLightboxUrl(getFundProofUrl(row))} className="inline-flex items-center gap-1 text-xs font-semibold text-civic-emerald hover:underline">
                       <Eye className="w-3.5 h-3.5" /> View
                     </button>
                   ) : row.description?.includes('[Proof of Funds:') ? (
