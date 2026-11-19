@@ -44,7 +44,7 @@ export default function PublicLayout() {
         Skip to content
       </a>
       <header className={`sticky top-0 z-40 border-b border-white/10 text-white shadow-lg shadow-slate-900/10 backdrop-blur-md ${isSkPortal ? 'bg-emerald-950/95' : 'bg-civic-dark/95'}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-white/10 p-0.5 flex items-center justify-center border border-white/20 overflow-hidden shadow-inner">
               {logoUrl ? (
@@ -65,14 +65,14 @@ export default function PublicLayout() {
           <div className="flex flex-wrap items-center gap-2">
             <Link
               to="/"
-              className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-2 rounded-lg border border-white/15 transition-all whitespace-nowrap"
+              className="flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-xs font-semibold text-white transition-all hover:bg-white/20"
             >
               <ArrowLeft className="w-3.5 h-3.5 text-civic-emerald" />
               Back to Home
             </Link>
             <Link
               to="/login"
-              className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-2 rounded-lg border border-white/15 transition-all whitespace-nowrap"
+              className="flex min-h-11 items-center gap-1.5 whitespace-nowrap rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-xs font-semibold text-white transition-all hover:bg-white/20"
             >
               <LogIn className="w-3.5 h-3.5 text-civic-emerald" />
               Official Login
@@ -88,7 +88,7 @@ export default function PublicLayout() {
             <Link
               to={`/b/${slug}`}
               aria-current={!isSkPortal ? 'page' : undefined}
-              className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 font-semibold transition-colors ${
+              className={`flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-3 py-2 font-semibold transition-colors ${
                 !isSkPortal
                   ? 'bg-civic-navy text-white shadow-sm'
                   : 'text-slate-600 hover:bg-slate-100 hover:text-civic-navy'
@@ -100,7 +100,7 @@ export default function PublicLayout() {
             <Link
               to={`/b/${slug}/sk`}
               aria-current={isSkPortal ? 'page' : undefined}
-              className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 font-semibold transition-colors ${
+              className={`flex min-h-11 shrink-0 items-center gap-2 rounded-lg px-3 py-2 font-semibold transition-colors ${
                 isSkPortal
                   ? 'bg-emerald-800 text-white shadow-sm'
                   : 'text-slate-600 hover:bg-emerald-50 hover:text-emerald-900'
@@ -113,7 +113,7 @@ export default function PublicLayout() {
         </div>
 
         <div className="bg-slate-950/30 border-t border-white/10">
-          <nav aria-label="Public portal navigation" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-1.5 overflow-x-auto py-2 text-xs [scrollbar-width:none]">
+          <nav aria-label="Public portal navigation" className="mx-auto flex max-w-7xl gap-1.5 overflow-x-auto px-4 py-2 text-xs sm:px-6 lg:px-8">
             {nav.map((item) => {
               const Icon = item.icon;
               return (
@@ -122,7 +122,7 @@ export default function PublicLayout() {
                   to={`${portalBase}${item.to ? `/${item.to}` : ''}`}
                   end={item.end}
                   className={({ isActive }) =>
-                    `flex items-center gap-2 px-3 py-2 rounded-lg font-medium whitespace-nowrap transition-all duration-150 ${
+                    `flex min-h-11 items-center gap-2 whitespace-nowrap rounded-lg px-3 py-2 font-medium transition-all duration-150 ${
                       isActive
                         ? 'bg-white text-civic-navy font-bold shadow-sm'
                         : 'text-slate-300 hover:bg-white/10 hover:text-white'

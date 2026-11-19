@@ -37,7 +37,7 @@ export default function FormField({
               onClick={() => setPasswordVisible((visible) => !visible)}
               aria-label={passwordVisible ? 'Hide password' : 'Show password'}
               title={passwordVisible ? 'Hide password' : 'Show password'}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-slate-400 hover:text-slate-700"
+              className="absolute right-1 top-1/2 flex min-h-11 min-w-11 -translate-y-1/2 items-center justify-center rounded-lg p-1.5 text-slate-400 hover:text-slate-700"
             >
               {passwordVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>

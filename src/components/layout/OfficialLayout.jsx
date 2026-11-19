@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { isSkRole, isBarangayEditor, isSkEditor, roleLabel, ROLES } from '../../utils/roles';
@@ -72,6 +72,17 @@ export default function OfficialLayout() {
   const canEdit = skMember ? isSkEditor(profile?.role) : isBarangayEditor(profile?.role);
   const showFloatingAI = !/^\/(dashboard|sk)\/ai-assistant\/?$/.test(location.pathname);
 
+  useEffect(() => {
+    if (!mobileOpen) return undefined;
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setMobileOpen(false);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [mobileOpen]);
+
   const handleSignOut = async () => {
     if (!window.confirm('Are you sure you want to sign out?')) return;
     try {
@@ -79,6 +90,13 @@ export default function OfficialLayout() {
       navigate('/');
     } catch (error) {
       setSignOutError(friendlySupabaseError(error));
+    }
+  };
+
+  const handlePublicPortalNavigation = (event) => {
+    const portalType = skMember ? 'SK' : 'Barangay';
+    if (!window.confirm(`Are you sure you want to leave the ${portalType} dashboard and open its public portal?`)) {
+      event.preventDefault();
     }
   };
 
@@ -99,7 +117,9 @@ export default function OfficialLayout() {
       {/* Sidebar */}
       <aside
         className={`fixed inset-y-0 left-0 w-[min(18rem,calc(100vw-2rem))] border-r border-white/10 bg-gradient-to-b from-civic-dark via-[#102f49] to-[#091e31] text-white flex flex-col z-50 transition-transform duration-300 ease-in-out ${
-          mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+          mobileOpen
+            ? 'visible translate-x-0'
+            : 'invisible -translate-x-full lg:visible lg:translate-x-0'
         }`}
       >
         {/* Sidebar Header with Barangay Logo */}
@@ -133,6 +153,7 @@ export default function OfficialLayout() {
           <button
             onClick={() => setMobileOpen(false)}
             className="lg:hidden text-slate-400 hover:text-white p-1"
+            aria-label="Close navigation menu"
           >
             <X className="w-5 h-5" />
           </button>
@@ -143,6 +164,7 @@ export default function OfficialLayout() {
           <div className="px-3 pt-3 pb-1">
             <Link
               to={`/b/${slug}`}
+              onClick={handlePublicPortalNavigation}
               className="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/60 transition-colors"
             >
               <span className="flex items-center gap-2">
@@ -154,7 +176,7 @@ export default function OfficialLayout() {
         )}
 
         {/* Navigation Items */}
-        <nav aria-label="Portal navigation" className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+        <nav id="portal-navigation" aria-label="Portal navigation" className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
           {nav.map((item) => {
             const Icon = item.icon;
             return (
@@ -164,7 +186,7 @@ export default function OfficialLayout() {
                 end={item.to === '/dashboard' || item.to === '/sk'}
                 onClick={() => setMobileOpen(false)}
                 className={({ isActive }) =>
-                  `group flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
+                  `group flex min-h-11 items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
                     isActive
                       ? 'bg-white/[0.12] text-white shadow-sm ring-1 ring-inset ring-white/10 font-semibold'
                       : 'text-slate-300 hover:bg-white/[0.07] hover:text-white'
@@ -201,7 +223,8 @@ export default function OfficialLayout() {
           <button
             onClick={handleSignOut}
             title="Sign Out"
-            className="text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 p-2 rounded-lg transition-colors"
+            aria-label="Sign out"
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2 text-slate-400 transition-colors hover:bg-rose-500/10 hover:text-rose-400"
           >
             <LogOut className="w-4 h-4" />
           </button>
@@ -211,13 +234,14 @@ export default function OfficialLayout() {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 lg:ml-72">
         {/* Top Navbar */}
-        <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-3 py-3 sm:px-6 sm:py-4 flex items-center justify-between gap-2 sticky top-0 z-30 shadow-sm">
+        <header className="bg-white/95 backdrop-blur-md border-b border-slate-200/80 px-4 py-3 sm:px-6 sm:py-4 flex items-center justify-between gap-2 sticky top-0 z-30 shadow-sm">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileOpen(true)}
-              className="lg:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg"
+              className="lg:hidden flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
               aria-label="Open navigation menu"
               aria-expanded={mobileOpen}
+              aria-controls="portal-navigation"
             >
               <Menu className="w-6 h-6" />
             </button>
@@ -232,19 +256,10 @@ export default function OfficialLayout() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Link
-              to={skMember ? '/sk/settings' : '/dashboard/settings'}
-              className="btn-secondary py-1.5 px-2.5 sm:px-3 text-xs shrink-0"
-            >
-              <Settings className="w-3.5 h-3.5 text-civic-emerald" />
-              Settings
-            </Link>
-          </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 xl:p-9 overflow-y-auto">
+        <main className="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 overflow-y-auto">
           <ErrorBanner message={signOutError} />
           <div className="portal-page-content">
             <Outlet />

@@ -3,13 +3,21 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 7rem;
+  }
+
   #root {
     min-height: 100vh;
     min-height: 100dvh;
+    min-width: 0;
   }
 
   body {
     @apply bg-slate-50 text-slate-800 font-body antialiased selection:bg-civic-navy selection:text-white min-h-screen;
+    min-width: 320px;
+    line-height: 1.5;
   }
 
   button,
@@ -23,14 +31,18 @@
   }
 
   img {
+    display: block;
     max-width: 100%;
   }
+
   h1, h2, h3, h4 {
     @apply font-display text-civic-navy tracking-tight;
   }
+
   a, button, input, select, textarea {
     -webkit-tap-highlight-color: transparent;
   }
+
   :focus-visible {
     outline: 2px solid #0F2D4A;
     outline-offset: 2px;
@@ -75,19 +87,19 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-civic-navy text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-civic-slate hover:-translate-y-px hover:shadow-md shadow-sm transition-all duration-200 disabled:opacity-50 disabled:translate-y-0 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm;
+    @apply min-h-11 bg-civic-navy text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-civic-slate hover:-translate-y-px hover:shadow-md shadow-sm transition-all duration-200 disabled:opacity-50 disabled:translate-y-0 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm;
   }
   .btn-secondary {
-    @apply bg-white text-civic-navy border border-slate-200 px-4 py-2.5 rounded-xl font-semibold hover:bg-slate-50 hover:border-slate-300 hover:-translate-y-px shadow-sm transition-all duration-200 flex items-center justify-center gap-2 text-sm;
+    @apply min-h-11 bg-white text-civic-navy border border-slate-200 px-4 py-2.5 rounded-xl font-semibold hover:bg-slate-50 hover:border-slate-300 hover:-translate-y-px shadow-sm transition-all duration-200 flex items-center justify-center gap-2 text-sm;
   }
   .btn-emerald {
-    @apply bg-civic-leaf text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-civic-leaf/90 hover:-translate-y-px hover:shadow-md shadow-sm transition-all duration-200 disabled:opacity-50 disabled:translate-y-0 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm;
+    @apply min-h-11 bg-civic-leaf text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-civic-leaf/90 hover:-translate-y-px hover:shadow-md shadow-sm transition-all duration-200 disabled:opacity-50 disabled:translate-y-0 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm;
   }
   .btn-danger {
     @apply bg-civic-clay text-white px-3.5 py-2 rounded-lg font-semibold hover:bg-civic-clay/90 transition-colors text-xs flex items-center gap-1;
   }
   .input-field {
-    @apply w-full border border-slate-200 rounded-xl px-3.5 py-2.5 bg-white text-slate-800 hover:border-slate-300 focus:border-civic-emerald focus:ring-4 focus:ring-civic-emerald/10 outline-none text-sm transition-all duration-150 placeholder:text-slate-400;
+    @apply min-h-11 w-full border border-slate-200 rounded-xl px-3.5 py-2.5 bg-white text-slate-800 hover:border-slate-300 focus:border-civic-emerald focus:ring-4 focus:ring-civic-emerald/10 outline-none text-sm transition-all duration-150 placeholder:text-slate-400;
   }
   .input-error {
     @apply border-civic-clay focus:border-civic-clay focus:ring-civic-clay/10;
@@ -114,11 +126,13 @@
   }
 
   .portal-page-content {
-    @apply mx-auto max-w-[88rem];
+    @apply mx-auto w-full max-w-[88rem];
   }
 
   .portal-page-content > *,
-  .public-page-content > * {
+  .public-page-content > *,
+  .portal-page-content :where(.grid) > *,
+  .public-page-content :where(.grid) > * {
     @apply min-w-0;
   }
 }
@@ -137,6 +151,11 @@
   .public-page-content th,
   .public-page-content td {
     @apply px-3 py-3;
+  }
+
+  .portal-page-content .card,
+  .public-page-content .card {
+    @apply rounded-xl;
   }
 }
 

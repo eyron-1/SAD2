@@ -12,6 +12,8 @@ import {
   CheckCircle2,
   ShieldCheck,
   MapPin,
+  Info,
+  ContactRound,
 } from "lucide-react";
 import {
   PROVINCES_LIST,
@@ -183,194 +185,194 @@ export default function BarangaySettings() {
 
   if (loading) {
     return (
-      <div className="p-8 text-center text-slate-500 flex items-center justify-center gap-2">
-        <Building2 className="w-5 h-5 animate-pulse text-civic-emerald" />{" "}
-        Loading barangay details…
+      <div className="mx-auto w-full max-w-5xl" role="status">
+        <div className="card flex min-h-40 items-center justify-center gap-3 text-sm font-medium text-slate-500">
+          <Building2 className="h-5 w-5 animate-pulse text-civic-emerald" />
+          Loading {officeLabel.toLowerCase()} settings…
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8 max-w-4xl">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3 text-civic-navy">
-            <Building2 className="w-8 h-8 text-civic-emerald" />
-            {officeLabel} Profile & Branding
-          </h1>
-          <p className="text-slate-600 text-sm mt-1">
-            Manage your {officeLabel.toLowerCase()} identity, contact
-            information, and official logo.
-          </p>
-        </div>
-        {!canEdit && (
-          <div className="flex items-center gap-1.5 text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 text-xs font-medium">
-            <ShieldCheck className="w-4 h-4" /> View Only
+    <div className="mx-auto w-full max-w-5xl space-y-5 sm:space-y-6">
+      <section className="relative isolate overflow-hidden rounded-2xl bg-gradient-to-br from-civic-navy via-[#153a59] to-civic-slate p-5 text-white shadow-lg sm:rounded-3xl sm:p-8">
+        <div className="pointer-events-none absolute -right-10 -top-16 h-48 w-48 rounded-full border-[28px] border-white/5 sm:h-56 sm:w-56" />
+        <div className="pointer-events-none absolute -bottom-24 right-24 h-44 w-44 rounded-full bg-civic-emerald/20 blur-3xl" />
+        <div className="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex min-w-0 items-start gap-3 sm:gap-4">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/10 text-emerald-200 sm:h-12 sm:w-12">
+              <Building2 className="h-5 w-5 sm:h-6 sm:w-6" />
+            </span>
+            <div className="min-w-0">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-2.5 py-1 text-[11px] font-semibold text-blue-100">
+                <ShieldCheck className="h-3.5 w-3.5 text-emerald-300" />
+                {skMember ? "SK portal" : "Barangay portal"}
+              </span>
+              <h1 className="mt-2 text-2xl font-bold leading-tight text-white sm:text-3xl">
+                {officeLabel} profile & branding
+              </h1>
+              <p className="mt-1 max-w-2xl text-sm leading-relaxed text-blue-100/80">
+                Update public profile details, contact information, and the logo
+                residents see on your portal.
+              </p>
+            </div>
           </div>
-        )}
-      </div>
+          <div
+            className={`inline-flex w-fit shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold ${
+              canEdit
+                ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-100"
+                : "border-amber-200/20 bg-amber-200/10 text-amber-100"
+            }`}
+          >
+            {canEdit ? (
+              <CheckCircle2 className="h-4 w-4" />
+            ) : (
+              <ShieldCheck className="h-4 w-4" />
+            )}
+            {canEdit ? "Editing enabled" : "View only"}
+          </div>
+        </div>
+      </section>
 
       <ErrorBanner message={error} />
 
       {success && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-sm flex items-center gap-2 font-medium">
-          <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+        <div
+          role="status"
+          aria-live="polite"
+          className="flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-800"
+        >
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
           {success}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-8">
-        {/* Logo Upload Card */}
-        <div className="card space-y-6">
-          <div className="border-b border-slate-100 pb-4">
-            <h2 className="text-lg font-bold text-civic-navy flex items-center gap-2">
-              <ImageIcon className="w-5 h-5 text-civic-emerald" /> Official{" "}
-              {officeLabel} Logo
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              This logo will be displayed on your official portal, public
-              reports, and resident view.
-            </p>
+      <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
+        <section className="card space-y-5 sm:space-y-6">
+          <div className="flex items-start gap-3 border-b border-slate-100 pb-4">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-civic-emerald">
+              <ImageIcon className="h-5 w-5" />
+            </span>
+            <div>
+              <h2 className="text-lg font-bold text-civic-navy">
+                {officeLabel} portal logo
+              </h2>
+              <p className="mt-1 text-sm leading-relaxed text-slate-500">
+                {skMember
+                  ? "This logo appears across the SK portal and youth-facing public pages."
+                  : "This logo appears across your Barangay portal and public pages."}
+              </p>
+            </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-6">
-            <div className="relative group shrink-0">
-              <div className="w-28 h-28 rounded-2xl border-2 border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shadow-inner">
-                {logoPreview ? (
-                  <img
-                    src={logoPreview}
-                    alt={`${officeLabel} Logo Preview`}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="text-center p-2 text-slate-400">
-                    <Building2 className="w-10 h-10 mx-auto opacity-50" />
-                    <span className="text-[10px] font-medium block mt-1">
-                      No Logo
-                    </span>
-                  </div>
-                )}
-              </div>
+          <div className="grid items-center gap-5 sm:grid-cols-[9rem_minmax(0,1fr)] sm:gap-6">
+            <div className="mx-auto flex h-32 w-32 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 p-2 shadow-inner sm:mx-0">
+              {logoPreview ? (
+                <img
+                  src={logoPreview}
+                  alt={`${officeLabel} logo preview`}
+                  className="h-full w-full rounded-xl object-contain"
+                  onError={() => setLogoPreview("")}
+                />
+              ) : (
+                <div className="text-center text-slate-400">
+                  <Building2 className="mx-auto h-10 w-10 opacity-50" />
+                  <span className="mt-1 block text-xs font-medium">
+                    Logo preview
+                  </span>
+                </div>
+              )}
             </div>
 
-            <div className="space-y-3 flex-1 w-full">
+            <div className="min-w-0 space-y-4">
               {canEdit ? (
                 <>
                   <div>
-                    <label className="label">
-                      Upload Logo Image (PNG, JPG, WEBP, SVG)
+                    <label className="label" htmlFor="office-logo">
+                      Upload an image
                     </label>
-                    <label className="inline-flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium text-xs px-4 py-2.5 rounded-lg cursor-pointer transition-colors border border-slate-200">
-                      <Upload className="w-4 h-4 text-civic-emerald" />
-                      Choose Logo File…
-                      <input
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp,image/svg+xml"
-                        onChange={handleFileChange}
-                        className="hidden"
-                      />
+                    <input
+                      id="office-logo"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                      onChange={handleFileChange}
+                      className="peer sr-only"
+                    />
+                    <label
+                      htmlFor="office-logo"
+                      className="inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-civic-navy shadow-sm transition hover:border-civic-emerald/40 hover:bg-emerald-50 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-civic-navy"
+                    >
+                      <Upload className="h-4 w-4 text-civic-emerald" />
+                      Choose logo file
                     </label>
+                    <p className="mt-2 text-xs leading-relaxed text-slate-500">
+                      PNG, JPG, WEBP, or SVG · 5 MB maximum
+                    </p>
                     {logoFile && (
-                      <span className="text-xs text-slate-600 block mt-1 font-medium">
+                      <p className="mt-2 break-all text-xs font-medium text-slate-700">
                         Selected: {logoFile.name}
-                      </span>
+                      </p>
                     )}
                   </div>
 
-                  <div className="pt-2">
-                    <FormField
-                      label="Or Provide Image URL"
-                      placeholder="https://example.com/logo.png"
-                      value={form.logo_url}
-                      onChange={(e) => {
-                        setForm({ ...form, logo_url: e.target.value });
-                        if (!logoFile) setLogoPreview(e.target.value);
-                      }}
-                    />
-                  </div>
+                  <FormField
+                    label="Or use an image URL"
+                    type="url"
+                    placeholder="https://example.com/logo.png"
+                    value={form.logo_url}
+                    onChange={(e) => {
+                      setForm({ ...form, logo_url: e.target.value });
+                      if (!logoFile) setLogoPreview(e.target.value);
+                    }}
+                  />
                 </>
               ) : (
-                <p className="text-xs text-slate-500 italic">
-                  Only barangay editors can update the official logo.
+                <p className="rounded-xl bg-slate-50 p-4 text-sm leading-relaxed text-slate-600">
+                  You can view the current logo, but only authorized{" "}
+                  {officeLabel.toLowerCase()} editors can change it.
                 </p>
               )}
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Barangay Information Card */}
-        <div className="card space-y-6">
-          <div className="border-b border-slate-100 pb-4">
-            <h2 className="text-lg font-bold text-civic-navy flex items-center gap-2">
-              <MapPin className="w-5 h-5 text-civic-emerald" /> General Barangay
-              Details
-            </h2>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Basic information about your Local Government Unit (LGU).
-            </p>
+        <section className="card space-y-5 sm:space-y-6">
+          <div className="flex items-start gap-3 border-b border-slate-100 pb-4">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+              <MapPin className="h-5 w-5" />
+            </span>
+            <div>
+              <h2 className="text-lg font-bold text-civic-navy">
+                Public profile
+              </h2>
+              <p className="mt-1 text-sm leading-relaxed text-slate-500">
+                These details help residents identify and find your Barangay
+                portal.
+              </p>
+            </div>
           </div>
 
-          <div className="space-y-4">
-            <FormField
-              label="Barangay Name"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              disabled={!canEdit}
-            />
-
-            <div className="grid sm:grid-cols-2 gap-4">
-              <FormField
-                as="select"
-                label="Province / Region"
-                value={selectedProvince?.code || ""}
-                onChange={(e) => {
-                  const province =
-                    PROVINCES_LIST.find(
-                      (item) => item.code === e.target.value,
-                    ) || null;
-                  setSelectedProvince(province);
-                  if (province)
-                    setForm((prev) => ({
-                      ...prev,
-                      province: province.name,
-                      municipality: "",
-                    }));
-                }}
-                disabled={!canEdit}
-              >
-                <option value="">— choose to use address list —</option>
-                {PROVINCES_LIST.map((province) => (
-                  <option key={province.code} value={province.code}>
-                    {province.name}
-                  </option>
-                ))}
-              </FormField>
-              <FormField
-                as="select"
-                label="Municipality / City from address list"
-                value={selectedCity?.code || ""}
-                onChange={(e) => {
-                  const city =
-                    cities.find((item) => item.code === e.target.value) || null;
-                  setSelectedCity(city);
-                  if (city)
-                    setForm((prev) => ({ ...prev, municipality: city.name }));
-                }}
-                disabled={!canEdit || !selectedProvince}
-              >
-                <option value="">— choose municipality / city —</option>
-                {cities.map((city) => (
-                  <option key={city.code} value={city.code}>
-                    {city.name}
-                  </option>
-                ))}
-              </FormField>
+          {skMember && (
+            <div className="flex items-start gap-2.5 rounded-xl border border-blue-100 bg-blue-50/70 p-3.5 text-sm leading-relaxed text-blue-900">
+              <Info className="mt-0.5 h-4 w-4 shrink-0 text-blue-700" />
+              <p>
+                Changes here update the shared Barangay profile. Your SK logo
+                is managed separately.
+              </p>
             </div>
+          )}
 
-            <div className="grid sm:grid-cols-2 gap-4">
+          <div className="space-y-5">
+            <div className="grid gap-4 sm:grid-cols-2">
               <FormField
-                label="Municipality / City"
+                label="Barangay name"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                disabled={!canEdit}
+              />
+              <FormField
+                label="Municipality / city"
                 placeholder="e.g. Quezon City"
                 value={form.municipality}
                 onChange={(e) =>
@@ -379,72 +381,151 @@ export default function BarangaySettings() {
                 disabled={!canEdit}
               />
               <FormField
-                as="select"
-                label="Barangay from address list (optional)"
-                value={
-                  locationBarangays.find(
-                    (barangay) => barangay.name === form.name,
-                  )?.code || ""
-                }
-                onChange={(e) => {
-                  const barangay = locationBarangays.find(
-                    (item) => item.code === e.target.value,
-                  );
-                  if (barangay)
-                    setForm((prev) => ({ ...prev, name: barangay.name }));
-                }}
-                disabled={!canEdit || !selectedCity}
-              >
-                <option value="">— choose barangay —</option>
-                {locationBarangays.map((barangay) => (
-                  <option key={barangay.code} value={barangay.code}>
-                    {barangay.name}
-                  </option>
-                ))}
-              </FormField>
+                label="Province"
+                placeholder="e.g. Metro Manila / Isabela"
+                value={form.province}
+                onChange={(e) => setForm({ ...form, province: e.target.value })}
+                disabled={!canEdit}
+              />
             </div>
 
-            <FormField
-              label="Province"
-              placeholder="e.g. Metro Manila / Isabela"
-              value={form.province}
-              onChange={(e) => setForm({ ...form, province: e.target.value })}
-              disabled={!canEdit}
-            />
-
-            <div className="grid sm:grid-cols-2 gap-4">
-              <FormField
-                label="Contact Email"
-                type="email"
-                placeholder="barangay@example.gov.ph"
-                value={form.contact_email}
-                onChange={(e) =>
-                  setForm({ ...form, contact_email: e.target.value })
-                }
-                disabled={!canEdit}
-              />
-              <FormField
-                label="Contact Mobile / Landline"
-                placeholder="09171234567 or (02) 8123-4567"
-                value={form.contact_number}
-                onChange={(e) =>
-                  setForm({ ...form, contact_number: e.target.value })
-                }
-                disabled={!canEdit}
-              />
+            <div className="space-y-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-800">
+                  Address list{" "}
+                  <span className="font-normal text-slate-500">(optional)</span>
+                </h3>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                  Select a location to fill in the profile fields above, or
+                  enter those details manually.
+                </p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  as="select"
+                  label="Province / region"
+                  value={selectedProvince?.code || ""}
+                  onChange={(e) => {
+                    const province =
+                      PROVINCES_LIST.find(
+                        (item) => item.code === e.target.value,
+                      ) || null;
+                    setSelectedProvince(province);
+                    if (province)
+                      setForm((prev) => ({
+                        ...prev,
+                        province: province.name,
+                        municipality: "",
+                      }));
+                  }}
+                  disabled={!canEdit}
+                >
+                  <option value="">Choose a province</option>
+                  {PROVINCES_LIST.map((province) => (
+                    <option key={province.code} value={province.code}>
+                      {province.name}
+                    </option>
+                  ))}
+                </FormField>
+                <FormField
+                  as="select"
+                  label="Municipality / city"
+                  value={selectedCity?.code || ""}
+                  onChange={(e) => {
+                    const city =
+                      cities.find((item) => item.code === e.target.value) ||
+                      null;
+                    setSelectedCity(city);
+                    if (city)
+                      setForm((prev) => ({ ...prev, municipality: city.name }));
+                  }}
+                  disabled={!canEdit || !selectedProvince}
+                >
+                  <option value="">Choose a municipality / city</option>
+                  {cities.map((city) => (
+                    <option key={city.code} value={city.code}>
+                      {city.name}
+                    </option>
+                  ))}
+                </FormField>
+                <FormField
+                  as="select"
+                  label="Barangay"
+                  value={
+                    locationBarangays.find(
+                      (barangay) => barangay.name === form.name,
+                    )?.code || ""
+                  }
+                  onChange={(e) => {
+                    const barangay = locationBarangays.find(
+                      (item) => item.code === e.target.value,
+                    );
+                    if (barangay)
+                      setForm((prev) => ({ ...prev, name: barangay.name }));
+                  }}
+                  disabled={!canEdit || !selectedCity}
+                >
+                  <option value="">Choose a barangay</option>
+                  {locationBarangays.map((barangay) => (
+                    <option key={barangay.code} value={barangay.code}>
+                      {barangay.name}
+                    </option>
+                  ))}
+                </FormField>
+              </div>
             </div>
           </div>
-        </div>
+        </section>
+
+        <section className="card space-y-5">
+          <div className="flex items-start gap-3 border-b border-slate-100 pb-4">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-700">
+              <ContactRound className="h-5 w-5" />
+            </span>
+            <div>
+              <h2 className="text-lg font-bold text-civic-navy">
+                Public contact details
+              </h2>
+              <p className="mt-1 text-sm leading-relaxed text-slate-500">
+                {skMember
+                  ? "These contact details are shared with the Barangay public profile."
+                  : "Add the contact information residents can use to reach your office."}
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField
+              label="Contact email"
+              type="email"
+              placeholder="barangay@example.gov.ph"
+              value={form.contact_email}
+              onChange={(e) =>
+                setForm({ ...form, contact_email: e.target.value })
+              }
+              disabled={!canEdit}
+            />
+            <FormField
+              label="Contact phone"
+              type="tel"
+              placeholder="09171234567 or (02) 8123-4567"
+              value={form.contact_number}
+              onChange={(e) =>
+                setForm({ ...form, contact_number: e.target.value })
+              }
+              disabled={!canEdit}
+            />
+          </div>
+        </section>
 
         {canEdit && (
-          <div className="flex justify-end">
+          <div className="-mx-4 sticky bottom-0 z-10 border-t border-slate-200 bg-slate-50/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:flex sm:justify-end sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-0">
             <button
               type="submit"
               disabled={saving}
-              className="btn-emerald px-6 py-3"
+              className="btn-emerald w-full px-6 sm:ml-auto sm:w-auto"
             >
               <Save className="w-4 h-4" />
-              {saving ? "Saving Changes…" : `Save ${officeLabel} Branding`}
+              {saving ? "Saving changes…" : "Save changes"}
             </button>
           </div>
         )}
