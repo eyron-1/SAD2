@@ -979,6 +979,14 @@ create policy "public submit kk profiling" on kk_monitoring for insert with chec
 create policy "anyone can submit feedback" on feedback for insert with check (true);
 create policy "officials read feedback" on feedback for select using (belongs_to_barangay(auth.uid(), barangay_id));
 create policy "officials respond feedback" on feedback for update using (belongs_to_barangay(auth.uid(), barangay_id));
+create policy "officials delete feedback" on feedback for delete using (
+  status in ('resolved', 'closed')
+  and belongs_to_barangay(auth.uid(), barangay_id)
+  and (
+    (addressed_to = 'barangay' and is_barangay_editor(auth.uid()))
+    or (addressed_to = 'sk' and is_sk_editor(auth.uid()))
+  )
+);
 
 -- officials_transitions
 create policy "public read transitions" on officials_transitions for select using (true);

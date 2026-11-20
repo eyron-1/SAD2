@@ -4,15 +4,16 @@ import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import Badge from '../../components/ui/Badge';
 import ImageLightbox from '../../components/ui/ImageLightbox';
-import { MessageSquare, Phone, Calendar, Image as ImageIcon, UserCheck, Eye } from 'lucide-react';
+import { MessageSquare, Phone, Calendar, Image as ImageIcon, UserCheck, Eye, Trash2 } from 'lucide-react';
 
 const STATUSES = ['new', 'in_review', 'resolved', 'closed'];
 
 export default function FeedbackManagement() {
   const { profile } = useAuth();
-  const { rows, loading, error, updateRow } = useSupabaseTable('feedback', profile?.barangay_id, { filter: { addressed_to: 'barangay' } });
+  const { rows, loading, error, updateRow, deleteRow } = useSupabaseTable('feedback', profile?.barangay_id, { filter: { addressed_to: 'barangay' } });
   const [responses, setResponses] = useState({});
   const [savingId, setSavingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
   const [actionError, setActionError] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [lightboxUrl, setLightboxUrl] = useState(null);
@@ -24,6 +25,17 @@ export default function FeedbackManagement() {
     if (responses[row.id] !== undefined) payload.official_response = responses[row.id];
     const result = await updateRow(row.id, payload);
     setSavingId(null);
+    if (result.error) setActionError(result.error);
+  };
+
+  const handleDelete = async (row) => {
+    if (!['resolved', 'closed'].includes(row.status)) return;
+    if (!window.confirm('Delete this resolved feedback? This action cannot be undone.')) return;
+
+    setDeletingId(row.id);
+    setActionError('');
+    const result = await deleteRow(row.id);
+    setDeletingId(null);
     if (result.error) setActionError(result.error);
   };
 
@@ -97,7 +109,21 @@ export default function FeedbackManagement() {
                 </div>
               </div>
 
-              <Badge status={row.status} />
+              <div className="flex items-center gap-2">
+                <Badge status={row.status} />
+                {['resolved', 'closed'].includes(row.status) && (
+                  <button
+                    type="button"
+                    disabled={deletingId === row.id}
+                    onClick={() => handleDelete(row)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    title="Delete feedback"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    {deletingId === row.id ? 'Deleting...' : 'Delete'}
+                  </button>
+                )}
+              </div>
             </div>
 
             <p className="text-sm text-slate-800 leading-relaxed font-sans bg-slate-50 p-4 rounded-xl border border-slate-100">

@@ -153,6 +153,26 @@ export default function DocumentLibrary({
     }
 
     setSubmitting(true);
+    const { data: canManageDocument, error: permissionError } = await supabase.rpc(
+      'can_manage_transparency_documents',
+      {
+        target_barangay: barangay.id,
+        target_scope: scope,
+      },
+    );
+    if (permissionError) {
+      setSubmitError(
+        'Public document permissions are not installed on the database. Run supabase/migrations/migration_transparency_documents.sql in the Supabase SQL Editor, then try again.',
+      );
+      setSubmitting(false);
+      return;
+    }
+    if (canManageDocument !== true) {
+      setSubmitError(`This account does not have permission to manage ${portalLabel} public documents.`);
+      setSubmitting(false);
+      return;
+    }
+
     const filePath = `${barangay.id}/${scope}/${crypto.randomUUID()}.${getDocumentExtension(file)}`;
     const { error: uploadError } = await supabase.storage
       .from(DOCUMENT_BUCKET)

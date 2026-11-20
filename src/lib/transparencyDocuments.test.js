@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { getDocumentExtension, getDocumentFileError } from './transparencyDocuments.js';
+import { isSkDocumentEditor } from '../utils/roles.js';
 
 test('accepts supported document formats and returns a lowercase extension', () => {
   const supportedFiles = [
@@ -19,6 +20,13 @@ test('accepts supported document formats and returns a lowercase extension', () 
     assert.equal(getDocumentFileError(file), '');
     assert.equal(getDocumentExtension(file), name.split('.').pop());
   });
+});
+
+test('allows SK Kagawad accounts to manage public SK documents', () => {
+  assert.equal(isSkDocumentEditor('sk_chairperson'), true);
+  assert.equal(isSkDocumentEditor('sk_treasurer'), true);
+  assert.equal(isSkDocumentEditor('sk_kagawad'), true);
+  assert.equal(isSkDocumentEditor('captain'), false);
 });
 
 test('rejects mismatched types, empty files, and files over the size limit', () => {

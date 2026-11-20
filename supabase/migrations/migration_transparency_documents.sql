@@ -50,7 +50,17 @@ create policy "officials upload transparency documents"
     uploaded_by = auth.uid()
     and (
       (scope = 'barangay' and public.is_barangay_editor(auth.uid()))
-      or (scope = 'sk' and public.is_sk_editor(auth.uid()))
+      or (
+        scope = 'sk'
+        and exists (
+          select 1
+            from public.profiles
+           where id = auth.uid()
+             and barangay_id = public.transparency_documents.barangay_id
+             and role in ('sk_chairperson', 'sk_treasurer', 'sk_kagawad')
+             and is_active
+        )
+      )
     )
     and public.belongs_to_barangay(auth.uid(), barangay_id)
     and file_path ~ (
@@ -65,7 +75,17 @@ create policy "officials delete transparency documents"
     public.belongs_to_barangay(auth.uid(), barangay_id)
     and (
       (scope = 'barangay' and public.is_barangay_editor(auth.uid()))
-      or (scope = 'sk' and public.is_sk_editor(auth.uid()))
+      or (
+        scope = 'sk'
+        and exists (
+          select 1
+            from public.profiles
+           where id = auth.uid()
+             and barangay_id = public.transparency_documents.barangay_id
+             and role in ('sk_chairperson', 'sk_treasurer', 'sk_kagawad')
+             and is_active
+        )
+      )
     )
   );
 
@@ -87,7 +107,7 @@ as $$
        and is_active
        and (
          (target_scope = 'barangay' and role in ('captain', 'secretary', 'treasurer'))
-         or (target_scope = 'sk' and role in ('sk_chairperson', 'sk_treasurer'))
+         or (target_scope = 'sk' and role in ('sk_chairperson', 'sk_treasurer', 'sk_kagawad'))
        )
   );
 $$;

@@ -27,6 +27,11 @@ export const ROLE_SEAT_LIMITS = {
 
 export const BARANGAY_EDITOR_ROLES = [ROLES.CAPTAIN, ROLES.SECRETARY, ROLES.TREASURER];
 export const SK_EDITOR_ROLES = [ROLES.SK_CHAIRPERSON, ROLES.SK_TREASURER];
+export const SK_DOCUMENT_EDITOR_ROLES = [
+  ROLES.SK_CHAIRPERSON,
+  ROLES.SK_TREASURER,
+  ROLES.SK_KAGAWAD,
+];
 export const SK_ROLES = [ROLES.SK_CHAIRPERSON, ROLES.SK_TREASURER, ROLES.SK_KAGAWAD];
 
 export function isBarangayEditor(role) {
@@ -35,6 +40,10 @@ export function isBarangayEditor(role) {
 
 export function isSkEditor(role) {
   return SK_EDITOR_ROLES.includes(role);
+}
+
+export function isSkDocumentEditor(role) {
+  return SK_DOCUMENT_EDITOR_ROLES.includes(role);
 }
 
 export function isSkRole(role) {

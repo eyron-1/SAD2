@@ -12,6 +12,10 @@ import {
   parseCurrencyValue,
 } from "../../lib/validation";
 import { isSkEditor } from "../../utils/roles";
+import {
+  getRemainingAllocationBudget,
+  validateProgramAllocationBudget,
+} from "../../lib/programBudget";
 import FormField from "../../components/ui/FormField";
 import ErrorBanner from "../../components/ui/ErrorBanner";
 import Badge from "../../components/ui/Badge";
@@ -70,6 +74,19 @@ export default function SKPrograms() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
 
+  const selectedAllocation = allocations.find(
+    (allocation) => allocation.id === form.sk_budget_id,
+  );
+  const remainingAllocationBudget = selectedAllocation
+    ? getRemainingAllocationBudget({
+        allocationAmount: selectedAllocation.amount,
+        programs: rows,
+        allocationId: selectedAllocation.id,
+        allocationIdField: "sk_budget_id",
+        editingId,
+      })
+    : null;
+
   const openModal = (row = null) => {
     setForm(
       row
@@ -108,8 +125,15 @@ export default function SKPrograms() {
     });
     const dateError = validateDateRange(form.start_date, form.end_date);
     if (dateError) errors.end_date = dateError;
+    if (selectedAllocation && !errors.budget_amount) {
+      const allocationBudgetError = validateProgramAllocationBudget(
+        parseCurrencyValue(form.budget_amount),
+        remainingAllocationBudget,
+      );
+      if (allocationBudgetError) errors.budget_amount = allocationBudgetError;
+    }
     setFieldErrors(errors);
-    if (!isValid || dateError) return;
+    if (Object.keys(errors).length > 0 || !isValid || dateError) return;
     setSubmitting(true);
     const payload = {
       ...form,
@@ -341,6 +365,15 @@ export default function SKPrograms() {
                   </option>
                 ))}
               </FormField>
+              {selectedAllocation && (
+                <p className="text-xs text-slate-500">
+                  Remaining allocation available for this project: ₱
+                  {remainingAllocationBudget.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </p>
+              )}
               <div className="grid sm:grid-cols-3 gap-3">
                 <FormField
                   type="date"

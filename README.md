@@ -90,6 +90,11 @@ recording the expense. Then run
 a program cannot exceed that program's budget, even when its category allocation
 has a higher balance.
 
+To prevent linked Barangay and SK project budgets from exceeding the selected
+allocation's remaining balance, run
+`supabase/migrations/migration_program_allocation_budget_cap.sql` after
+`supabase/migrations/migration_financial_workflow.sql`.
+
 To enforce the full fund-to-allocation-to-expense workflow, run
 `supabase/migrations/migration_fund_allocation_expense_guards.sql` after the financial
 integrity and workflow migrations. Allocations must be covered by fund sources

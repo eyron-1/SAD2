@@ -103,6 +103,7 @@ export default function OfficialLayout() {
   const bgyName = profile?.barangays?.name || 'Barangay Portal';
   const logoUrl = skMember ? profile?.barangays?.sk_logo_url : profile?.barangays?.logo_url;
   const slug = profile?.barangays?.slug;
+  const publicPortalPath = skMember && slug ? `/b/${slug}/sk` : slug ? `/b/${slug}` : '';
 
   return (
     <div className="min-h-screen flex bg-slate-50 font-body">
@@ -163,7 +164,7 @@ export default function OfficialLayout() {
         {slug && (
           <div className="px-3 pt-3 pb-1">
             <Link
-              to={`/b/${slug}`}
+              to={publicPortalPath}
               onClick={handlePublicPortalNavigation}
               className="flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium bg-slate-800/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700/60 transition-colors"
             >

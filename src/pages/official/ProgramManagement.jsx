@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useSupabaseTable } from '../../lib/useSupabaseTable';
 import { validateRequired, validateCurrency, validateDateRange, validateMaxLength, runValidators, formatCurrencyInput, finalizeCurrencyInput, parseCurrencyValue } from '../../lib/validation';
 import { isBarangayEditor } from '../../utils/roles';
+import { getRemainingAllocationBudget, validateProgramAllocationBudget } from '../../lib/programBudget';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import Badge from '../../components/ui/Badge';
@@ -98,6 +99,19 @@ export default function ProgramManagement() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [beneficiaryFilter, setBeneficiaryFilter] = useState('all');
 
+  const selectedAllocation = allocations.find(
+    (allocation) => allocation.id === form.budget_allocation_id
+  );
+  const remainingAllocationBudget = selectedAllocation
+    ? getRemainingAllocationBudget({
+        allocationAmount: selectedAllocation.amount,
+        programs: rows,
+        allocationId: selectedAllocation.id,
+        allocationIdField: 'budget_allocation_id',
+        editingId,
+      })
+    : null;
+
   const validators = {
     title: (v) => validateRequired(v, 'Title'),
     budget_amount: (v) => (v ? validateCurrency(v, 'Budget') : ''),
@@ -146,8 +160,15 @@ export default function ProgramManagement() {
     const { errors, isValid } = runValidators(form, validators);
     const dateErr = validateDateRange(form.start_date, form.end_date);
     if (dateErr) errors.end_date = dateErr;
+    if (selectedAllocation && !errors.budget_amount) {
+      const allocationBudgetError = validateProgramAllocationBudget(
+        parseCurrencyValue(form.budget_amount),
+        remainingAllocationBudget,
+      );
+      if (allocationBudgetError) errors.budget_amount = allocationBudgetError;
+    }
     setFieldErrors(errors);
-    if (!isValid || dateErr) return;
+    if (Object.keys(errors).length > 0 || !isValid || dateErr) return;
 
     setSubmitting(true);
     setSubmitError('');
@@ -399,6 +420,15 @@ export default function ProgramManagement() {
                     </option>
                   ))}
                 </FormField>
+                {selectedAllocation && (
+                  <p className="text-xs text-slate-500 sm:col-span-2">
+                    Remaining allocation available for this project: ₱
+                    {remainingAllocationBudget.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </p>
+                )}
               </div>
 
               {/* Categorized Beneficiary Group */}

@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabaseClient';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import Badge from '../../components/ui/Badge';
 import ImageLightbox from '../../components/ui/ImageLightbox';
-import { MessageSquare, Phone, Calendar, Image as ImageIcon, UserCheck, Eye } from 'lucide-react';
+import { MessageSquare, Phone, Calendar, Image as ImageIcon, UserCheck, Eye, Trash2 } from 'lucide-react';
 
 const STATUSES = ['new', 'in_review', 'resolved', 'closed'];
 
@@ -15,6 +15,7 @@ export default function SKFeedback() {
   const [fetchError, setFetchError] = useState('');
   const [responses, setResponses] = useState({});
   const [savingId, setSavingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
   const [actionError, setActionError] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [lightboxUrl, setLightboxUrl] = useState(null);
@@ -47,6 +48,26 @@ export default function SKFeedback() {
       setActionError(error.message);
     } else {
       setRows((prev) => prev.map((r) => r.id === row.id ? { ...r, ...payload } : r));
+    }
+  };
+
+  const handleDelete = async (row) => {
+    if (!['resolved', 'closed'].includes(row.status)) return;
+    if (!window.confirm('Delete this resolved SK feedback? This action cannot be undone.')) return;
+
+    setDeletingId(row.id);
+    setActionError('');
+    const { error } = await supabase
+      .from('feedback')
+      .delete()
+      .eq('id', row.id)
+      .eq('barangay_id', profile.barangay_id)
+      .eq('addressed_to', 'sk');
+    setDeletingId(null);
+    if (error) {
+      setActionError(error.message);
+    } else {
+      setRows((prev) => prev.filter((item) => item.id !== row.id));
     }
   };
 
@@ -128,7 +149,21 @@ export default function SKFeedback() {
                 </div>
               </div>
 
-              <Badge status={row.status} />
+              <div className="flex items-center gap-2">
+                <Badge status={row.status} />
+                {['resolved', 'closed'].includes(row.status) && (
+                  <button
+                    type="button"
+                    disabled={deletingId === row.id}
+                    onClick={() => handleDelete(row)}
+                    className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
+                    title="Delete SK feedback"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    {deletingId === row.id ? 'Deleting...' : 'Delete'}
+                  </button>
+                )}
+              </div>
             </div>
 
             <p className="text-sm text-slate-800 leading-relaxed font-sans bg-slate-50 p-4 rounded-xl border border-slate-100">
