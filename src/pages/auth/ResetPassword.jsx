@@ -18,8 +18,29 @@ export default function ResetPassword() {
   useEffect(() => {
     let active = true;
 
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!active) return;
+      if (event === 'PASSWORD_RECOVERY' || (session && event === 'SIGNED_IN')) {
+        setRecoverySession(true);
+        setSubmitError('');
+        setCheckingSession(false);
+      }
+    });
+
     const checkSession = async () => {
       try {
+        const code = new URLSearchParams(window.location.search).get('code');
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) {
+            if (active) setSubmitError(friendlySupabaseError(error));
+            if (active) setCheckingSession(false);
+            return;
+          }
+
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
         const { data, error } = await supabase.auth.getSession();
         if (!active) return;
         if (error) {
@@ -39,6 +60,7 @@ export default function ResetPassword() {
     checkSession();
     return () => {
       active = false;
+      listener?.subscription?.unsubscribe();
     };
   }, []);
 
