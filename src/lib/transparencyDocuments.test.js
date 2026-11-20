@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getDocumentExtension, getDocumentFileError } from './transparencyDocuments.js';
+import {
+  getDocumentExtension,
+  getDocumentFileError,
+  getDocumentMimeType,
+} from './transparencyDocuments.js';
 import { isSkDocumentEditor } from '../utils/roles.js';
 
 test('accepts supported document formats and returns a lowercase extension', () => {
@@ -19,7 +23,16 @@ test('accepts supported document formats and returns a lowercase extension', () 
     const file = { name, type, size: 1024 };
     assert.equal(getDocumentFileError(file), '');
     assert.equal(getDocumentExtension(file), name.split('.').pop());
+    assert.equal(getDocumentMimeType(file), type);
   });
+});
+
+test('accepts supported extensions when the browser omits or generalizes the MIME type', () => {
+  for (const type of ['', 'application/octet-stream']) {
+    const file = { name: 'budget.xlsx', type, size: 1024 };
+    assert.equal(getDocumentFileError(file), '');
+    assert.equal(getDocumentMimeType(file), 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  }
 });
 
 test('allows SK Kagawad accounts to manage public SK documents', () => {

@@ -131,8 +131,9 @@ security functions are installed. Barangay editors can publish Barangay
 documents and SK editors can publish SK documents. JPG, PNG, WEBP, PDF, XLS,
 XLSX, DOC, and DOCX files up to 20 MB are supported. Uploads are public
 immediately, so residents can request and download them without official
-approval. Do not upload confidential or improperly disclosed personal
-information.
+approval. The description is optional; re-run the migration on an existing
+database to remove any older `NOT NULL` constraint. Do not upload confidential
+or improperly disclosed personal information.
 
 The Operations page exports a tenant-scoped JSON data snapshot. Store it in an
 access-controlled location. Restore must be performed by a Supabase

@@ -23,6 +23,13 @@ create table if not exists public.transparency_documents (
   created_at timestamptz not null default now()
 );
 
+-- Existing installations may have made description required before it became optional.
+alter table public.transparency_documents
+  add column if not exists description text;
+
+alter table public.transparency_documents
+  alter column description drop not null;
+
 -- Older deployments may already have this table without the MIME type field.
 alter table public.transparency_documents
   add column if not exists mime_type text;

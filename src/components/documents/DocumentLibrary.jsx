@@ -5,10 +5,12 @@ import {
   DOCUMENT_BUCKET,
   getDocumentExtension,
   getDocumentFileError,
+  getDocumentMimeType,
 } from '../../lib/transparencyDocuments';
 import ErrorBanner from '../ui/ErrorBanner';
 import SelectedFilePreview from '../ui/SelectedFilePreview';
 import PublicDocumentPreview from './PublicDocumentPreview';
+import { roleLabel } from '../../utils/roles';
 import { Download, Eye, FileText, LockKeyholeOpen, ShieldCheck, Trash2, UploadCloud } from 'lucide-react';
 
 const DOCUMENT_CATEGORIES = {
@@ -52,6 +54,7 @@ export default function DocumentLibrary({
   scope,
   canManage = false,
   uploadedBy,
+  accountRole,
   isResidentPortal = false,
 }) {
   const isSk = scope === 'sk';
@@ -168,18 +171,31 @@ export default function DocumentLibrary({
       return;
     }
     if (canManageDocument !== true) {
-      setSubmitError(`This account does not have permission to manage ${portalLabel} public documents.`);
+      const allowedRoles = isSk
+        ? 'SK Chairperson, SK Treasurer, or SK Kagawad'
+        : 'Barangay Captain, Secretary, or Treasurer';
+      const currentRole = accountRole ? roleLabel(accountRole) : 'unknown';
+      setSubmitError(
+        `This account does not have permission to manage ${portalLabel} public documents. `
+        + `The app sees your role as ${currentRole}; allowed roles are ${allowedRoles}. `
+        + 'If your role is allowed and your account is active, verify that the transparency-documents migration was run on the same Supabase project used by this app.',
+      );
       setSubmitting(false);
       return;
     }
 
     const filePath = `${barangay.id}/${scope}/${crypto.randomUUID()}.${getDocumentExtension(file)}`;
+    const mimeType = getDocumentMimeType(file);
     const { error: uploadError } = await supabase.storage
       .from(DOCUMENT_BUCKET)
-      .upload(filePath, file, { contentType: file.type, upsert: false });
+      .upload(filePath, file, { contentType: mimeType, upsert: false });
 
     if (uploadError) {
-      setSubmitError(friendlySupabaseError(uploadError));
+      const isPermissionError = uploadError.code === '42501'
+        || uploadError.message?.toLowerCase().includes('row-level security');
+      setSubmitError(isPermissionError
+        ? `Supabase Storage denied this ${portalLabel} upload. Verify the "Officials can upload transparency documents" policy and bucket settings in the same project used by this app.`
+        : friendlySupabaseError(uploadError));
       setSubmitting(false);
       return;
     }
@@ -194,7 +210,7 @@ export default function DocumentLibrary({
         description: description.trim() || null,
         file_name: file.name,
         file_path: filePath,
-        mime_type: file.type,
+        mime_type: mimeType,
         file_size: file.size,
         uploaded_by: uploadedBy,
       })
@@ -206,7 +222,12 @@ export default function DocumentLibrary({
       const cleanupMessage = cleanupError
         ? ` The upload could not be removed from storage: ${friendlySupabaseError(cleanupError)}`
         : '';
-      setSubmitError(`${friendlySupabaseError(insertError)}${cleanupMessage}`);
+      const isPermissionError = insertError.code === '42501'
+        || insertError.message?.toLowerCase().includes('row-level security');
+      const errorMessage = isPermissionError
+        ? `Supabase denied saving the ${portalLabel} document record. Verify the "officials upload transparency documents" table policy in the same project used by this app.`
+        : friendlySupabaseError(insertError);
+      setSubmitError(`${errorMessage}${cleanupMessage}`);
       setSubmitting(false);
       return;
     }
