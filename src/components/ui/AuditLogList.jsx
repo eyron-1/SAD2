@@ -134,6 +134,9 @@ export default function AuditLogList({ rows, loading = false, emptyMessage = 'No
               <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${ACTION_STYLES[row.action] || 'bg-slate-100 text-slate-700'}`}>
                 {ACTION_LABELS[row.action] || formatLabel(row.action)}
               </span>
+              <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${row.scope === 'sk' ? 'bg-violet-50 text-violet-700' : 'bg-sky-50 text-sky-700'}`}>
+                {row.scope === 'sk' ? 'SK' : 'Barangay'}
+              </span>
               <h3 className="font-semibold text-slate-800">
                 {TABLE_LABELS[row.entity_table] || formatLabel(row.entity_table)}
               </h3>

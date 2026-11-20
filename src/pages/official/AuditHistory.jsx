@@ -16,6 +16,8 @@ export default function AuditHistory() {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
+  const scope = isSkRole(profile?.role) ? "sk" : "barangay";
 
   useEffect(() => {
     let active = true;
@@ -30,13 +32,16 @@ export default function AuditHistory() {
 
       setLoading(true);
       setError("");
+      setRows([]);
+      setHasMore(false);
       try {
         const { data, error: queryError } = await supabase
           .from("audit_logs")
           .select(
-            "id, barangay_id, entity_table, record_id, action, actor_id, actor_name, actor_role, before_data, after_data, created_at",
+            "id, barangay_id, scope, entity_table, record_id, action, actor_id, actor_name, actor_role, before_data, after_data, created_at",
           )
           .eq("barangay_id", profile.barangay_id)
+          .eq("scope", scope)
           .order("created_at", { ascending: false })
           .order("id", { ascending: false })
           .range(0, PAGE_SIZE - 1);
@@ -65,7 +70,7 @@ export default function AuditHistory() {
     return () => {
       active = false;
     };
-  }, [profile?.barangay_id]);
+  }, [profile?.barangay_id, scope, refreshKey]);
 
   const loadMore = async () => {
     if (!profile?.barangay_id || loadingMore || !hasMore) return;
@@ -76,9 +81,10 @@ export default function AuditHistory() {
       const { data, error: queryError } = await supabase
         .from("audit_logs")
         .select(
-          "id, barangay_id, entity_table, record_id, action, actor_id, actor_name, actor_role, before_data, after_data, created_at",
+          "id, barangay_id, scope, entity_table, record_id, action, actor_id, actor_name, actor_role, before_data, after_data, created_at",
         )
         .eq("barangay_id", profile.barangay_id)
+        .eq("scope", scope)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
         .range(rows.length, rows.length + PAGE_SIZE - 1);
@@ -114,7 +120,10 @@ export default function AuditHistory() {
         </div>
       </header>
 
-      <ErrorBanner message={error} />
+      <ErrorBanner
+        message={error}
+        onRetry={() => setRefreshKey((key) => key + 1)}
+      />
 
       <AuditLogList
         rows={rows}
