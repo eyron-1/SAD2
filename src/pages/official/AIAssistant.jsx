@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useSupabaseTable } from "../../lib/useSupabaseTable";
+import { createAIContext } from "../../lib/aiContext";
+import { requestAIAssistant } from "../../lib/aiAssistant";
 import ErrorBanner from "../../components/ui/ErrorBanner";
 import {
   Bot,
   Send,
-  Key,
   Copy,
   Check,
   Database,
@@ -57,12 +58,6 @@ export default function AIAssistant() {
   const [includeData, setIncludeData] = useState(true);
   const [copiedIndex, setCopiedIndex] = useState(null);
 
-  // Custom Groq Key state
-  const [groqKey, setGroqKey] = useState(
-    () => localStorage.getItem("groq_api_key") || "",
-  );
-  const [showKeyModal, setShowKeyModal] = useState(false);
-
   const { rows: allocations } = useSupabaseTable(
     "budget_allocations",
     profile?.barangay_id,
@@ -72,12 +67,6 @@ export default function AIAssistant() {
 
   const activeMode = MODES.find((m) => m.id === mode);
 
-  const saveGroqKey = (key) => {
-    setGroqKey(key);
-    localStorage.setItem("groq_api_key", key);
-    setShowKeyModal(false);
-  };
-
   const handleSend = async () => {
     if (!input.trim() || sending) return;
     const newMessages = [...messages, { role: "user", content: input }];
@@ -86,97 +75,19 @@ export default function AIAssistant() {
     setSending(true);
     setError("");
 
-    const context = includeData
-      ? {
-          budget_allocations: allocations.slice(0, 50),
-          expenses: expenses.slice(0, 50),
-          programs: programs.slice(0, 50),
-        }
-      : null;
-
-    let aiResponse = "";
-
-    // Attempt 1: Call Supabase Edge Function (Groq backed)
     try {
-      const { data, error: fnError } = await supabase.functions.invoke(
-        "ai-assistant",
-        {
-          body: {
-            mode,
-            messages: newMessages,
-            context,
-            apiKey: groqKey || undefined,
-          },
-        },
-      );
-
-      if (!fnError && data?.text) {
-        aiResponse = data.text;
-      }
-    } catch (_) {
-      // Fall through to direct Groq client fetch
-    }
-
-    // Attempt 2: Direct Groq API Client Call (Fallback if Edge Function is missing/unconfigured)
-    if (!aiResponse) {
-      try {
-        const apiKeyToUse = groqKey || import.meta.env.VITE_GROQ_API_KEY;
-        if (!apiKeyToUse) {
-          throw new Error(
-            'Groq API Key is not set. Please click "Set Groq API Key" above to configure your free key.',
-          );
-        }
-
-        const systemText =
-          `You are a Philippine Barangay AI Assistant (${activeMode.label}). ` +
-          (context
-            ? `\n\nBarangay Record Data Context:\n${JSON.stringify(context).slice(0, 8000)}`
-            : "");
-
-        const res = await fetch(
-          "https://api.groq.com/openai/v1/chat/completions",
-          {
-            method: "POST",
-            headers: {
-              "content-type": "application/json",
-              authorization: `Bearer ${apiKeyToUse}`,
-            },
-            body: JSON.stringify({
-              model: "llama-3.3-70b-versatile",
-              messages: [
-                { role: "system", content: systemText },
-                ...newMessages.map((m) => ({
-                  role: m.role === "assistant" ? "assistant" : "user",
-                  content: m.content,
-                })),
-              ],
-              temperature: 0.5,
-              max_tokens: 1500,
-            }),
-          },
-        );
-
-        const resData = await res.json();
-        if (!res.ok) {
-          throw new Error(
-            resData.error?.message ||
-              `Groq API returned error status ${res.status}`,
-          );
-        }
-
-        aiResponse = resData.choices?.[0]?.message?.content || "";
-      } catch (clientErr) {
-        setError(
-          clientErr.message ||
-            "Unable to generate response. Please check your Groq API key.",
-        );
-      }
-    }
-
-    setSending(false);
-
-    if (aiResponse) {
+      const aiResponse = await requestAIAssistant({
+        mode,
+        messages: newMessages,
+        context: includeData
+          ? createAIContext({ allocations, expenses, programs })
+          : null,
+      });
       setMessages([...newMessages, { role: "assistant", content: aiResponse }]);
+    } catch (requestError) {
+      setError(requestError.message || "Unable to generate a response.");
+    } finally {
+      setSending(false);
     }
   };
 
@@ -199,69 +110,15 @@ export default function AIAssistant() {
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-3 text-civic-navy">
             <Bot className="w-8 h-8 text-civic-emerald" />
-            Groq AI Barangay Assistant
+            Gemini AI Barangay Assistant
           </h1>
           <p className="text-slate-600 text-sm mt-1">
-            Powered by <strong>Groq Llama 3.3 70B</strong> · Draft reports,
+            Powered by <strong>Gemini 3.8 Flash</strong> · Draft reports,
             calculate forecasts, and get legal governance advice grounded in
             your barangay records.
           </p>
         </div>
-
-        <button
-          onClick={() => setShowKeyModal(true)}
-          className="btn-secondary text-xs shrink-0"
-        >
-          <Key className="w-3.5 h-3.5 text-civic-emerald" />
-          {groqKey ? "Groq Key Configured ✓" : "Set Groq API Key"}
-        </button>
       </div>
-
-      {/* Groq Key Modal */}
-      {showKeyModal && (
-        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl border border-slate-200 p-4 sm:p-6 max-w-md w-full space-y-4 max-h-[calc(100dvh-2rem)] overflow-y-auto">
-            <div className="flex items-center gap-2 text-civic-navy font-bold text-lg">
-              <Key className="w-5 h-5 text-civic-emerald" /> Configure Groq API
-              Key
-            </div>
-            <p className="text-xs text-slate-600">
-              Groq provides lightning-fast AI inference. You can get a 100% free
-              API Key at{" "}
-              <a
-                href="https://console.groq.com"
-                target="_blank"
-                rel="noreferrer"
-                className="text-civic-emerald font-semibold underline"
-              >
-                console.groq.com
-              </a>
-              .
-            </p>
-            <input
-              type="password"
-              className="input-field font-mono text-xs"
-              placeholder="gsk_..."
-              value={groqKey}
-              onChange={(e) => setGroqKey(e.target.value)}
-            />
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={() => setShowKeyModal(false)}
-                className="btn-secondary text-xs"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => saveGroqKey(groqKey)}
-                className="btn-emerald text-xs"
-              >
-                Save Key
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Modes Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -296,7 +153,7 @@ export default function AIAssistant() {
             className="rounded border-slate-300 text-civic-emerald focus:ring-civic-emerald"
           />
           <Database className="w-3.5 h-3.5 text-civic-emerald" />
-          Feed current Barangay Records (Budgets, Expenses, Programs) into Groq
+          Feed current Barangay Records (Budgets, Expenses, Programs) into Gemini
           AI Prompt
         </label>
         {messages.length > 0 && (
@@ -336,7 +193,7 @@ export default function AIAssistant() {
               }`}
             >
               <div className="flex items-center justify-between mb-1 opacity-75 text-[11px] font-semibold uppercase tracking-wider">
-                <span>{m.role === "user" ? "You" : "Groq Llama 3.3 AI"}</span>
+                <span>{m.role === "user" ? "You" : "Gemini AI"}</span>
                 {m.role === "assistant" && (
                   <button
                     onClick={() => handleCopy(m.content, i)}
@@ -358,7 +215,7 @@ export default function AIAssistant() {
           {sending && (
             <div className="bg-slate-50 text-slate-500 p-4 rounded-xl text-xs italic flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-civic-emerald" />{" "}
-              Groq AI is generating report response…
+              Gemini is generating a response…
             </div>
           )}
         </div>

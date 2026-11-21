@@ -166,8 +166,9 @@ directly.
 ## 4. AI Assistant (optional but recommended)
 
 The AI Assistant (report drafting, inquiries, budget forecasting,
-accomplishment reports) is powered by Groq (GPT-OSS 120B) through a
-Supabase Edge Function. Configure the Groq key once as a Supabase function
+accomplishment reports) is powered by Gemini 3.8 Flash through a
+Supabase Edge Function. Get an API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
+and configure it once as a Supabase function
 secret; it is never stored in the browser, so signed-in users can use the AI
 from different devices without entering their own key on each one.
 
@@ -176,11 +177,11 @@ To deploy and configure the shared AI service:
 npm install -g supabase
 supabase login
 supabase link --project-ref YOUR_PROJECT_REF
-supabase secrets set GROQ_API_KEY=gsk_your_groq_api_key_here
+supabase secrets set GEMINI_API_KEY=your_gemini_api_key_here
 supabase functions deploy ai-assistant
 ```
 
-Alternatively, add `GROQ_API_KEY` under your Supabase project's Edge Function
+Alternatively, add `GEMINI_API_KEY` under your Supabase project's Edge Function
 secrets, then deploy the `ai-assistant` function. Do not put this key in the
 frontend `.env` file or share it with app users.
 

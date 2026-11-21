@@ -149,8 +149,8 @@ export default function FloatingAIChat() {
                 <Bot className="w-4 h-4" />
               </div>
               <div>
-                <h3 className="font-bold text-xs text-white">Groq AI Assistant</h3>
-                <p className="text-[10px] text-slate-400">GPT-OSS 120B Model</p>
+                <h3 className="font-bold text-xs text-white">Gemini AI Assistant</h3>
+                <p className="text-[10px] text-slate-400">Gemini 3.8 Flash</p>
               </div>
             </div>
             <button onClick={() => setOpen(false)} className="text-slate-400 hover:text-white p-1">
@@ -216,7 +216,7 @@ export default function FloatingAIChat() {
             <textarea
               rows={1}
               className="input-field text-xs flex-1 resize-none py-2"
-              placeholder="Ask Groq AI..."
+              placeholder="Ask Gemini AI..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
@@ -241,7 +241,7 @@ export default function FloatingAIChat() {
         onPointerUp={stopDragging}
         onPointerCancel={stopDragging}
         className="w-14 h-14 rounded-2xl bg-civic-navy text-white shadow-card-hover flex items-center justify-center hover:scale-105 transition-all duration-200 border border-white/20 touch-none"
-        aria-label="Open Groq AI Assistant"
+        aria-label="Open Gemini AI Assistant"
         title="Drag to move"
       >
         {open ? (
