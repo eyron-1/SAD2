@@ -10,6 +10,7 @@ export default function PublicAIAssistant({ barangay, variant = "floating" }) {
   const [messages, setMessages] = useState([]);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [useBarangayData, setUseBarangayData] = useState(true);
   const scrollRef = useRef(null);
   const [position, setPosition] = useState(null);
   const assistantRef = useRef(null);
@@ -39,28 +40,35 @@ export default function PublicAIAssistant({ barangay, variant = "floating" }) {
     }
   }, [messages, sending, open]);
 
-  const handleSend = async () => {
-    const question = input.trim();
+  const handleSend = async (questionToRetry) => {
+    const retrying = typeof questionToRetry === "string";
+    const question = (retrying ? questionToRetry : input).trim();
     if (!question || sending || !barangay) return;
 
-    const newMessages = [...messages, { role: "user", content: question }];
-    setMessages(newMessages);
-    setInput("");
+    const newMessages = retrying
+      ? messages
+      : [...messages, { role: "user", content: question }];
+    if (!retrying) {
+      setMessages(newMessages);
+      setInput("");
+    }
     setSending(true);
     setError("");
 
     try {
-      const context = createPublicAIContext({
-        barangay,
-        officials,
-        allocations,
-        expenses,
-        programs,
-        skFunds,
-        skAllocations,
-        skExpenses,
-        skPrograms,
-      });
+      const context = useBarangayData
+        ? createPublicAIContext({
+            barangay,
+            officials,
+            allocations,
+            expenses,
+            programs,
+            skFunds,
+            skAllocations,
+            skExpenses,
+            skPrograms,
+          })
+        : undefined;
       const response = await requestAIAssistant({
         mode: "public_qa",
         messages: newMessages.slice(-12),
@@ -169,38 +177,63 @@ export default function PublicAIAssistant({ barangay, variant = "floating" }) {
             <p className="text-sm text-slate-500">Preparing an answer...</p>
           )}
           {error && (
-            <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
-              {error}
-            </p>
+            <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+              <p>{error}</p>
+              {messages[messages.length - 1]?.role === "user" && (
+                <button
+                  type="button"
+                  onClick={() => handleSend(messages[messages.length - 1].content)}
+                  className="mt-1 font-semibold underline"
+                >
+                  Try again
+                </button>
+              )}
+            </div>
           )}
         </div>
 
-        <div className="flex shrink-0 gap-2 border-t border-slate-200 bg-slate-50 p-3 sm:p-4">
-          <textarea
-            rows={2}
-            maxLength={1200}
-            aria-label="Ask a question"
-            className="input-field flex-1 resize-none"
-            placeholder="Type your question..."
-            value={input}
-            onChange={(event) => setInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                handleSend();
-              }
-            }}
-          />
-          <button
-            type="button"
-            onClick={handleSend}
-            disabled={sending || !input.trim() || !barangay}
-            className="btn-emerald self-end px-4 py-3"
-            aria-label="Send question"
-          >
-            <Send className="h-4 w-4" />
-            <span className="hidden sm:inline">Send</span>
-          </button>
+        <div className="shrink-0 border-t border-slate-200 bg-slate-50 p-3 sm:p-4">
+          <label className="mb-3 flex cursor-pointer items-start gap-2 text-xs text-slate-600">
+            <input
+              type="checkbox"
+              checked={useBarangayData}
+              onChange={(event) => setUseBarangayData(event.target.checked)}
+              className="mt-0.5 accent-civic-emerald"
+            />
+            <span>
+              <span className="block font-medium text-slate-700">
+                Base answers on barangay data
+              </span>
+              <span>Use published barangay and SK records for answers.</span>
+            </span>
+          </label>
+          <div className="flex gap-2">
+            <textarea
+              rows={2}
+              maxLength={1200}
+              aria-label="Ask a question"
+              className="input-field flex-1 resize-none"
+              placeholder="Type your question..."
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  handleSend();
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={handleSend}
+              disabled={sending || !input.trim() || !barangay}
+              className="btn-emerald self-end px-4 py-3"
+              aria-label="Send question"
+            >
+              <Send className="h-4 w-4" />
+              <span className="hidden sm:inline">Send</span>
+            </button>
+          </div>
         </div>
       </section>
     );
@@ -270,37 +303,62 @@ export default function PublicAIAssistant({ barangay, variant = "floating" }) {
               <p className="px-1 text-xs text-slate-500">Preparing an answer...</p>
             )}
             {error && (
-              <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700">
-                {error}
-              </p>
+              <div role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700">
+                <p>{error}</p>
+                {messages[messages.length - 1]?.role === "user" && (
+                  <button
+                    type="button"
+                    onClick={() => handleSend(messages[messages.length - 1].content)}
+                    className="mt-1 font-semibold underline"
+                  >
+                    Try again
+                  </button>
+                )}
+              </div>
             )}
           </div>
 
-          <div className="flex shrink-0 gap-2 border-t border-slate-200 bg-slate-50 p-2.5">
-            <textarea
-              rows={1}
-              maxLength={1200}
-              aria-label="Ask a question"
-              className="input-field flex-1 resize-none py-2 text-xs"
-              placeholder="Type your question..."
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault();
-                  handleSend();
-                }
-              }}
-            />
-            <button
-              type="button"
-              onClick={handleSend}
-              disabled={sending || !input.trim() || !barangay}
-              className="btn-emerald self-end px-3 py-2 text-xs"
-              aria-label="Send question"
-            >
-              <Send className="h-3.5 w-3.5" />
-            </button>
+          <div className="shrink-0 border-t border-slate-200 bg-slate-50 p-2.5">
+            <label className="mb-2 flex cursor-pointer items-start gap-2 text-[10px] leading-relaxed text-slate-600">
+              <input
+                type="checkbox"
+                checked={useBarangayData}
+                onChange={(event) => setUseBarangayData(event.target.checked)}
+                className="mt-0.5 accent-civic-emerald"
+              />
+              <span>
+                <span className="block font-medium text-slate-700">
+                  Base answers on barangay data
+                </span>
+                Use published barangay and SK records for answers.
+              </span>
+            </label>
+            <div className="flex gap-2">
+              <textarea
+                rows={1}
+                maxLength={1200}
+                aria-label="Ask a question"
+                className="input-field flex-1 resize-none py-2 text-xs"
+                placeholder="Type your question..."
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && !event.shiftKey) {
+                    event.preventDefault();
+                    handleSend();
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={sending || !input.trim() || !barangay}
+                className="btn-emerald self-end px-3 py-2 text-xs"
+                aria-label="Send question"
+              >
+                <Send className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
         </section>
       )}

@@ -7,7 +7,6 @@ function cleanAIResponse(text) {
     .replace(/(\*\*|__)(.*?)\1/g, "$2")
     .replace(/([*_])([^*_]+)\1/g, "$2")
     .replace(/`([^`]+)`/g, "$1")
-    .replace(/^\s*[-*+•‣]\s+/gm, "")
     .replace(/^\s*>\s?/gm, "")
     .replace(/^\s*[-*_]{3,}\s*$/gm, "")
     .replace(/\p{Extended_Pictographic}/gu, "")
