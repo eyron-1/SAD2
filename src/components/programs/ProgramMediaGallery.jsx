@@ -4,6 +4,7 @@ import { friendlySupabaseError } from '../../lib/validation';
 import {
   getProgramMediaExtension,
   getProgramMediaFilesError,
+  getProgramMediaMimeType,
   PROGRAM_MEDIA_BUCKET,
 } from '../../lib/programMedia';
 import ErrorBanner from '../ui/ErrorBanner';
@@ -93,12 +94,20 @@ export default function ProgramMediaGallery({
     let uploadFailure = '';
     for (const [index, file] of files.entries()) {
       setUploadProgress(`Uploading ${index + 1} of ${files.length}…`);
-      const filePath = `${barangayId}/${programType}/${programId}/${crypto.randomUUID()}.${getProgramMediaExtension(file)}`;
+      const ext = getProgramMediaExtension(file);
+      const mimeType = getProgramMediaMimeType(file);
+      const filePath = `${barangayId}/${programType}/${programId}/${crypto.randomUUID()}.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from(PROGRAM_MEDIA_BUCKET)
-        .upload(filePath, file, { contentType: file.type, upsert: false });
+        .upload(filePath, file, { contentType: mimeType, upsert: false });
       if (uploadError) {
-        uploadFailure = `${file.name}: ${friendlySupabaseError(uploadError)}`;
+        const isPermissionError = uploadError.code === '42501'
+          || uploadError.message?.toLowerCase().includes('row-level security')
+          || uploadError.message?.toLowerCase().includes('policy')
+          || uploadError.message?.toLowerCase().includes('bucket');
+        uploadFailure = `${file.name}: ${isPermissionError
+          ? `Supabase Storage denied this upload. Ensure the "${PROGRAM_MEDIA_BUCKET}" bucket and storage policies exist on your Supabase project.`
+          : friendlySupabaseError(uploadError)}`;
         break;
       }
       uploadedPaths.push(filePath);
@@ -109,7 +118,7 @@ export default function ProgramMediaGallery({
         title: file.name.replace(/\.[^.]+$/, '').slice(0, 160) || programTitle,
         file_name: file.name,
         file_path: filePath,
-        mime_type: file.type,
+        mime_type: mimeType,
         file_size: file.size,
         uploaded_by: uploadedBy,
       });
@@ -133,7 +142,13 @@ export default function ProgramMediaGallery({
       const cleanupMessage = cleanupError
         ? ` Uploaded files could not all be removed from storage: ${friendlySupabaseError(cleanupError)}`
         : '';
-      setError(`${friendlySupabaseError(insertError)}${cleanupMessage}`);
+      const isPermissionError = insertError.code === '42501'
+        || insertError.message?.toLowerCase().includes('row-level security')
+        || insertError.message?.toLowerCase().includes('policy');
+      const errorMessage = isPermissionError
+        ? `Supabase denied saving the documentation record. If this project is ongoing or not marked completed, ensure the updated program media migration has been run in your Supabase SQL Editor (or mark the project as Completed).`
+        : friendlySupabaseError(insertError);
+      setError(`${errorMessage}${cleanupMessage}`);
     } else {
       setMedia((current) => [...data, ...current]);
       setFiles([]);
@@ -204,7 +219,9 @@ export default function ProgramMediaGallery({
         className="inline-flex max-w-full items-center gap-1.5 py-1 text-left text-civic-navy transition hover:text-civic-emerald"
       >
         <Image className="h-4 w-4 shrink-0 text-civic-emerald" />
-        <span className="truncate text-xs font-semibold">See all documentation</span>
+        <span className="truncate text-xs font-semibold">
+          {media.length > 0 ? 'See all documentation' : (canManage ? 'Add documentation' : 'Documentation')}
+        </span>
         <span className="shrink-0 text-[10px] font-semibold text-slate-500">({media.length})</span>
         <ChevronRight className="h-3.5 w-3.5 shrink-0 text-emerald-700" />
       </button>
@@ -321,18 +338,58 @@ export default function ProgramMediaGallery({
                     <p className="rounded-xl bg-slate-50 px-3 py-8 text-center text-sm text-slate-500">No documentation has been uploaded yet.</p>
                   )}
 
-                  {canManage && programStatus === 'completed' && (
+                  {canManage && programStatus !== 'cancelled' && (
                     <form onSubmit={handleUpload} className="rounded-xl border border-dashed border-emerald-200 bg-emerald-50/40 p-4">
-                      <p className="mb-3 text-sm font-semibold text-civic-navy">Add project documentation</p>
-                      <p className="mb-3 text-xs text-slate-600">Select multiple photos or videos. Files are publicly viewable and labeled with their filenames.</p>
-                      <div className="flex flex-col gap-2 sm:flex-row">
-                        <input type="file" multiple accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime" onChange={(event) => setFiles(Array.from(event.target.files || []))} className="input-field min-w-0 flex-1 text-xs" />
-                        <button type="submit" disabled={submitting || files.length === 0} className="btn-emerald shrink-0 text-xs"><UploadCloud className="h-4 w-4" />{submitting ? uploadProgress : `Upload ${files.length || ''} file${files.length === 1 ? '' : 's'}`}</button>
+                      <div className="mb-3 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-civic-navy">Add project documentation</p>
+                          <p className="text-xs text-slate-600">Select multiple photos or videos. Files are publicly viewable and labeled with their filenames.</p>
+                        </div>
+                        {programStatus && (
+                          <span className="rounded-md bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold capitalize text-emerald-800">
+                            {programStatus} project
+                          </span>
+                        )}
                       </div>
-                      {files.length > 0 && <p className="mt-2 text-xs text-slate-500">{files.length} file{files.length === 1 ? '' : 's'} selected · maximum 50 MB each</p>}
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime,.jpg,.jpeg,.png,.webp,.mp4,.webm,.mov"
+                          onChange={(event) => {
+                            setError('');
+                            setFiles(Array.from(event.target.files || []));
+                          }}
+                          className="input-field min-w-0 flex-1 text-xs"
+                        />
+                        <button type="submit" disabled={submitting || files.length === 0} className="btn-emerald shrink-0 text-xs">
+                          <UploadCloud className="h-4 w-4" />
+                          {submitting ? uploadProgress : `Upload ${files.length || ''} file${files.length === 1 ? '' : 's'}`}
+                        </button>
+                      </div>
+                      {files.length > 0 && (
+                        <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2 border-t border-emerald-100/80 pt-2 text-xs text-slate-600">
+                          <p className="font-medium text-slate-700">
+                            {files.length} file{files.length === 1 ? '' : 's'} selected ({formatSize(files.reduce((sum, f) => sum + f.size, 0))}) · max 50 MB each
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFiles([]);
+                              const input = document.querySelector('input[type="file"]');
+                              if (input) input.value = '';
+                            }}
+                            className="text-[11px] font-semibold text-rose-600 underline hover:text-rose-700"
+                          >
+                            Clear selection
+                          </button>
+                        </div>
+                      )}
                     </form>
                   )}
-                  {canManage && programStatus !== 'completed' && <p className="text-xs text-slate-500">Documentation uploads become available when this project is marked completed.</p>}
+                  {canManage && programStatus === 'cancelled' && (
+                    <p className="text-xs text-slate-500">Documentation uploads are disabled because this project is cancelled.</p>
+                  )}
                   {notice && <p className="text-xs font-semibold text-emerald-700">{notice}</p>}
                 </div>
               )}

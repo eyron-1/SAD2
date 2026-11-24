@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   getRemainingAllocationBudget,
   validateProgramAllocationBudget,
-} from "./programBudget.js";
+} from "../programBudget.js";
 
 test("remaining allocation subtracts all linked project budgets", () => {
   const remaining = getRemainingAllocationBudget({

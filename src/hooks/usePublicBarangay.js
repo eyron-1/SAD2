@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { supabase } from './supabaseClient';
-import { friendlySupabaseError } from './validation';
+import { supabase } from '../lib/supabaseClient';
+import { friendlySupabaseError } from '../lib/validation';
 
 export function usePublicBarangay(slug) {
   const [barangay, setBarangay] = useState(null);

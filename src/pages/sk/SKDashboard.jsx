@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { useSupabaseTable } from "../../lib/useSupabaseTable";
+import { useSupabaseTable } from "../../hooks/useSupabaseTable";
 import { roleLabel } from "../../utils/roles";
 import ErrorBanner from "../../components/ui/ErrorBanner";
 import SystemLogo from "../../components/ui/SystemLogo";

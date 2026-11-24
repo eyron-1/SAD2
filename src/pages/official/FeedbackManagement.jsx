@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useSupabaseTable } from '../../lib/useSupabaseTable';
+import { useSupabaseTable } from '../../hooks/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import Badge from '../../components/ui/Badge';
 import ImageLightbox from '../../components/ui/ImageLightbox';

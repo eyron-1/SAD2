@@ -7,8 +7,8 @@ import {
   isAuthUserNotFoundError,
   parseCurrencyValue,
   validateCurrency,
-} from './validation.js';
-import { forecastAnnualSpend, sumAmounts, sumActiveAmounts } from './financial.js';
+} from '../validation.js';
+import { forecastAnnualSpend, sumAmounts, sumActiveAmounts } from '../financial.js';
 
 test('financial totals sum currency in integer cents', () => {
   assert.equal(sumAmounts([{ amount: 0.1 }, { amount: 0.2 }, { amount: '1.05' }]), 1.35);

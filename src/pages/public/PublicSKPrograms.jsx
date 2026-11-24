@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { usePublicBarangay } from '../../lib/usePublicBarangay';
-import { useSupabaseTable } from '../../lib/useSupabaseTable';
+import { usePublicBarangay } from '../../hooks/usePublicBarangay';
+import { useSupabaseTable } from '../../hooks/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import Badge from '../../components/ui/Badge';
 import ProgramMediaGallery from '../../components/programs/ProgramMediaGallery';
+import { getDateBasedProgramStatus, getPhilippineDateString } from '../../lib/programStatus';
 import { Calendar, FolderKanban, Search, Tag } from 'lucide-react';
 
 export default function PublicSKPrograms() {
@@ -66,41 +67,44 @@ export default function PublicSKPrograms() {
             Loading programs…
           </p>
         )}
-        {!programsLoading && filteredPrograms.map((row) => (
-          <article key={row.id} className="card space-y-3 border-emerald-100">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h2 className="font-semibold text-civic-navy">{row.title}</h2>
-              <Badge status={row.status} />
-            </div>
-            <p className="text-sm text-slate-600">
-              {row.description || 'No description provided.'}
-            </p>
-            <div className="flex flex-wrap gap-2 text-xs">
-              {row.category && (
+        {!programsLoading && filteredPrograms.map((row) => {
+          const effectiveStatus = getDateBasedProgramStatus(row, getPhilippineDateString());
+          return (
+            <article key={row.id} className="card space-y-3 border-emerald-100">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="font-semibold text-civic-navy">{row.title}</h2>
+                <Badge status={effectiveStatus || row.status} />
+              </div>
+              <p className="text-sm text-slate-600">
+                {row.description || 'No description provided.'}
+              </p>
+              <div className="flex flex-wrap gap-2 text-xs">
+                {row.category && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-emerald-800">
+                    <Tag className="h-3 w-3" />
+                    {row.category}
+                  </span>
+                )}
                 <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-emerald-800">
-                  <Tag className="h-3 w-3" />
-                  {row.category}
+                  ₱{Number(row.budget_amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
                 </span>
-              )}
-              <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-1 text-emerald-800">
-                ₱{Number(row.budget_amount || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
-              </span>
-              {(row.start_date || row.end_date) && (
-                <span className="inline-flex items-center gap-1 text-slate-500">
-                  <Calendar className="h-3 w-3" />
-                  {row.start_date || 'TBD'} {row.end_date && `– ${row.end_date}`}
-                </span>
-              )}
-            </div>
-            <ProgramMediaGallery
-              barangayId={barangay.id}
-              programId={row.id}
-              programType="sk"
-              programStatus={row.status}
-              programTitle={row.title}
-            />
-          </article>
-        ))}
+                {(row.start_date || row.end_date) && (
+                  <span className="inline-flex items-center gap-1 text-slate-500">
+                    <Calendar className="h-3 w-3" />
+                    {row.start_date || 'TBD'} {row.end_date && `– ${row.end_date}`}
+                  </span>
+                )}
+              </div>
+              <ProgramMediaGallery
+                barangayId={barangay.id}
+                programId={row.id}
+                programType="sk"
+                programStatus={effectiveStatus || row.status}
+                programTitle={row.title}
+              />
+            </article>
+          );
+        })}
         {!programsLoading && filteredPrograms.length === 0 && (
           <div className="card py-8 text-center text-slate-500">
             <FolderKanban className="mx-auto mb-2 h-8 w-8 text-slate-300" />

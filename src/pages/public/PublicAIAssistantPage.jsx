@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import PublicAIAssistant from "../../components/ai/PublicAIAssistant";
-import { usePublicBarangay } from "../../lib/usePublicBarangay";
+import { usePublicBarangay } from "../../hooks/usePublicBarangay";
 
 export default function PublicAIAssistantPage() {
   const { slug } = useParams();

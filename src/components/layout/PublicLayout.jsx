@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useLocation, useParams } from 'react-router-dom';
-import { usePublicBarangay } from '../../lib/usePublicBarangay';
+import { usePublicBarangay } from '../../hooks/usePublicBarangay';
 import SystemLogo from '../ui/SystemLogo';
 import PublicAIAssistant from '../ai/PublicAIAssistant';
 import { ArrowLeft, Bot, Building2, LayoutDashboard, PieChart, FolderKanban, Users, MessageSquarePlus, LogIn, ShieldCheck, ClipboardList, FileText } from 'lucide-react';

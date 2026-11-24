@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useSupabaseTable } from '../../lib/useSupabaseTable';
+import { useSupabaseTable } from '../../hooks/useSupabaseTable';
 import { validateRequired, validateName, runValidators } from '../../lib/validation';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';

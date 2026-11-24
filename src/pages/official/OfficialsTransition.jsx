@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useSupabaseTable } from '../../lib/useSupabaseTable';
+import { useSupabaseTable } from '../../hooks/useSupabaseTable';
 import { supabase } from '../../lib/supabaseClient';
 import { validateRequired, validateDateRange, runValidators, friendlySupabaseError } from '../../lib/validation';
 import { getPhilippineDateString } from '../../lib/programStatus';

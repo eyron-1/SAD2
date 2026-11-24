@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom';
 import DocumentLibrary from '../../components/documents/DocumentLibrary';
-import { usePublicBarangay } from '../../lib/usePublicBarangay';
+import { usePublicBarangay } from '../../hooks/usePublicBarangay';
 
 export default function PublicDocuments({ scope }) {
   const { slug } = useParams();

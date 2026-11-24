@@ -4,7 +4,7 @@ import {
   PieChart, Pie, Cell, Legend, LineChart, Line, CartesianGrid,
 } from 'recharts';
 import { useAuth } from '../../context/AuthContext';
-import { useSupabaseTable } from '../../lib/useSupabaseTable';
+import { useSupabaseTable } from '../../hooks/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import { sumAmounts, sumActiveAmounts, activeRows } from '../../lib/financial';
 import ReportPrintTable from '../../components/reports/ReportPrintTable';

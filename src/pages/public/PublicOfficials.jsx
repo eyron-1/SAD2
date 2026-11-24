@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom';
-import { usePublicBarangay } from '../../lib/usePublicBarangay';
-import { useSupabaseTable } from '../../lib/useSupabaseTable';
+import { usePublicBarangay } from '../../hooks/usePublicBarangay';
+import { useSupabaseTable } from '../../hooks/useSupabaseTable';
 import { isSkRole, roleLabel } from '../../utils/roles';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import { ShieldCheck, Info } from 'lucide-react';

@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { useSupabaseTable } from "../../lib/useSupabaseTable";
+import { useSupabaseTable } from "../../hooks/useSupabaseTable";
 import {
   validateRequired,
   validateCurrency,
@@ -11,11 +11,12 @@ import {
   finalizeCurrencyInput,
   parseCurrencyValue,
 } from "../../lib/validation";
-import { isSkEditor } from "../../utils/roles";
+import { isSkEditor, isSkDocumentEditor } from "../../utils/roles";
 import {
   getRemainingAllocationBudget,
   validateProgramAllocationBudget,
 } from "../../lib/programBudget";
+import { getDateBasedProgramStatus, getPhilippineDateString } from "../../lib/programStatus";
 import FormField from "../../components/ui/FormField";
 import ErrorBanner from "../../components/ui/ErrorBanner";
 import Badge from "../../components/ui/Badge";
@@ -58,6 +59,7 @@ const EMPTY = {
 export default function SKPrograms() {
   const { profile } = useAuth();
   const canEdit = isSkEditor(profile?.role);
+  const canManageMedia = isSkEditor(profile?.role) || isSkDocumentEditor(profile?.role);
   const { rows, loading, error, insertRow, updateRow, deleteRow } =
     useSupabaseTable("sk_programs", profile?.barangay_id);
   const { rows: allocations } = useSupabaseTable(
@@ -454,70 +456,73 @@ export default function SKPrograms() {
             No SK programs match your search criteria.
           </div>
         )}
-        {filteredRows.map((row) => (
-          <div
-            key={row.id}
-            className="card hover:border-slate-200 transition-all space-y-3"
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex flex-wrap items-center gap-3">
-                <h3 className="text-lg font-bold text-civic-navy">
-                  {row.title}
-                </h3>
-                <Badge status={row.status} />
-              </div>
-              {canEdit && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => openModal(row)}
-                    className="p-1.5 text-slate-600"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(row.id)}
-                    className="p-1.5 text-rose-500"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+        {filteredRows.map((row) => {
+          const effectiveStatus = getDateBasedProgramStatus(row, getPhilippineDateString());
+          return (
+            <div
+              key={row.id}
+              className="card hover:border-slate-200 transition-all space-y-3"
+            >
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-3">
+                  <h3 className="text-lg font-bold text-civic-navy">
+                    {row.title}
+                  </h3>
+                  <Badge status={effectiveStatus || row.status} />
                 </div>
-              )}
-            </div>
-            <p className="text-sm text-slate-600">
-              {row.description || "No description provided."}
-            </p>
-            <div className="flex flex-wrap items-center gap-3 text-xs font-semibold border-t border-slate-100 pt-2">
-              <span className="flex items-center gap-1 text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md">
-                <Tag className="w-3.5 h-3.5 text-civic-emerald" />{" "}
-                {row.category || "Youth Program"}
-              </span>
-              {row.sk_budget_id && (
-                <span className="flex items-center gap-1 text-blue-700 bg-blue-50 px-2.5 py-1 rounded-md">
-                  <Wallet className="w-3.5 h-3.5" /> Linked SK allocation
+                {canEdit && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => openModal(row)}
+                      className="p-1.5 text-slate-600"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(row.id)}
+                      className="p-1.5 text-rose-500"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
+              </div>
+              <p className="text-sm text-slate-600">
+                {row.description || "No description provided."}
+              </p>
+              <div className="flex flex-wrap items-center gap-3 text-xs font-semibold border-t border-slate-100 pt-2">
+                <span className="flex items-center gap-1 text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md">
+                  <Tag className="w-3.5 h-3.5 text-civic-emerald" />{" "}
+                  {row.category || "Youth Program"}
                 </span>
-              )}
-              <span className="flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">
-                ₱
-                {Number(row.budget_amount || 0).toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                })}
-              </span>
-              <span className="flex items-center gap-1 text-slate-500 ml-auto">
-                <Calendar className="w-3.5 h-3.5" /> {row.start_date || "TBD"}{" "}
-                {row.end_date && `– ${row.end_date}`}
-              </span>
+                {row.sk_budget_id && (
+                  <span className="flex items-center gap-1 text-blue-700 bg-blue-50 px-2.5 py-1 rounded-md">
+                    <Wallet className="w-3.5 h-3.5" /> Linked SK allocation
+                  </span>
+                )}
+                <span className="flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">
+                  ₱
+                  {Number(row.budget_amount || 0).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                  })}
+                </span>
+                <span className="flex items-center gap-1 text-slate-500 ml-auto">
+                  <Calendar className="w-3.5 h-3.5" /> {row.start_date || "TBD"}{" "}
+                  {row.end_date && `– ${row.end_date}`}
+                </span>
+              </div>
+              <ProgramMediaGallery
+                barangayId={profile?.barangay_id}
+                programId={row.id}
+                programType="sk"
+                programStatus={effectiveStatus || row.status}
+                programTitle={row.title}
+                canManage={canManageMedia}
+                uploadedBy={profile?.id}
+              />
             </div>
-            <ProgramMediaGallery
-              barangayId={profile?.barangay_id}
-              programId={row.id}
-              programType="sk"
-              programStatus={row.status}
-              programTitle={row.title}
-              canManage={canEdit}
-              uploadedBy={profile?.id}
-            />
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

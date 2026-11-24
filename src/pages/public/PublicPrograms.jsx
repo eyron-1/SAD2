@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { usePublicBarangay } from '../../lib/usePublicBarangay';
-import { useSupabaseTable } from '../../lib/useSupabaseTable';
+import { usePublicBarangay } from '../../hooks/usePublicBarangay';
+import { useSupabaseTable } from '../../hooks/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import Badge from '../../components/ui/Badge';
 import ProgramMediaGallery from '../../components/programs/ProgramMediaGallery';
+import { getDateBasedProgramStatus, getPhilippineDateString } from '../../lib/programStatus';
 
 import { Calendar, Tag, Building2, Search, ShieldCheck, Users } from 'lucide-react';
 
@@ -25,6 +26,7 @@ const parseBeneficiary = (row) => {
 };
 
 function ProgramCard({ row, milestones = [], barangayId }) {
+  const effectiveStatus = getDateBasedProgramStatus(row, getPhilippineDateString());
   const { beneficiary_category, clean_description } = parseBeneficiary(row);
   const progress = milestones.length
     ? Math.round(milestones.reduce((sum, item) => sum + Number(item.progress_percent || 0), 0) / milestones.length)
@@ -34,7 +36,7 @@ function ProgramCard({ row, milestones = [], barangayId }) {
     <div className="card space-y-3 hover:border-slate-300 transition-all">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="font-semibold text-civic-navy text-base">{row.title}</h3>
-        <Badge status={row.status} />
+        <Badge status={effectiveStatus || row.status} />
       </div>
 
       <p className="text-sm text-slate-600 leading-relaxed">{clean_description || 'No description provided.'}</p>
@@ -82,7 +84,7 @@ function ProgramCard({ row, milestones = [], barangayId }) {
         barangayId={barangayId}
         programId={row.id}
         programType="barangay"
-        programStatus={row.status}
+        programStatus={effectiveStatus || row.status}
         programTitle={row.title}
       />
     </div>

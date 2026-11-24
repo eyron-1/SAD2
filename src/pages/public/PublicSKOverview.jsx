@@ -1,6 +1,6 @@
 import { useParams } from 'react-router-dom';
-import { usePublicBarangay } from '../../lib/usePublicBarangay';
-import { useSupabaseTable } from '../../lib/useSupabaseTable';
+import { usePublicBarangay } from '../../hooks/usePublicBarangay';
+import { useSupabaseTable } from '../../hooks/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import PublicMetricCard from '../../components/public/PublicMetricCard';
 import { sumAmounts, sumActiveAmounts } from '../../lib/financial';

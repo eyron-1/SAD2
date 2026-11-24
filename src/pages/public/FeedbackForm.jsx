@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
-import { usePublicBarangay } from '../../lib/usePublicBarangay';
+import { usePublicBarangay } from '../../hooks/usePublicBarangay';
 import { supabase } from '../../lib/supabaseClient';
 import { validateRequired, validateName, validateMobile, runValidators, friendlySupabaseError } from '../../lib/validation';
 import FormField from '../../components/ui/FormField';

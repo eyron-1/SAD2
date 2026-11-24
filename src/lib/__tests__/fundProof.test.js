@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getFundProofUrl } from './fundProof.js';
+import { getFundProofUrl } from '../fundProof.js';
 
 test('gets a fund proof URL from the proof column or legacy description', () => {
   const savedProof = 'https://storage.example/fund-proof.png';

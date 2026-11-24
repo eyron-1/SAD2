@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useSupabaseTable } from '../../lib/useSupabaseTable';
+import { useSupabaseTable } from '../../hooks/useSupabaseTable';
 import { validateRequired, validateCurrency, validateFiscalYear, runValidators, formatCurrencyInput, finalizeCurrencyInput, parseCurrencyValue, friendlySupabaseError } from '../../lib/validation';
 import { isSkEditor } from '../../utils/roles';
 import FormField from '../../components/ui/FormField';

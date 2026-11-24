@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { usePublicBarangay } from '../../lib/usePublicBarangay';
-import { useSupabaseTable } from '../../lib/useSupabaseTable';
+import { usePublicBarangay } from '../../hooks/usePublicBarangay';
+import { useSupabaseTable } from '../../hooks/useSupabaseTable';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import Badge from '../../components/ui/Badge';
 import ExpandableDescription from '../../components/ui/ExpandableDescription';

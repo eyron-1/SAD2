@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, FileCheck2, LockKeyhole, ShieldCheck, UserRound, UsersRound } from 'lucide-react';
-import { usePublicBarangay } from '../../lib/usePublicBarangay';
+import { usePublicBarangay } from '../../hooks/usePublicBarangay';
 import { supabase } from '../../lib/supabaseClient';
 import { friendlySupabaseError, validateMobile, validateRequired, validateName, runValidators } from '../../lib/validation';
 import FormField from '../../components/ui/FormField';

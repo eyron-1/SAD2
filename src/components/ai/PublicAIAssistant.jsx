@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useSupabaseTable } from "../../lib/useSupabaseTable";
+import { useSupabaseTable } from "../../hooks/useSupabaseTable";
 import { createPublicAIContext } from "../../lib/aiContext";
 import { requestAIAssistant } from "../../lib/aiAssistant";
 import { Bot, Send, X } from "lucide-react";

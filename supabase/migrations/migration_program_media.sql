@@ -39,20 +39,32 @@ create policy "editors upload program media"
     and public.belongs_to_barangay(auth.uid(), barangay_id)
     and (
       (program_type = 'barangay' and public.is_barangay_editor(auth.uid()))
-      or (program_type = 'sk' and public.is_sk_editor(auth.uid()))
+      or (
+        program_type = 'sk'
+        and (
+          public.is_sk_editor(auth.uid())
+          or exists (
+            select 1 from public.profiles
+            where id = auth.uid()
+              and barangay_id = public.program_media.barangay_id
+              and role in ('sk_chairperson', 'sk_treasurer', 'sk_kagawad')
+              and is_active
+          )
+        )
+      )
     )
     and (
       (program_type = 'barangay' and exists (
         select 1 from public.programs
         where programs.id = program_media.program_id
           and programs.barangay_id = program_media.barangay_id
-          and programs.status = 'completed'
+          and programs.status != 'cancelled'
       ))
       or (program_type = 'sk' and exists (
         select 1 from public.sk_programs
         where sk_programs.id = program_media.program_id
           and sk_programs.barangay_id = program_media.barangay_id
-          and sk_programs.status = 'completed'
+          and sk_programs.status != 'cancelled'
       ))
     )
     and file_path ~ (
@@ -68,7 +80,19 @@ create policy "editors delete program media"
     public.belongs_to_barangay(auth.uid(), barangay_id)
     and (
       (program_type = 'barangay' and public.is_barangay_editor(auth.uid()))
-      or (program_type = 'sk' and public.is_sk_editor(auth.uid()))
+      or (
+        program_type = 'sk'
+        and (
+          public.is_sk_editor(auth.uid())
+          or exists (
+            select 1 from public.profiles
+            where id = auth.uid()
+              and barangay_id = public.program_media.barangay_id
+              and role in ('sk_chairperson', 'sk_treasurer', 'sk_kagawad')
+              and is_active
+          )
+        )
+      )
     )
   );
 
@@ -111,7 +135,16 @@ create policy "Editors can upload program media"
       )
       or (
         (storage.foldername(name))[2] = 'sk'
-        and public.is_sk_editor(auth.uid())
+        and (
+          public.is_sk_editor(auth.uid())
+          or exists (
+            select 1 from public.profiles
+            where id = auth.uid()
+              and barangay_id = ((storage.foldername(name))[1])::uuid
+              and role in ('sk_chairperson', 'sk_treasurer', 'sk_kagawad')
+              and is_active
+          )
+        )
       )
     )
   );
@@ -129,7 +162,16 @@ create policy "Editors can delete program media"
       )
       or (
         (storage.foldername(name))[2] = 'sk'
-        and public.is_sk_editor(auth.uid())
+        and (
+          public.is_sk_editor(auth.uid())
+          or exists (
+            select 1 from public.profiles
+            where id = auth.uid()
+              and barangay_id = ((storage.foldername(name))[1])::uuid
+              and role in ('sk_chairperson', 'sk_treasurer', 'sk_kagawad')
+              and is_active
+          )
+        )
       )
     )
   );

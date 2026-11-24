@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useSupabaseTable } from '../../lib/useSupabaseTable';
+import { useSupabaseTable } from '../../hooks/useSupabaseTable';
 import { validateRequired, validateCurrency, validateDateRange, validateMaxLength, runValidators, formatCurrencyInput, finalizeCurrencyInput, parseCurrencyValue } from '../../lib/validation';
 import { isBarangayEditor } from '../../utils/roles';
 import { getRemainingAllocationBudget, validateProgramAllocationBudget } from '../../lib/programBudget';
+import { getDateBasedProgramStatus, getPhilippineDateString } from '../../lib/programStatus';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import Badge from '../../components/ui/Badge';
@@ -539,6 +540,7 @@ export default function ProgramManagement() {
 
         {filteredRows.map((row) => {
           const parsed = parseBeneficiaryData(row);
+          const effectiveStatus = getDateBasedProgramStatus(row, getPhilippineDateString());
           return (
             <div key={row.id} className="card hover:border-slate-200 transition-all space-y-3">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -601,7 +603,7 @@ export default function ProgramManagement() {
                 barangayId={profile?.barangay_id}
                 programId={row.id}
                 programType="barangay"
-                programStatus={row.status}
+                programStatus={effectiveStatus || row.status}
                 programTitle={row.title}
                 canManage={canEdit}
                 uploadedBy={profile?.id}

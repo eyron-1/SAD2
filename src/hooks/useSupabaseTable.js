@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { supabase } from './supabaseClient';
-import { friendlySupabaseError } from './validation';
-import { getDateBasedProgramStatus, getPhilippineDateString } from './programStatus';
+import { supabase } from '../lib/supabaseClient';
+import { friendlySupabaseError } from '../lib/validation';
+import { getDateBasedProgramStatus, getPhilippineDateString } from '../lib/programStatus';
 
 const DATE_TRACKED_PROGRAM_TABLES = new Set(['programs', 'sk_programs']);
 

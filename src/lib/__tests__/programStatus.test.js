@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { getDateBasedProgramStatus, getPhilippineDateString } from './programStatus.js';
+import { getDateBasedProgramStatus, getPhilippineDateString } from '../programStatus.js';
 
 test('planned programs become ongoing on their start date', () => {
   assert.equal(

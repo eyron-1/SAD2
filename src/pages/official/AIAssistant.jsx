@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
-import { useSupabaseTable } from "../../lib/useSupabaseTable";
+import { useSupabaseTable } from "../../hooks/useSupabaseTable";
 import { createAIContext } from "../../lib/aiContext";
 import { requestAIAssistant } from "../../lib/aiAssistant";
 import ErrorBanner from "../../components/ui/ErrorBanner";

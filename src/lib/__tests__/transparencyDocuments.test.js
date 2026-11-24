@@ -4,8 +4,8 @@ import {
   getDocumentExtension,
   getDocumentFileError,
   getDocumentMimeType,
-} from './transparencyDocuments.js';
-import { isSkDocumentEditor } from '../utils/roles.js';
+} from '../transparencyDocuments.js';
+import { isSkDocumentEditor } from '../../utils/roles.js';
 
 test('accepts supported document formats and returns a lowercase extension', () => {
   const supportedFiles = [

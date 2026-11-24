@@ -4,7 +4,7 @@ import {
   getPublicDocumentDownloadUrl,
   getPublicDocumentFileName,
   getPublicDocumentPreviewType,
-} from './publicDocumentPreview.js';
+} from '../publicDocumentPreview.js';
 
 test('identifies image and PDF previews from document metadata or receipt URLs', () => {
   assert.equal(getPublicDocumentPreviewType({ mime_type: 'image/png' }, ''), 'image');
