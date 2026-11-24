@@ -172,6 +172,17 @@ export function runValidators(values, validatorMap) {
 export function friendlySupabaseError(error) {
   if (!error) return '';
   const msg = error.message || '';
+  const code = error.code || '';
+  const authErrorDetails = `${code} ${msg}`;
+  const emailRateLimitError =
+    /email.{0,30}(rate.?limit|too many|exceeded)|(?:rate.?limit|too many|exceeded).{0,30}email|over_email_send_rate_limit/i
+      .test(authErrorDetails);
+  if (emailRateLimitError) {
+    return 'Email limit reached. Wait up to 1 hour, then try again.';
+  }
+  if (isAuthUserNotFoundError(error)) {
+    return 'No account is registered with this email, or the password is incorrect. Check your details or sign up.';
+  }
   if (msg.includes('Cannot allocate funds without a fund source')) {
     return 'Cannot save this allocation because no fund source is recorded for the selected fiscal year.';
   }
@@ -200,9 +211,8 @@ export function friendlySupabaseError(error) {
     return 'Email not confirmed. Please check your email inbox to verify, or turn off "Confirm email" in Supabase Dashboard → Authentication → Providers → Email.';
   }
   if (msg.includes('Invalid login') || msg.includes('invalid_credentials')) {
-    return 'Incorrect email or password. Please verify your login credentials or sign up.';
+    return 'No account is registered with this email, or the password is incorrect. Check your details or sign up.';
   }
-  const code = error.code;
   if (code === '23505') return 'That record already exists.';
   if (code === '23503') return 'This action references a record that no longer exists.';
   if (code === '42501' || msg.includes('row-level security')) {
@@ -215,4 +225,10 @@ export function friendlySupabaseError(error) {
     return 'Network error — check your connection and try again.';
   }
   return msg || 'Something went wrong. Please try again.';
+}
+
+export function isAuthUserNotFoundError(error) {
+  const details = `${error?.code || ''} ${error?.message || ''}`;
+  return /\b(?:user|account|email(?:[_\s-]+address)?)[_\s-]*(?:does[_\s-]*not[_\s-]*exist|not[_\s-]*found)\b/i.test(details) ||
+    /\bno\s+(?:user|account|email)\s+(?:was\s+)?found\b/i.test(details);
 }

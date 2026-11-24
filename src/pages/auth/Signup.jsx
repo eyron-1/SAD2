@@ -6,7 +6,8 @@ import {
   validateEmail, validatePassword, validateName, validateMobile,
   validateRequired, runValidators, friendlySupabaseError,
 } from '../../lib/validation';
-import { ROLES, roleLabel, ROLE_SEAT_LIMITS } from '../../utils/roles';
+import { ROLES, roleLabel, ROLE_SEAT_LIMITS, isSkRole } from '../../utils/roles';
+import { useAuth } from '../../context/AuthContext';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import SystemLogo from '../../components/ui/SystemLogo';
@@ -25,6 +26,7 @@ const EXISTING_BARANGAY_SELF_REGISTERABLE_ROLES = [
 
 export default function Signup() {
   const navigate = useNavigate();
+  const { loadProfile, signOut } = useAuth();
   const [barangays, setBarangays] = useState([]);
   const [tenantMode, setTenantMode] = useState('existing'); // 'existing' | 'new'
   const [selectedProvince, setSelectedProvince] = useState(null);
@@ -137,11 +139,28 @@ export default function Signup() {
         }
       }
 
-      // Sign up FIRST — every insert below is protected by permission rules
-      // that check who's logged in, so they only work once a session exists.
+      const registration = {
+        tenant_mode: tenantMode,
+        full_name: form.full_name.trim(),
+        contact_number: form.contact_number.trim() || null,
+        role: form.role,
+        barangay_id: tenantMode === 'existing' ? barangayId : null,
+        new_barangay_name: tenantMode === 'new' ? form.new_barangay_name.trim() : null,
+        new_barangay_slug: tenantMode === 'new'
+          ? generateSlug(form.new_barangay_name, form.new_barangay_municipality)
+          : null,
+        new_barangay_municipality: tenantMode === 'new' ? form.new_barangay_municipality || null : null,
+        new_barangay_province: tenantMode === 'new' ? form.new_barangay_province || null : null,
+        pending_handover: pendingHandover,
+      };
+
       const { data: authData, error: authErr } = await supabase.auth.signUp({
         email: form.email.trim(),
         password: form.password,
+        options: {
+          data: { signup_registration: registration },
+          emailRedirectTo: `${window.location.origin}/complete-signup`,
+        },
       });
       if (authErr) {
         setSubmitError(friendlySupabaseError(authErr));
@@ -150,61 +169,36 @@ export default function Signup() {
       }
 
       if (!authData.session) {
-        setSubmitError(
-          'Account created, but email confirmation is required. Check your inbox before signing in.'
-        );
+        setSubmitMessage('Account created. Confirm your email using the link we sent; your official profile will be completed after confirmation. Supabase currently allows up to 2 authentication emails per hour, so wait up to 1 hour before requesting another email if you reach the limit.');
         setSubmitting(false);
         return;
       }
 
-      if (tenantMode === 'new') {
-      const { data: newBarangay, error: bErr } = await supabase
-        .from('barangays')
-        .insert([{
-          name: form.new_barangay_name,
-          slug: generateSlug(form.new_barangay_name, form.new_barangay_municipality),
-          municipality: form.new_barangay_municipality || null,
-          province: form.new_barangay_province || null,
-        }])
-        .select()
-        .single();
-      if (bErr) {
-        setSubmitError(friendlySupabaseError(bErr));
+      const { data: profile, error: profileErr } = await supabase.rpc(
+        'complete_official_signup',
+        { p_registration: registration },
+      );
+      if (profileErr) {
+        setSubmitError(friendlySupabaseError(profileErr));
         setSubmitting(false);
         return;
       }
-      barangayId = newBarangay.id;
-      }
-
-      const { error: profileErr } = await supabase.from('profiles').insert([{
-      id: authData.user.id,
-      barangay_id: barangayId,
-      full_name: form.full_name,
-      role: form.role,
-      contact_number: form.contact_number || null,
-      is_active: !pendingHandover,
-    }]);
 
       setSubmitting(false);
-      if (profileErr) {
-        if (profileErr.code === '42501' || profileErr.message?.includes('row-level security')) {
-          setSubmitError(
-            'The database signup permissions are out of date. Ask your administrator to run supabase/migrations/migration_signup_barangay_editors.sql in the Supabase SQL Editor. If this account was already created without a profile, remove that incomplete user from Supabase Authentication > Users before signing up again.'
-          );
-        } else {
-          setSubmitError(friendlySupabaseError(profileErr));
+      if (!profile.is_active) {
+        try {
+          await signOut();
+          setSubmitMessage('Your account is registered as an incoming Captain. It will remain inactive until a current barangay editor records the handover and selects your account. You can sign in after the handover is complete.');
+        } catch (signOutError) {
+          setSubmitError(`Your incoming Captain account was created, but sign-out failed: ${friendlySupabaseError(signOutError)} Sign out manually; the account must remain inactive until a current editor completes the handover.`);
         }
       } else {
-        if (pendingHandover) {
-          const { error: signOutError } = await supabase.auth.signOut();
-          if (signOutError) {
-            setSubmitError(`Your incoming Captain account was created, but sign-out failed: ${friendlySupabaseError(signOutError)} Sign out manually; the account must remain inactive until a current editor completes the handover.`);
-          } else {
-            setSubmitMessage('Your account is registered as an incoming Captain. It will remain inactive until a current barangay editor records the handover and selects your account. You can sign in after the handover is complete.');
-          }
-        } else {
-          navigate('/dashboard');
+        const userProfile = await loadProfile(authData.user.id, true);
+        if (!userProfile) {
+          setSubmitError('Your account was created, but its official profile could not be loaded. Please sign out and sign in again.');
+          return;
         }
+        navigate(isSkRole(userProfile.role) ? '/sk' : '/dashboard', { replace: true });
       }
     } catch (err) {
       setSubmitting(false);

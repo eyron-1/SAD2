@@ -48,7 +48,7 @@ export default function ResetPassword() {
         } else if (data.session) {
           setRecoverySession(true);
         } else {
-          setSubmitError('This password reset link is invalid or has expired. Request a new reset email.');
+          setSubmitError('Reset link expired or invalid. Request a new one.');
         }
       } catch (error) {
         if (active) setSubmitError(friendlySupabaseError(error));
@@ -108,11 +108,11 @@ export default function ResetPassword() {
 
         <section className="card space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-card sm:p-8">
           {checkingSession ? (
-            <p className="text-center text-sm text-slate-500">Checking your reset link…</p>
+            <p className="text-center text-sm text-slate-500">Checking reset link…</p>
           ) : updated ? (
             <div role="status" className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
               <p className="font-semibold">Password updated</p>
-              <p>Your password has been changed. You can now sign in with your new password.</p>
+              <p>Password changed. Sign in with your new password.</p>
               <Link to="/login" className="inline-flex font-semibold text-civic-leaf hover:underline">Go to sign in</Link>
             </div>
           ) : recoverySession ? (
@@ -141,7 +141,7 @@ export default function ResetPassword() {
                 }}
                 error={fieldErrors.confirmPassword}
               />
-              <p className="text-xs text-slate-500">Use at least 8 characters, including uppercase, lowercase, and a number.</p>
+              <p className="text-xs text-slate-500">At least 8 characters, with uppercase, lowercase, and a number.</p>
               <ErrorBanner message={submitError} />
               <button type="submit" disabled={submitting} className="btn-primary w-full py-2.5 text-sm font-semibold shadow-sm">
                 {submitting ? 'Updating password…' : 'Update password'}
@@ -150,7 +150,7 @@ export default function ResetPassword() {
           ) : (
             <div className="space-y-3">
               <ErrorBanner message={submitError} />
-              <Link to="/forgot-password" className="inline-flex font-semibold text-civic-leaf hover:underline">Request a new reset email</Link>
+              <Link to="/forgot-password" className="inline-flex font-semibold text-civic-leaf hover:underline">Get a new reset link</Link>
             </div>
           )}
         </section>

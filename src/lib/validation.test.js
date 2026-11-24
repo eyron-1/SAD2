@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { formatCurrencyInput, finalizeCurrencyInput, parseCurrencyValue, validateCurrency } from './validation.js';
+import {
+  formatCurrencyInput,
+  finalizeCurrencyInput,
+  friendlySupabaseError,
+  isAuthUserNotFoundError,
+  parseCurrencyValue,
+  validateCurrency,
+} from './validation.js';
 import { forecastAnnualSpend, sumAmounts, sumActiveAmounts } from './financial.js';
 
 test('financial totals sum currency in integer cents', () => {
@@ -43,4 +50,18 @@ test('validateCurrency validates formats and rejects negatives or non-numbers', 
   assert.equal(validateCurrency('500'), '');
   assert.notEqual(validateCurrency('abc'), '');
   assert.notEqual(validateCurrency('-50'), '');
+});
+
+test('friendlySupabaseError explains email send rate limits and cooldown', () => {
+  const expected = 'Email limit reached. Wait up to 1 hour, then try again.';
+  assert.equal(friendlySupabaseError({ message: 'Email rate limit exceeded' }), expected);
+  assert.equal(friendlySupabaseError({ code: 'over_email_send_rate_limit', message: 'Too many requests' }), expected);
+});
+
+test('authentication errors do not reveal whether the account exists', () => {
+  const loginMessage = 'No account is registered with this email, or the password is incorrect. Check your details or sign up.';
+  assert.equal(friendlySupabaseError({ code: 'user_not_found', message: 'User not found' }), loginMessage);
+  assert.equal(friendlySupabaseError({ message: 'Email address does not exist' }), loginMessage);
+  assert.equal(isAuthUserNotFoundError({ message: 'User not found' }), true);
+  assert.equal(isAuthUserNotFoundError({ message: 'Invalid password' }), false);
 });

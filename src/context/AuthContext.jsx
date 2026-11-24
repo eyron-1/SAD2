@@ -12,14 +12,18 @@ export function AuthProvider({ children }) {
   const activeUserId = useRef(null);
   const profileRequests = useRef(new Map());
 
-  const loadProfile = useCallback((userId) => {
+  const loadProfile = useCallback((userId, force = false) => {
     if (!userId) {
       setProfile(null);
       return Promise.resolve(null);
     }
 
     const pendingRequest = profileRequests.current.get(userId);
-    if (pendingRequest) return pendingRequest;
+    if (pendingRequest) {
+      return force
+        ? pendingRequest.then(() => loadProfile(userId))
+        : pendingRequest;
+    }
 
     const request = (async () => {
       try {
@@ -140,7 +144,7 @@ export function AuthProvider({ children }) {
     error,
     signOut,
     loadProfile,
-    refreshProfile: () => loadProfile(session?.user?.id),
+    refreshProfile: () => loadProfile(session?.user?.id, true),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

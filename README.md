@@ -48,6 +48,9 @@ The app runs at `http://localhost:5173`.
 For password recovery, add the local and deployed `/reset-password` URLs to
 **Supabase Dashboard → Authentication → URL Configuration → Redirect URLs**.
 The app sends reset emails back to the same origin where the request was made.
+For email confirmation, also add the local and deployed `/complete-signup` URLs.
+The app finishes creating the official profile after the user confirms their email,
+then returns them to the landing page.
 
 ## Upgrade an existing Supabase database
 
@@ -110,6 +113,11 @@ Existing allocations remain intact; select a source when editing them. These che
 To allow self-registration for an unoccupied Barangay Captain, Secretary, or
 Treasurer seat in an existing barangay, run
 `supabase/migrations/migration_signup_barangay_editors.sql`.
+
+To finish official account registration after email confirmation, run
+`supabase/migrations/migration_email_confirmation_signup.sql` after the base schema
+and signup/security migrations. Deploy the updated app and add the local and deployed
+`/complete-signup` URLs to Supabase **Authentication → URL Configuration → Redirect URLs**.
 
 To enable complete officials handovers on an existing database, run
 `supabase/migrations/migration_officials_handover.sql` after the base schema and profile

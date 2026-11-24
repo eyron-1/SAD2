@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabaseClient';
-import { friendlySupabaseError, validateEmail } from '../../lib/validation';
+import {
+  friendlySupabaseError,
+  isAuthUserNotFoundError,
+  validateEmail,
+} from '../../lib/validation';
 import FormField from '../../components/ui/FormField';
 import ErrorBanner from '../../components/ui/ErrorBanner';
 import SystemLogo from '../../components/ui/SystemLogo';
@@ -27,11 +31,19 @@ export default function ForgotPassword() {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) {
+        if (isAuthUserNotFoundError(error)) {
+          setSent(true);
+          return;
+        }
         setSubmitError(friendlySupabaseError(error));
         return;
       }
       setSent(true);
     } catch (error) {
+      if (isAuthUserNotFoundError(error)) {
+        setSent(true);
+        return;
+      }
       setSubmitError(friendlySupabaseError(error));
     } finally {
       setSubmitting(false);
@@ -55,7 +67,7 @@ export default function ForgotPassword() {
           </div>
           <h1 className="font-display text-2xl sm:text-3xl font-bold text-civic-navy">Reset your password</h1>
           <p className="text-slate-500 text-xs sm:text-sm max-w-xs mx-auto leading-relaxed">
-            Enter your account email and we’ll send instructions to reset your password.
+            Enter your email to get a reset link.
           </p>
         </div>
 
@@ -63,7 +75,8 @@ export default function ForgotPassword() {
           {sent ? (
             <div role="status" className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">
               <p className="font-semibold">Check your email</p>
-              <p>If an account matches that email address, password reset instructions have been sent. Check your inbox and spam folder.</p>
+              <p>If your email is registered, the reset link is on its way. Check your inbox and spam.</p>
+              <p>Limit: 2 emails per hour. If reached, wait 1 hour.</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -81,7 +94,7 @@ export default function ForgotPassword() {
               />
               <ErrorBanner message={submitError} />
               <button type="submit" disabled={submitting} className="btn-primary w-full py-2.5 text-sm font-semibold shadow-sm">
-                {submitting ? 'Sending instructions…' : 'Send reset instructions'}
+                {submitting ? 'Sending link…' : 'Send reset link'}
               </button>
             </form>
           )}

@@ -131,6 +131,7 @@ const Login = lazy(() => import("./pages/auth/Login"));
 const Signup = lazy(() => import("./pages/auth/Signup"));
 const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
 const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
+const SignupCompletion = lazy(() => import("./pages/auth/SignupCompletion"));
 
 const Dashboard = lazy(() => import("./pages/official/Dashboard"));
 const BudgetManagement = lazy(
@@ -229,6 +230,7 @@ export default function App() {
             {/* Auth */}
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/complete-signup" element={<SignupCompletion />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
 
