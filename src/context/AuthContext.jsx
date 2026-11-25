@@ -29,7 +29,7 @@ export function AuthProvider({ children }) {
       try {
         const { data, error: profileError } = await supabase
           .from('profiles')
-          .select('*, barangays(name, slug, logo_url, sk_logo_url)')
+          .select('*, barangays(name, slug, logo_url, sk_logo_url, municipality, province)')
           .eq('id', userId)
           .single();
 

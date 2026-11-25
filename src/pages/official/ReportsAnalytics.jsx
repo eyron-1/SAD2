@@ -12,6 +12,7 @@ import {
   BarChart3, Download, PieChart as PieIcon, Landmark, Receipt,
   Percent, FolderKanban, FileSpreadsheet, TrendingUp, TrendingDown,
   Minus, CalendarRange, CheckCircle2, Clock, XCircle, AlertCircle,
+  FileText, Printer, FileDown,
 } from 'lucide-react';
 
 /* ─── Colour palette ───────────────────────────────────────────── */
@@ -121,15 +122,104 @@ export default function ReportsAnalytics() {
     }
     return { ...p, beneficiary_category: sector || 'General Residents' };
   });
+  const orgName = profile?.barangays?.name ? `Barangay ${profile.barangays.name}` : 'Barangay';
+  const periodLabel = fyFilter === 'all' ? 'All Fiscal Years' : `Fiscal Year ${fyFilter}`;
+
+  const defaultSignatories = [
+    { role: 'Prepared by:', name: 'BARANGAY TREASURER', title: 'Custodian of Public Funds' },
+    { role: 'Certified Correct:', name: 'BARANGAY SECRETARY', title: 'Keeper of Official Records' },
+    { role: 'Approved by:', name: 'PUNONG BARANGAY', title: 'Head of Local Government' },
+  ];
+
   const handleExcelExport = (options) => {
     setExportError('');
     import('../../lib/excelExport').then(({ downloadExcel }) => downloadExcel({
       ...options,
-      organization: profile?.barangays?.name || 'Barangay',
-      period: fyFilter === 'all' ? 'All Fiscal Years' : `Fiscal Year ${fyFilter}`,
+      organization: orgName,
+      period: periodLabel,
+      signatories: defaultSignatories,
     })).catch((error) => {
       console.error('Excel report export failed:', error);
       setExportError('Unable to create the Excel file. Please try again.');
+    });
+  };
+
+  const handleWordExport = (options) => {
+    setExportError('');
+    import('../../lib/documentExport').then(({ downloadWordDocument }) => downloadWordDocument({
+      organization: orgName,
+      lguDetails: {
+        barangay: profile?.barangays?.name || '',
+        province: profile?.barangays?.province || '',
+        municipality: profile?.barangays?.municipality || '',
+        office: 'OFFICE OF THE SANGGUNIANG BARANGAY',
+      },
+      period: periodLabel,
+      signatories: defaultSignatories,
+      ...options,
+    })).catch((error) => {
+      console.error('Word report export failed:', error);
+      setExportError('Unable to create the Word Document. Please try again.');
+    });
+  };
+
+  const handleFullWordReport = () => {
+    handleWordExport({
+      filename: `full_audit_report_${fyFilter}.doc`,
+      title: 'ANNUAL FINANCIAL & AUDIT ANALYTICS REPORT',
+      summaryCards: [
+        { label: 'Total Funds Sourced', value: phpFmt(totalFunds), sub: `${periodFunds.length} sources recorded` },
+        { label: 'Total Budget Allocated', value: phpFmt(totalBudget), sub: `${filteredAllocations.length} budget items` },
+        { label: 'Total Expenses Incurred', value: phpFmt(totalExpenses), sub: `${filteredExpenses.length} transactions` },
+        { label: 'Budget Utilization', value: `${utilization.toFixed(1)}%`, sub: `${phpFmt(remaining)} remaining` },
+      ],
+      tables: [
+        {
+          title: 'Budget Allocations',
+          subtitle: 'Detailed appropriations per sector and category',
+          columns: [
+            { key: 'fiscal_year', label: 'Fiscal Year', align: 'center' },
+            { key: 'category', label: 'Category' },
+            { key: 'description', label: 'Description' },
+            { key: 'amount', label: 'Amount', format: 'currency', align: 'right' },
+          ],
+          rows: filteredAllocations,
+        },
+        {
+          title: 'Recorded Expenses',
+          subtitle: 'Actual community and governance expenditures',
+          columns: [
+            { key: 'date_incurred', label: 'Date', align: 'center' },
+            { key: 'category', label: 'Category' },
+            { key: 'status', label: 'Status', align: 'center' },
+            { key: 'amount', label: 'Amount', format: 'currency', align: 'right' },
+          ],
+          rows: filteredExpenses,
+        },
+        {
+          title: 'Fund Sources',
+          subtitle: 'Government subsidies, local revenues, and grants',
+          columns: [
+            { key: 'name', label: 'Fund Name' },
+            { key: 'source_type', label: 'Type' },
+            { key: 'fiscal_year', label: 'Fiscal Year', align: 'center' },
+            { key: 'amount', label: 'Amount', format: 'currency', align: 'right' },
+          ],
+          rows: periodFunds,
+        },
+        {
+          title: 'Programs & Projects Accomplishments',
+          subtitle: 'Community development initiatives and sectors served',
+          columns: [
+            { key: 'title', label: 'Title' },
+            { key: 'category', label: 'Category' },
+            { key: 'status', label: 'Status', align: 'center' },
+            { key: 'beneficiary_category', label: 'Beneficiary Sector' },
+            { key: 'budget_amount', label: 'Budget', format: 'currency', align: 'right' },
+          ],
+          rows: exportPrograms,
+        },
+      ],
     });
   };
 
@@ -196,68 +286,115 @@ export default function ReportsAnalytics() {
   return (
     <div className="report-page space-y-8 max-w-6xl">
 
-      {/* Print-only header — hidden on screen */}
-      <div data-print="show" className="hidden border-b-2 border-civic-navy pb-4 mb-2">
-        <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">
-          {profile?.barangays?.name || 'Barangay'} · Official Report
+      {/* Print-only Official Philippine LGU Header */}
+      <div data-print="show" className="hidden print-official-header">
+        <p className="print-republic">Republic of the Philippines</p>
+        <p className="print-province-city">
+          {profile?.barangays?.province ? `Province of ${profile.barangays.province}` : 'Department of the Interior and Local Government'}
+          {profile?.barangays?.municipality ? ` · ${profile.barangays.municipality}` : ''}
         </p>
-        <h1 className="text-2xl font-bold text-civic-navy">Reports &amp; Financial Analytics</h1>
-        <p className="text-xs text-slate-500 mt-1">
-          Printed on {new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}
-          {fyFilter !== 'all' ? ` · Fiscal Year ${fyFilter}` : ' · All Fiscal Years'}
+        <p className="print-barangay">
+          BARANGAY {profile?.barangays?.name?.toUpperCase() || 'PORTAL'}
         </p>
+        <p className="print-office">OFFICE OF THE SANGGUNIANG BARANGAY</p>
+        <div className="print-title-banner">
+          <h1>ANNUAL FINANCIAL &amp; AUDIT ANALYTICS REPORT</h1>
+        </div>
+        <div className="print-meta-grid">
+          <div><strong>Coverage:</strong> {fyFilter === 'all' ? 'All Fiscal Years' : `Fiscal Year ${fyFilter}`}</div>
+          <div><strong>Generated on:</strong> {new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+          <div><strong>Compliance:</strong> DILG Full Disclosure Policy &amp; Public Transparency</div>
+        </div>
       </div>
 
       <section className="hidden print-report-section print-summary" data-print="show">
         <h2>Executive Summary</h2>
         <div className="print-summary-grid">
           <div><span>Total Funds Sourced</span><strong>{phpFmt(totalFunds)}</strong></div>
-          <div><span>Total Allocated</span><strong>{phpFmt(totalBudget)}</strong></div>
-          <div><span>Total Spent</span><strong>{phpFmt(totalExpenses)}</strong></div>
+          <div><span>Total Budget Allocated</span><strong>{phpFmt(totalBudget)}</strong></div>
+          <div><span>Total Expenses Incurred</span><strong>{phpFmt(totalExpenses)}</strong></div>
           <div><span>Budget Utilization</span><strong>{utilization.toFixed(1)}%</strong></div>
         </div>
       </section>
+
       <ReportPrintTable
         title="Budget Allocations"
         columns={[
-          { key: 'fiscal_year', label: 'Fiscal Year' },
+          { key: 'fiscal_year', label: 'Fiscal Year', align: 'center' },
           { key: 'category', label: 'Category' },
           { key: 'description', label: 'Description' },
-          { key: 'amount', label: 'Allocated Amount', render: phpFmt },
+          { key: 'amount', label: 'Allocated Amount', format: 'currency', align: 'right' },
         ]}
         rows={filteredAllocations}
       />
       <ReportPrintTable
         title="Recorded Expenses"
         columns={[
-          { key: 'date_incurred', label: 'Date' },
+          { key: 'date_incurred', label: 'Date', align: 'center' },
           { key: 'category', label: 'Category' },
-          { key: 'status', label: 'Status' },
-          { key: 'amount', label: 'Amount', render: phpFmt },
+          { key: 'status', label: 'Status', align: 'center' },
+          { key: 'amount', label: 'Amount', format: 'currency', align: 'right' },
         ]}
         rows={filteredExpenses}
       />
       <ReportPrintTable
         title="Fund Sources"
         columns={[
-          { key: 'name', label: 'Source' },
+          { key: 'name', label: 'Fund Name' },
           { key: 'source_type', label: 'Type' },
-          { key: 'fiscal_year', label: 'Fiscal Year' },
-          { key: 'amount', label: 'Amount', render: phpFmt },
+          { key: 'fiscal_year', label: 'Fiscal Year', align: 'center' },
+          { key: 'amount', label: 'Amount', format: 'currency', align: 'right' },
         ]}
         rows={periodFunds}
       />
       <ReportPrintTable
-        title="Programs and Projects"
+        title="Programs &amp; Projects Accomplishments"
         columns={[
-          { key: 'title', label: 'Program' },
+          { key: 'title', label: 'Title' },
           { key: 'category', label: 'Category' },
-          { key: 'status', label: 'Status' },
+          { key: 'status', label: 'Status', align: 'center' },
           { key: 'beneficiary_category', label: 'Beneficiary Sector' },
-          { key: 'budget_amount', label: 'Budget', render: phpFmt },
+          { key: 'budget_amount', label: 'Budget', format: 'currency', align: 'right' },
         ]}
         rows={exportPrograms}
       />
+
+      {/* Print-only Official Signatory Block */}
+      <section data-print="show" className="hidden print-signatories-section">
+        <p className="print-signatories-intro">
+          I hereby certify on official oath that the financial allocations, actual disbursements, fund receipts, and program statuses indicated herein are true, correct, and completely reflected from the official ledgers of Barangay {profile?.barangays?.name || ''}.
+        </p>
+        <div className="print-signatories-grid">
+          <div className="print-signatory-col">
+            <span className="print-sig-role">Prepared by:</span>
+            <div className="print-sig-space" />
+            <div className="print-sig-line">
+              <strong>BARANGAY TREASURER</strong>
+              <span>Custodian of Public Funds</span>
+            </div>
+          </div>
+          <div className="print-signatory-col">
+            <span className="print-sig-role">Certified Correct:</span>
+            <div className="print-sig-space" />
+            <div className="print-sig-line">
+              <strong>BARANGAY SECRETARY</strong>
+              <span>Keeper of Official Records</span>
+            </div>
+          </div>
+          <div className="print-signatory-col">
+            <span className="print-sig-role">Approved by:</span>
+            <div className="print-sig-space" />
+            <div className="print-sig-line">
+              <strong>PUNONG BARANGAY</strong>
+              <span>Head of Local Government</span>
+            </div>
+          </div>
+        </div>
+        <div className="print-footer-notice">
+          <span>Barangay Transparency Portal · Official Public Audit Record</span>
+          <span>In Compliance with DILG &amp; COA Public Disclosure Guidelines</span>
+        </div>
+      </section>
 
       <div data-print="screen">
       {/* Screen-only page header */}
@@ -414,110 +551,229 @@ export default function ReportsAnalytics() {
       </div>
 
       {/* Export panel */}
-      <div data-print="no-print" className="card space-y-5">
+      <div data-print="no-print" className="card space-y-6">
         <div className="flex items-start gap-3 border-b border-slate-100 pb-4">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-civic-navy/5">
-            <FileSpreadsheet className="w-4 h-4 text-civic-navy" />
+            <Download className="w-4 h-4 text-civic-navy" />
           </span>
           <div>
-            <h2 className="text-base font-bold text-civic-navy">Export DILG Audit Data</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Download formatted Excel workbooks or save this report as PDF.</p>
+            <h2 className="text-base font-bold text-civic-navy">Download &amp; Export Audit Reports</h2>
+            <p className="text-xs text-slate-500 mt-0.5">PDF, Word, and Excel exports.</p>
           </div>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {[
-            {
-              label: 'Print / Save PDF',
-              icon: Download,
-              onClick: () => window.print(),
-              desc: 'Full report as a printable PDF',
-            },
-            {
-              label: 'Budget Allocations',
-              icon: Download,
-              desc: 'Fiscal year, category, amount',
-              onClick: () => handleExcelExport({
-                filename: 'budget_allocations.xlsx',
-                title: 'Budget Allocations',
-                summary: `${filteredAllocations.length} allocations  |  Total: ${phpFmt(totalBudget)}`,
-                rows: filteredAllocations,
-                columns: [
-                  { key: 'fiscal_year', label: 'Fiscal Year' },
-                  { key: 'category', label: 'Category' },
-                  { key: 'amount', label: 'Amount', format: 'currency' },
-                  { key: 'description', label: 'Description', width: 40 },
-                ],
-              }),
-            },
-            {
-              label: 'Recorded Expenses',
-              icon: Download,
-              desc: 'Date, category, amount, status',
-              onClick: () => handleExcelExport({
-                filename: 'expenses.xlsx',
-                title: 'Recorded Expenses',
-                summary: `${filteredExpenses.length} expenses  |  Total: ${phpFmt(totalExpenses)}`,
-                rows: filteredExpenses,
-                columns: [
-                  { key: 'date_incurred', label: 'Date' },
-                  { key: 'category', label: 'Category' },
-                  { key: 'amount', label: 'Amount', format: 'currency' },
-                  { key: 'status', label: 'Status' },
-                ],
-              }),
-            },
-            {
-              label: 'Fund Sources',
-              icon: Download,
-              desc: 'Name, type, fiscal year, amount',
-              onClick: () => handleExcelExport({
-                filename: 'fund_sources.xlsx',
-                title: 'Fund Sources',
-                summary: `${periodFunds.length} sources  |  Total: ${phpFmt(totalFunds)}`,
-                rows: periodFunds,
-                columns: [
-                  { key: 'name', label: 'Name', width: 28 },
-                  { key: 'source_type', label: 'Type' },
-                  { key: 'fiscal_year', label: 'Fiscal Year' },
-                  { key: 'amount', label: 'Amount', format: 'currency' },
-                ],
-              }),
-            },
-            {
-              label: 'Programs & Projects',
-              icon: Download,
-              desc: 'Title, status, budget, beneficiaries',
-              onClick: () => handleExcelExport({
-                filename: 'programs.xlsx',
-                title: 'Programs and Projects',
-                rows: exportPrograms,
-                columns: [
-                  { key: 'title', label: 'Title', width: 32 },
-                  { key: 'status', label: 'Status' },
-                  { key: 'category', label: 'Category' },
-                  { key: 'beneficiary_category', label: 'Beneficiary Sector', width: 24 },
-                  { key: 'budget_amount', label: 'Budget', format: 'currency' },
-                  { key: 'beneficiaries_count', label: 'Beneficiaries', format: 'number' },
-                ],
-              }),
-            },
-          ].map(({ label, icon: Icon, desc, onClick }) => (
+        {/* Format category 1: PDF Document */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Printer className="w-3.5 h-3.5 text-rose-600" />
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-600">Official PDF Printout</span>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <button
-              key={label}
-              className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-civic-emerald/40 hover:bg-white hover:shadow-sm active:scale-[0.98]"
-              onClick={onClick}
+              type="button"
+              onClick={() => window.print()}
+              className="flex items-start gap-3 rounded-xl border border-rose-100 bg-rose-50/50 p-4 text-left transition hover:border-rose-300 hover:bg-rose-50 hover:shadow-sm active:scale-[0.98]"
             >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-civic-emerald/10 text-civic-emerald">
-                <Icon className="w-3.5 h-3.5" />
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-rose-100 text-rose-700">
+                <Printer className="w-4 h-4" />
               </span>
               <span className="min-w-0">
-                <span className="block text-sm font-semibold text-civic-navy">{label}</span>
-                <span className="block text-xs text-slate-500 mt-0.5">{desc}</span>
+                <span className="block text-sm font-semibold text-civic-navy">Print / Save as PDF</span>
+                <span className="block text-xs text-slate-500 mt-0.5">Official report with LGU letterhead, KPIs & signatures</span>
               </span>
             </button>
-          ))}
+          </div>
         </div>
+
+        {/* Format category 2: Word Documents */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <FileText className="w-3.5 h-3.5 text-blue-600" />
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-600">Official Word Documents (.doc)</span>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <button
+              type="button"
+              onClick={handleFullWordReport}
+              className="flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50/40 p-4 text-left transition hover:border-blue-300 hover:bg-blue-50 hover:shadow-sm active:scale-[0.98]"
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                <FileText className="w-4 h-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-civic-navy">Full Audit Report (Word Doc)</span>
+                <span className="block text-xs text-slate-500 mt-0.5">Executive summary, ledgers & signature blocks</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleWordExport({
+                filename: `budget_expenses_summary_${fyFilter}.doc`,
+                title: 'BUDGET ALLOCATIONS & EXPENSES REPORT',
+                summaryCards: [
+                  { label: 'Total Allocated', value: phpFmt(totalBudget) },
+                  { label: 'Total Spent', value: phpFmt(totalExpenses) },
+                  { label: 'Utilization', value: `${utilization.toFixed(1)}%` },
+                  { label: 'Remaining', value: phpFmt(remaining) },
+                ],
+                tables: [
+                  {
+                    title: 'Budget Allocations',
+                    columns: [
+                      { key: 'fiscal_year', label: 'Fiscal Year', align: 'center' },
+                      { key: 'category', label: 'Category' },
+                      { key: 'description', label: 'Description' },
+                      { key: 'amount', label: 'Amount', format: 'currency', align: 'right' },
+                    ],
+                    rows: filteredAllocations,
+                  },
+                  {
+                    title: 'Recorded Expenses',
+                    columns: [
+                      { key: 'date_incurred', label: 'Date', align: 'center' },
+                      { key: 'category', label: 'Category' },
+                      { key: 'status', label: 'Status', align: 'center' },
+                      { key: 'amount', label: 'Amount', format: 'currency', align: 'right' },
+                    ],
+                    rows: filteredExpenses,
+                  },
+                ],
+              })}
+              className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-blue-300 hover:bg-white hover:shadow-sm active:scale-[0.98]"
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                <FileDown className="w-4 h-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-civic-navy">Budget &amp; Expenses Doc</span>
+                <span className="block text-xs text-slate-500 mt-0.5">Budget & expenses for council presentations</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleWordExport({
+                filename: `programs_accomplishments_${fyFilter}.doc`,
+                title: 'PROGRAMS & PROJECTS ACCOMPLISHMENT REPORT',
+                tables: [
+                  {
+                    title: 'Community Programs & Beneficiaries',
+                    columns: [
+                      { key: 'title', label: 'Title' },
+                      { key: 'category', label: 'Category' },
+                      { key: 'status', label: 'Status', align: 'center' },
+                      { key: 'beneficiary_category', label: 'Beneficiary Sector' },
+                      { key: 'budget_amount', label: 'Budget', format: 'currency', align: 'right' },
+                      { key: 'beneficiaries_count', label: 'Beneficiaries', format: 'number', align: 'right' },
+                    ],
+                    rows: exportPrograms,
+                  },
+                ],
+              })}
+              className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-blue-300 hover:bg-white hover:shadow-sm active:scale-[0.98]"
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                <FileDown className="w-4 h-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-civic-navy">Programs Accomplishment Doc</span>
+                <span className="block text-xs text-slate-500 mt-0.5">Programs & sector reach for DILG filing</span>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Format category 3: Excel Workbooks */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-600">Formatted Excel Spreadsheets (.xlsx)</span>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {[
+              {
+                label: 'Budget Allocations',
+                desc: 'Fiscal year, category, allocations',
+                onClick: () => handleExcelExport({
+                  filename: 'budget_allocations.xlsx',
+                  title: 'Budget Allocations Report',
+                  summary: `${filteredAllocations.length} allocations  |  Total: ${phpFmt(totalBudget)}`,
+                  rows: filteredAllocations,
+                  columns: [
+                    { key: 'fiscal_year', label: 'Fiscal Year', align: 'center' },
+                    { key: 'category', label: 'Category' },
+                    { key: 'amount', label: 'Amount', format: 'currency' },
+                    { key: 'description', label: 'Description', width: 38 },
+                  ],
+                }),
+              },
+              {
+                label: 'Recorded Expenses',
+                desc: 'Date, category, status, amounts',
+                onClick: () => handleExcelExport({
+                  filename: 'expenses.xlsx',
+                  title: 'Recorded Expenses Report',
+                  summary: `${filteredExpenses.length} transactions  |  Total: ${phpFmt(totalExpenses)}`,
+                  rows: filteredExpenses,
+                  columns: [
+                    { key: 'date_incurred', label: 'Date', align: 'center' },
+                    { key: 'category', label: 'Category' },
+                    { key: 'amount', label: 'Amount', format: 'currency' },
+                    { key: 'status', label: 'Status', align: 'center' },
+                  ],
+                }),
+              },
+              {
+                label: 'Fund Sources',
+                desc: 'Source name, type, fiscal year',
+                onClick: () => handleExcelExport({
+                  filename: 'fund_sources.xlsx',
+                  title: 'Fund Sources Report',
+                  summary: `${periodFunds.length} sources  |  Total: ${phpFmt(totalFunds)}`,
+                  rows: periodFunds,
+                  columns: [
+                    { key: 'name', label: 'Source Name', width: 28 },
+                    { key: 'source_type', label: 'Type' },
+                    { key: 'fiscal_year', label: 'Fiscal Year', align: 'center' },
+                    { key: 'amount', label: 'Amount', format: 'currency' },
+                  ],
+                }),
+              },
+              {
+                label: 'Programs & Projects',
+                desc: 'Title, budget, beneficiaries',
+                onClick: () => handleExcelExport({
+                  filename: 'programs.xlsx',
+                  title: 'Programs & Projects Accomplishment',
+                  rows: exportPrograms,
+                  columns: [
+                    { key: 'title', label: 'Title', width: 30 },
+                    { key: 'status', label: 'Status', align: 'center' },
+                    { key: 'category', label: 'Category' },
+                    { key: 'beneficiary_category', label: 'Beneficiary Sector', width: 22 },
+                    { key: 'budget_amount', label: 'Budget', format: 'currency' },
+                    { key: 'beneficiaries_count', label: 'Beneficiaries', format: 'number' },
+                  ],
+                }),
+              },
+            ].map(({ label, desc, onClick }) => (
+              <button
+                key={label}
+                type="button"
+                className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-left transition hover:border-emerald-300 hover:bg-white hover:shadow-sm active:scale-[0.98]"
+                onClick={onClick}
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-xs font-semibold text-civic-navy">{label}</span>
+                  <span className="block text-[11px] text-slate-500 mt-0.5">{desc}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <ErrorBanner message={exportError} />
       </div>
     </div>

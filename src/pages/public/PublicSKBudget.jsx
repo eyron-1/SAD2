@@ -19,6 +19,8 @@ import {
   Info
 } from 'lucide-react';
 
+const amountInCents = (amount) => Math.round(Number(amount || 0) * 100);
+
 const formatCurrency = (value) =>
   new Intl.NumberFormat('en-PH', {
     style: 'currency',
@@ -97,6 +99,24 @@ export default function PublicSKBudget() {
   const effectiveBudget = totalBudget > 0 ? totalBudget : totalFunds;
   const remaining = effectiveBudget - totalSpent;
   const utilizationRate = effectiveBudget > 0 ? Math.min(100, Math.round((totalSpent / effectiveBudget) * 100)) : 0;
+
+  // Category breakdown: SK Budget vs. Actual Spent
+  const skCategoryBreakdown = useMemo(() => {
+    const map = {};
+    filteredAllocations.forEach((item) => {
+      const cat = item.category || 'General';
+      if (!map[cat]) map[cat] = { category: cat, allocatedCents: 0, spentCents: 0 };
+      map[cat].allocatedCents += amountInCents(item.amount);
+    });
+    filteredExpenses.forEach((item) => {
+      const cat = item.category || 'General';
+      if (!map[cat]) map[cat] = { category: cat, allocatedCents: 0, spentCents: 0 };
+      map[cat].spentCents += amountInCents(item.amount);
+    });
+    return Object.values(map)
+      .map((item) => ({ ...item, allocated: item.allocatedCents / 100, spent: item.spentCents / 100 }))
+      .sort((a, b) => b.allocated - a.allocated);
+  }, [filteredAllocations, filteredExpenses]);
 
   if (loading) {
     return (
@@ -214,6 +234,64 @@ export default function PublicSKBudget() {
           </div>
         </div>
       </section>
+
+      {/* SK Spending by Category (Budget vs. Actual Spent) */}
+      {skCategoryBreakdown.length > 0 && (
+        <section className="bg-white rounded-2xl border border-emerald-100 p-6 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-emerald-100 pb-4">
+            <div>
+              <h2 className="text-lg font-bold text-emerald-950 flex items-center gap-2">
+                <PieChart className="w-5 h-5 text-emerald-600" />
+                SK Spending by Category (Budget vs. Actual Spent)
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Compare allocated budgets against actual disbursements per sector.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            {skCategoryBreakdown.map((item) => {
+              const pct = item.allocated > 0 ? Math.min(100, Math.round((item.spent / item.allocated) * 100)) : 0;
+              const isOver = item.spent > item.allocated && item.allocated > 0;
+              return (
+                <div key={item.category} className="p-4 rounded-xl border border-emerald-100 bg-emerald-50/40 hover:bg-emerald-50/70 transition-colors space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-sm text-emerald-950">{item.category}</span>
+                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isOver ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-800'}`}>
+                      {pct}% Used
+                    </span>
+                  </div>
+
+                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${isOver ? 'bg-rose-500' : pct > 80 ? 'bg-amber-500' : 'bg-emerald-600'}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-slate-600 pt-1">
+                    <div>
+                      <span className="text-slate-400 block text-[10px] uppercase">Allocated</span>
+                      <span className="font-semibold text-slate-800">{formatCurrency(item.allocated)}</span>
+                    </div>
+                    <div className="text-center">
+                      <span className="text-slate-400 block text-[10px] uppercase">Spent</span>
+                      <span className="font-semibold text-slate-800">{formatCurrency(item.spent)}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-slate-400 block text-[10px] uppercase">Remaining</span>
+                      <span className={`font-semibold ${item.allocated - item.spent < 0 ? 'text-rose-600' : 'text-emerald-700'}`}>
+                        {formatCurrency(item.allocated - item.spent)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Records Section with Search and Sub-tabs */}
       <section className="bg-white rounded-2xl border border-emerald-100 shadow-sm overflow-hidden">

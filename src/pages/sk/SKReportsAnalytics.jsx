@@ -12,7 +12,7 @@ import {
   BarChart3, Download, PieChart as PieIcon, Landmark, Receipt,
   Percent, FolderKanban, FileSpreadsheet, TrendingUp, TrendingDown,
   Minus, CalendarRange, CheckCircle2, Clock, XCircle, AlertCircle,
-  Users,
+  Users, FileText, Printer, FileDown,
 } from 'lucide-react';
 
 /* ─── Colour palette ─────────────────────────────────────────────── */
@@ -115,15 +115,117 @@ export default function SKReportsAnalytics() {
   const periodPrograms = fyFilter === 'all'
     ? programs
     : programs.filter((p) => p.start_date?.startsWith(fyFilter) || p.end_date?.startsWith(fyFilter));
+  const orgName = profile?.barangays?.name ? `Barangay ${profile.barangays.name} SK` : 'Sangguniang Kabataan';
+  const periodLabel = fyFilter === 'all' ? 'All Fiscal Years' : `Fiscal Year ${fyFilter}`;
+
+  const defaultSignatories = [
+    { role: 'Prepared by:', name: 'SK TREASURER', title: 'Custodian of SK Youth Funds' },
+    { role: 'Certified Correct:', name: 'SK SECRETARY', title: 'Keeper of SK Minutes & Records' },
+    { role: 'Approved by:', name: 'SANGGUNIANG KABATAAN CHAIRPERSON', title: 'Head of Youth Council' },
+  ];
+
   const handleExcelExport = (options) => {
     setExportError('');
     import('../../lib/excelExport').then(({ downloadExcel }) => downloadExcel({
       ...options,
-      organization: profile?.barangays?.name || 'Barangay',
-      period: fyFilter === 'all' ? 'All Fiscal Years' : `Fiscal Year ${fyFilter}`,
+      organization: orgName,
+      period: periodLabel,
+      signatories: defaultSignatories,
     })).catch((error) => {
       console.error('SK Excel report export failed:', error);
       setExportError('Unable to create the Excel file. Please try again.');
+    });
+  };
+
+  const handleWordExport = (options) => {
+    setExportError('');
+    import('../../lib/documentExport').then(({ downloadWordDocument }) => downloadWordDocument({
+      organization: orgName,
+      lguDetails: {
+        barangay: profile?.barangays?.name || '',
+        province: profile?.barangays?.province || '',
+        municipality: profile?.barangays?.municipality || '',
+        office: 'OFFICE OF THE SANGGUNIANG KABATAAN',
+      },
+      period: periodLabel,
+      signatories: defaultSignatories,
+      ...options,
+    })).catch((error) => {
+      console.error('SK Word report export failed:', error);
+      setExportError('Unable to create the Word Document. Please try again.');
+    });
+  };
+
+  const handleFullWordReport = () => {
+    handleWordExport({
+      filename: `full_sk_audit_report_${fyFilter}.doc`,
+      title: 'SANGGUNIANG KABATAAN FINANCIAL & YOUTH DEVELOPMENT REPORT',
+      summaryCards: [
+        { label: 'SK Funds Sourced', value: phpFmt(totalFunds), sub: `${periodFunds.length} fund sources` },
+        { label: 'SK Budget Allocated', value: phpFmt(totalBudget), sub: `${filteredBudget.length} budget items` },
+        { label: 'SK Total Spent', value: phpFmt(totalExpenses), sub: `${filteredExpenses.length} transactions` },
+        { label: 'Budget Utilization', value: `${utilization.toFixed(1)}%`, sub: `${phpFmt(remaining)} balance` },
+        { label: 'Active KK Members', value: String(activeKK), sub: `${kk.length} total profiled` },
+      ],
+      tables: [
+        {
+          title: 'SK Budget Allocations',
+          subtitle: 'Youth development appropriations per ABYIP sector',
+          columns: [
+            { key: 'fiscal_year', label: 'Fiscal Year', align: 'center' },
+            { key: 'category', label: 'Category' },
+            { key: 'description', label: 'Description' },
+            { key: 'amount', label: 'Amount', format: 'currency', align: 'right' },
+          ],
+          rows: filteredBudget,
+        },
+        {
+          title: 'SK Expenses',
+          subtitle: 'Actual youth program and governance disbursements',
+          columns: [
+            { key: 'date_incurred', label: 'Date', align: 'center' },
+            { key: 'category', label: 'Category' },
+            { key: 'status', label: 'Status', align: 'center' },
+            { key: 'amount', label: 'Amount', format: 'currency', align: 'right' },
+          ],
+          rows: filteredExpenses,
+        },
+        {
+          title: 'SK Fund Sources',
+          subtitle: '10% Barangay youth share and other youth grants',
+          columns: [
+            { key: 'name', label: 'Source Name' },
+            { key: 'source_type', label: 'Type' },
+            { key: 'fiscal_year', label: 'Fiscal Year', align: 'center' },
+            { key: 'amount', label: 'Amount', format: 'currency', align: 'right' },
+          ],
+          rows: periodFunds,
+        },
+        {
+          title: 'SK Youth Programs & Projects',
+          subtitle: 'Accomplishment of youth empowerment and sports initiatives',
+          columns: [
+            { key: 'title', label: 'Title' },
+            { key: 'category', label: 'Category' },
+            { key: 'status', label: 'Status', align: 'center' },
+            { key: 'budget_amount', label: 'Budget', format: 'currency', align: 'right' },
+            { key: 'beneficiaries_count', label: 'Beneficiaries', format: 'number', align: 'right' },
+          ],
+          rows: periodPrograms,
+        },
+        {
+          title: 'Katipunan ng Kabataan (KK) Youth Profiling Registry',
+          subtitle: 'Youth demographic and participation monitoring roster',
+          columns: [
+            { key: 'full_name', label: 'Full Name' },
+            { key: 'age', label: 'Age', format: 'number', align: 'center' },
+            { key: 'participation_status', label: 'Status', align: 'center' },
+            { key: 'address', label: 'Address' },
+            { key: 'contact_number', label: 'Contact Number' },
+          ],
+          rows: kk,
+        },
+      ],
     });
   };
 
@@ -199,21 +301,30 @@ export default function SKReportsAnalytics() {
   return (
     <div className="report-page space-y-8 max-w-6xl">
 
-      {/* Print-only header — hidden on screen */}
-      <div data-print="show" className="hidden border-b-2 border-civic-navy pb-4 mb-2">
-        <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">
-          {profile?.barangays?.name || 'Barangay'} · Sangguniang Kabataan Official Report
+      {/* Print-only Official Philippine LGU Header */}
+      <div data-print="show" className="hidden print-official-header">
+        <p className="print-republic">Republic of the Philippines</p>
+        <p className="print-province-city">
+          {profile?.barangays?.province ? `Province of ${profile.barangays.province}` : 'Department of the Interior and Local Government'}
+          {profile?.barangays?.municipality ? ` · ${profile.barangays.municipality}` : ''}
         </p>
-        <h1 className="text-2xl font-bold text-civic-navy">SK Reports &amp; Analytics</h1>
-        <p className="text-xs text-slate-500 mt-1">
-          Printed on {new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}
-          {fyFilter !== 'all' ? ` · Fiscal Year ${fyFilter}` : ' · All Fiscal Years'}
+        <p className="print-barangay">
+          BARANGAY {profile?.barangays?.name?.toUpperCase() || 'PORTAL'}
         </p>
+        <p className="print-office">OFFICE OF THE SANGGUNIANG KABATAAN</p>
+        <div className="print-title-banner">
+          <h1>SANGGUNIANG KABATAAN FINANCIAL &amp; YOUTH DEVELOPMENT REPORT</h1>
+        </div>
+        <div className="print-meta-grid">
+          <div><strong>Coverage:</strong> {fyFilter === 'all' ? 'All Fiscal Years' : `Fiscal Year ${fyFilter}`}</div>
+          <div><strong>Generated on:</strong> {new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+          <div><strong>Compliance:</strong> SK Reform Act (RA 10742) &amp; DILG-NYC Guidelines</div>
+        </div>
       </div>
 
       <section className="hidden print-report-section print-summary" data-print="show">
-        <h2>Executive Summary</h2>
-        <div className="print-summary-grid">
+        <h2>SK Executive Summary</h2>
+        <div className="print-summary-grid grid-5">
           <div><span>SK Funds Sourced</span><strong>{phpFmt(totalFunds)}</strong></div>
           <div><span>SK Budget Allocated</span><strong>{phpFmt(totalBudget)}</strong></div>
           <div><span>SK Total Spent</span><strong>{phpFmt(totalExpenses)}</strong></div>
@@ -221,47 +332,96 @@ export default function SKReportsAnalytics() {
           <div><span>Active KK Members</span><strong>{activeKK}</strong></div>
         </div>
       </section>
+
       <ReportPrintTable
         title="SK Budget Allocations"
         columns={[
-          { key: 'fiscal_year', label: 'Fiscal Year' },
+          { key: 'fiscal_year', label: 'Fiscal Year', align: 'center' },
           { key: 'category', label: 'Category' },
           { key: 'description', label: 'Description' },
-          { key: 'amount', label: 'Allocated Amount', render: phpFmt },
+          { key: 'amount', label: 'Allocated Amount', format: 'currency', align: 'right' },
         ]}
         rows={filteredBudget}
       />
       <ReportPrintTable
-        title="SK Expenses"
+        title="SK Recorded Expenses"
         columns={[
-          { key: 'date_incurred', label: 'Date' },
+          { key: 'date_incurred', label: 'Date', align: 'center' },
           { key: 'category', label: 'Category' },
-          { key: 'status', label: 'Status' },
-          { key: 'amount', label: 'Amount', render: phpFmt },
+          { key: 'status', label: 'Status', align: 'center' },
+          { key: 'amount', label: 'Amount', format: 'currency', align: 'right' },
         ]}
         rows={filteredExpenses}
       />
       <ReportPrintTable
         title="SK Fund Sources"
         columns={[
-          { key: 'name', label: 'Source' },
+          { key: 'name', label: 'Fund Name' },
           { key: 'source_type', label: 'Type' },
-          { key: 'fiscal_year', label: 'Fiscal Year' },
-          { key: 'amount', label: 'Amount', render: phpFmt },
+          { key: 'fiscal_year', label: 'Fiscal Year', align: 'center' },
+          { key: 'amount', label: 'Amount', format: 'currency', align: 'right' },
         ]}
         rows={periodFunds}
       />
       <ReportPrintTable
-        title="SK Programs and Projects"
+        title="SK Youth Programs &amp; Projects Accomplishments"
         columns={[
-          { key: 'title', label: 'Program' },
+          { key: 'title', label: 'Program Title' },
           { key: 'category', label: 'Category' },
-          { key: 'status', label: 'Status' },
-          { key: 'budget_amount', label: 'Budget', render: phpFmt },
-          { key: 'beneficiaries_count', label: 'Beneficiaries' },
+          { key: 'status', label: 'Status', align: 'center' },
+          { key: 'budget_amount', label: 'Budget', format: 'currency', align: 'right' },
+          { key: 'beneficiaries_count', label: 'Beneficiaries', format: 'number', align: 'right' },
         ]}
         rows={periodPrograms}
       />
+      <ReportPrintTable
+        title="Katipunan ng Kabataan (KK) Registry Summary"
+        columns={[
+          { key: 'full_name', label: 'Full Name' },
+          { key: 'age', label: 'Age', format: 'number', align: 'center' },
+          { key: 'participation_status', label: 'Status', align: 'center' },
+          { key: 'address', label: 'Address' },
+          { key: 'contact_number', label: 'Contact Number' },
+        ]}
+        rows={kk}
+      />
+
+      {/* Print-only Official Signatory Block */}
+      <section data-print="show" className="hidden print-signatories-section">
+        <p className="print-signatories-intro">
+          I hereby certify on official oath that the SK financial allocations, youth development expenditures, fund receipts, and KK participation records shown above are true, accurate, and faithful extracts from the official books of Sangguniang Kabataan ng Barangay {profile?.barangays?.name || ''}.
+        </p>
+        <div className="print-signatories-grid">
+          <div className="print-signatory-col">
+            <span className="print-sig-role">Prepared by:</span>
+            <div className="print-sig-space" />
+            <div className="print-sig-line">
+              <strong>SK TREASURER</strong>
+              <span>Custodian of SK Youth Funds</span>
+            </div>
+          </div>
+          <div className="print-signatory-col">
+            <span className="print-sig-role">Certified Correct:</span>
+            <div className="print-sig-space" />
+            <div className="print-sig-line">
+              <strong>SK SECRETARY</strong>
+              <span>Keeper of SK Minutes &amp; Records</span>
+            </div>
+          </div>
+          <div className="print-signatory-col">
+            <span className="print-sig-role">Approved by:</span>
+            <div className="print-sig-space" />
+            <div className="print-sig-line">
+              <strong>SANGGUNIANG KABATAAN CHAIRPERSON</strong>
+              <span>Head of Youth Council</span>
+            </div>
+          </div>
+        </div>
+        <div className="print-footer-notice">
+          <span>Barangay Transparency Portal · Official Sangguniang Kabataan Public Disclosure Record</span>
+          <span>In Compliance with NYC &amp; DILG Joint Memorandum Circulars</span>
+        </div>
+      </section>
 
       <div data-print="screen">
       {/* Screen-only page header */}
@@ -487,127 +647,248 @@ export default function SKReportsAnalytics() {
       </div>
 
       {/* Export panel */}
-      <div data-print="no-print" className="card space-y-5">
+      <div data-print="no-print" className="card space-y-6">
         <div className="flex items-start gap-3 border-b border-slate-100 pb-4">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-civic-navy/5">
-            <FileSpreadsheet className="w-4 h-4 text-civic-navy" />
+            <Download className="w-4 h-4 text-civic-navy" />
           </span>
           <div>
-            <h2 className="text-base font-bold text-civic-navy">Export SK Audit Data</h2>
-            <p className="text-xs text-slate-500 mt-0.5">Download formatted Excel workbooks or save this report as PDF.</p>
+            <h2 className="text-base font-bold text-civic-navy">Download &amp; Export SK Audit Data</h2>
+            <p className="text-xs text-slate-500 mt-0.5">PDF, Word, and Excel exports.</p>
           </div>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {[
-            {
-              label: 'Print / Save PDF',
-              icon: Download,
-              desc: 'Full SK report as a printable PDF',
-              onClick: () => window.print(),
-            },
-            {
-              label: 'SK Budget Allocations',
-              icon: Download,
-              desc: 'Fiscal year, category, amount',
-              onClick: () => handleExcelExport({
-                filename: 'sk_budget_allocations.xlsx',
-                title: 'SK Budget Allocations',
-                summary: `${filteredBudget.length} allocations  |  Total: ${phpFmt(totalBudget)}`,
-                rows: filteredBudget,
-                columns: [
-                  { key: 'fiscal_year', label: 'Fiscal Year' },
-                  { key: 'category', label: 'Category' },
-                  { key: 'amount', label: 'Amount', format: 'currency' },
-                  { key: 'description', label: 'Description', width: 40 },
-                ],
-              }),
-            },
-            {
-              label: 'SK Expenses',
-              icon: Download,
-              desc: 'Date, category, amount, status',
-              onClick: () => handleExcelExport({
-                filename: 'sk_expenses.xlsx',
-                title: 'SK Expenses',
-                summary: `${filteredExpenses.length} expenses  |  Total: ${phpFmt(totalExpenses)}`,
-                rows: filteredExpenses,
-                columns: [
-                  { key: 'date_incurred', label: 'Date' },
-                  { key: 'category', label: 'Category' },
-                  { key: 'amount', label: 'Amount', format: 'currency' },
-                  { key: 'status', label: 'Status' },
-                ],
-              }),
-            },
-            {
-              label: 'SK Fund Sources',
-              icon: Download,
-              desc: 'Name, type, fiscal year, amount',
-              onClick: () => handleExcelExport({
-                filename: 'sk_fund_sources.xlsx',
-                title: 'SK Fund Sources',
-                summary: `${periodFunds.length} sources  |  Total: ${phpFmt(totalFunds)}`,
-                rows: periodFunds,
-                columns: [
-                  { key: 'name', label: 'Name', width: 28 },
-                  { key: 'source_type', label: 'Type' },
-                  { key: 'fiscal_year', label: 'Fiscal Year' },
-                  { key: 'amount', label: 'Amount', format: 'currency' },
-                ],
-              }),
-            },
-            {
-              label: 'SK Programs & Projects',
-              icon: Download,
-              desc: 'Title, status, budget, beneficiaries',
-              onClick: () => handleExcelExport({
-                filename: 'sk_programs.xlsx',
-                title: 'SK Programs and Projects',
-                rows: periodPrograms,
-                columns: [
-                  { key: 'title', label: 'Title', width: 32 },
-                  { key: 'status', label: 'Status' },
-                  { key: 'category', label: 'Category' },
-                  { key: 'budget_amount', label: 'Budget', format: 'currency' },
-                  { key: 'beneficiaries_count', label: 'Beneficiaries', format: 'number' },
-                ],
-              }),
-            },
-            {
-              label: 'KK Member Profiles',
-              icon: Download,
-              desc: 'Name, age, status, profiling data',
-              onClick: () => handleExcelExport({
-                filename: 'kk_monitoring.xlsx',
-                title: 'KK Member Profiles',
-                summary: `${kk.length} youth profiles`,
-                rows: kk,
-                columns: [
-                  { key: 'full_name', label: 'Full Name', width: 28 },
-                  { key: 'age', label: 'Age', format: 'number' },
-                  { key: 'participation_status', label: 'Status' },
-                  { key: 'address', label: 'Address', width: 36 },
-                  { key: 'contact_number', label: 'Contact', width: 20 },
-                ],
-              }),
-            },
-          ].map(({ label, icon: Icon, desc, onClick }) => (
+        {/* Format category 1: PDF Document */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Printer className="w-3.5 h-3.5 text-rose-600" />
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-600">Official PDF Printout</span>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
             <button
-              key={label}
-              className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-civic-emerald/40 hover:bg-white hover:shadow-sm active:scale-[0.98]"
-              onClick={onClick}
+              type="button"
+              onClick={() => window.print()}
+              className="flex items-start gap-3 rounded-xl border border-rose-100 bg-rose-50/50 p-4 text-left transition hover:border-rose-300 hover:bg-rose-50 hover:shadow-sm active:scale-[0.98]"
             >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-civic-emerald/10 text-civic-emerald">
-                <Icon className="w-3.5 h-3.5" />
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-rose-100 text-rose-700">
+                <Printer className="w-4 h-4" />
               </span>
               <span className="min-w-0">
-                <span className="block text-sm font-semibold text-civic-navy">{label}</span>
-                <span className="block text-xs text-slate-500 mt-0.5">{desc}</span>
+                <span className="block text-sm font-semibold text-civic-navy">Print / Save as PDF</span>
+                <span className="block text-xs text-slate-500 mt-0.5">Official SK report with letterhead, KPIs & signatures</span>
               </span>
             </button>
-          ))}
+          </div>
         </div>
+
+        {/* Format category 2: Word Documents */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <FileText className="w-3.5 h-3.5 text-blue-600" />
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-600">Official Word Documents (.doc)</span>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <button
+              type="button"
+              onClick={handleFullWordReport}
+              className="flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50/40 p-4 text-left transition hover:border-blue-300 hover:bg-blue-50 hover:shadow-sm active:scale-[0.98]"
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                <FileText className="w-4 h-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-civic-navy">Full SK Audit Report (Word Doc)</span>
+                <span className="block text-xs text-slate-500 mt-0.5">Executive summary, youth ledgers & KK roster</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleWordExport({
+                filename: `sk_budget_expenses_summary_${fyFilter}.doc`,
+                title: 'SK BUDGET ALLOCATIONS & EXPENSES REPORT',
+                summaryCards: [
+                  { label: 'SK Allocated', value: phpFmt(totalBudget) },
+                  { label: 'SK Spent', value: phpFmt(totalExpenses) },
+                  { label: 'Utilization', value: `${utilization.toFixed(1)}%` },
+                  { label: 'Remaining', value: phpFmt(remaining) },
+                ],
+                tables: [
+                  {
+                    title: 'SK Budget Allocations',
+                    columns: [
+                      { key: 'fiscal_year', label: 'Fiscal Year', align: 'center' },
+                      { key: 'category', label: 'Category' },
+                      { key: 'description', label: 'Description' },
+                      { key: 'amount', label: 'Amount', format: 'currency', align: 'right' },
+                    ],
+                    rows: filteredBudget,
+                  },
+                  {
+                    title: 'SK Expenses',
+                    columns: [
+                      { key: 'date_incurred', label: 'Date', align: 'center' },
+                      { key: 'category', label: 'Category' },
+                      { key: 'status', label: 'Status', align: 'center' },
+                      { key: 'amount', label: 'Amount', format: 'currency', align: 'right' },
+                    ],
+                    rows: filteredExpenses,
+                  },
+                ],
+              })}
+              className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-blue-300 hover:bg-white hover:shadow-sm active:scale-[0.98]"
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                <FileDown className="w-4 h-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-civic-navy">SK Financial Statement Doc</span>
+                <span className="block text-xs text-slate-500 mt-0.5">SK budget & expenses for council assemblies</span>
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleWordExport({
+                filename: `kk_youth_profiling_${fyFilter}.doc`,
+                title: 'KATIPUNAN NG KABATAAN (KK) YOUTH PROFILING REGISTRY',
+                summaryCards: [
+                  { label: 'Total KK Profiled', value: String(kk.length) },
+                  { label: 'Active Youth', value: String(activeKK) },
+                ],
+                tables: [
+                  {
+                    title: 'KK Member Registry',
+                    columns: [
+                      { key: 'full_name', label: 'Full Name' },
+                      { key: 'age', label: 'Age', format: 'number', align: 'center' },
+                      { key: 'participation_status', label: 'Status', align: 'center' },
+                      { key: 'address', label: 'Address' },
+                      { key: 'contact_number', label: 'Contact Number' },
+                    ],
+                    rows: kk,
+                  },
+                ],
+              })}
+              className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:border-blue-300 hover:bg-white hover:shadow-sm active:scale-[0.98]"
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                <FileDown className="w-4 h-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-civic-navy">KK Profiling Document</span>
+                <span className="block text-xs text-slate-500 mt-0.5">KK membership registry for NYC compliance</span>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        {/* Format category 3: Excel Workbooks */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-600">Formatted Excel Spreadsheets (.xlsx)</span>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {[
+              {
+                label: 'SK Budget Allocations',
+                desc: 'Fiscal year, category, allocations',
+                onClick: () => handleExcelExport({
+                  filename: 'sk_budget_allocations.xlsx',
+                  title: 'SK Budget Allocations Report',
+                  summary: `${filteredBudget.length} allocations  |  Total: ${phpFmt(totalBudget)}`,
+                  rows: filteredBudget,
+                  columns: [
+                    { key: 'fiscal_year', label: 'Fiscal Year', align: 'center' },
+                    { key: 'category', label: 'Category' },
+                    { key: 'amount', label: 'Amount', format: 'currency' },
+                    { key: 'description', label: 'Description', width: 38 },
+                  ],
+                }),
+              },
+              {
+                label: 'SK Expenses',
+                desc: 'Date, category, status, amounts',
+                onClick: () => handleExcelExport({
+                  filename: 'sk_expenses.xlsx',
+                  title: 'SK Recorded Expenses Report',
+                  summary: `${filteredExpenses.length} transactions  |  Total: ${phpFmt(totalExpenses)}`,
+                  rows: filteredExpenses,
+                  columns: [
+                    { key: 'date_incurred', label: 'Date', align: 'center' },
+                    { key: 'category', label: 'Category' },
+                    { key: 'amount', label: 'Amount', format: 'currency' },
+                    { key: 'status', label: 'Status', align: 'center' },
+                  ],
+                }),
+              },
+              {
+                label: 'SK Fund Sources',
+                desc: '10% SK share and youth grants',
+                onClick: () => handleExcelExport({
+                  filename: 'sk_fund_sources.xlsx',
+                  title: 'SK Fund Sources Report',
+                  summary: `${periodFunds.length} sources  |  Total: ${phpFmt(totalFunds)}`,
+                  rows: periodFunds,
+                  columns: [
+                    { key: 'name', label: 'Source Name', width: 28 },
+                    { key: 'source_type', label: 'Type' },
+                    { key: 'fiscal_year', label: 'Fiscal Year', align: 'center' },
+                    { key: 'amount', label: 'Amount', format: 'currency' },
+                  ],
+                }),
+              },
+              {
+                label: 'SK Programs & Projects',
+                desc: 'Title, budget, beneficiaries',
+                onClick: () => handleExcelExport({
+                  filename: 'sk_programs.xlsx',
+                  title: 'SK Programs & Projects Accomplishment',
+                  rows: periodPrograms,
+                  columns: [
+                    { key: 'title', label: 'Title', width: 30 },
+                    { key: 'status', label: 'Status', align: 'center' },
+                    { key: 'category', label: 'Category' },
+                    { key: 'budget_amount', label: 'Budget', format: 'currency' },
+                    { key: 'beneficiaries_count', label: 'Beneficiaries', format: 'number' },
+                  ],
+                }),
+              },
+              {
+                label: 'KK Member Profiles',
+                desc: 'Name, age, status, address',
+                onClick: () => handleExcelExport({
+                  filename: 'kk_monitoring.xlsx',
+                  title: 'KK Member Profiles Registry',
+                  summary: `${kk.length} youth profiles`,
+                  rows: kk,
+                  columns: [
+                    { key: 'full_name', label: 'Full Name', width: 28 },
+                    { key: 'age', label: 'Age', format: 'number', align: 'center' },
+                    { key: 'participation_status', label: 'Status', align: 'center' },
+                    { key: 'address', label: 'Address', width: 36 },
+                    { key: 'contact_number', label: 'Contact', width: 20 },
+                  ],
+                }),
+              },
+            ].map(({ label, desc, onClick }) => (
+              <button
+                key={label}
+                type="button"
+                className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3.5 text-left transition hover:border-emerald-300 hover:bg-white hover:shadow-sm active:scale-[0.98]"
+                onClick={onClick}
+              >
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700">
+                  <FileSpreadsheet className="w-3.5 h-3.5" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-xs font-semibold text-civic-navy">{label}</span>
+                  <span className="block text-[11px] text-slate-500 mt-0.5">{desc}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <ErrorBanner message={exportError} />
       </div>
     </div>

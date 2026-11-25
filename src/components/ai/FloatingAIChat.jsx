@@ -130,7 +130,7 @@ export default function FloatingAIChat() {
     <div
       ref={chatRef}
       style={position ? { right: position.right, bottom: position.bottom } : undefined}
-      className={`fixed z-50 flex flex-col items-end font-body ${
+      className={`floating-ai-chat fixed z-50 flex flex-col items-end font-body ${
         position ? '' : 'bottom-4 right-4 sm:bottom-6 sm:right-6'
       }`}
     >
